@@ -1,0 +1,8 @@
+.git
+.gitignore
+.vscode
+.idea
+AUTO-GARAGE-UI-SUGGESTION
+mobile
+docs
+*.log
