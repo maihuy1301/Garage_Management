@@ -92,8 +92,15 @@ docker compose up --build
 | Container | Service | Host Port | Technology |
 |---|---|---|---|
 | `garage-sqlserver` | SQL Server Database | `1433` | MS SQL Server 2022 (Persistent Volume `garage-sqlserver-data`) |
-| `garage-backend` | Spring Boot API | `8080` | Java 17 / Spring Boot 3.2.5 (`http://localhost:8080/api`) |
-| `garage-frontend` | React SPA | `3001` | Node 20 / React 18 / Vite 5 (`http://localhost:3001/`) |
+| `garage-backend` | Spring Boot API | `8080` | Java 17 / Spring Boot 3.2.5 (`http://localhost:8080/api` & `http://<HOST_IP>:8080/api`) |
+| `garage-frontend` | React SPA | `3001` | Node 20 / React 18 / Vite 5 (`http://localhost:3001/` & `http://<HOST_IP>:3001/`) |
+
+### Multi-Machine LAN Access
+Hỗ trợ truy cập đồng thời từ các máy tính / thiết bị di động khác trong cùng mạng LAN:
+- **Frontend**: `http://<DOCKER_HOST_IP>:3001`
+- **Backend API**: `http://<DOCKER_HOST_IP>:8080/api`
+- **WebSocket**: `ws://<DOCKER_HOST_IP>:8080/ws`
+- Frontend tự động nhận diện hostname/IP của máy Docker Host khi chạy trên browser mà không cần sửa code.
 
 ## 5. Development Test Accounts (Password: `Password123@`)
 | Username | Role | Branch | Records |

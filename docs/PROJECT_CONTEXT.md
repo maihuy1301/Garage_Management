@@ -271,12 +271,12 @@
   - Top Navigation Header with system title, search bar, notification bell with unread dot, and user profile dropdown with logout.
   - Responsive layout with mobile drawer toggle and overlay backdrop.
 
-## 7. Docker Infrastructure Status
+## 7. Docker Infrastructure & LAN Networking Status
 - **Docker Compose**: `docker-compose.yml` defining `garage-frontend` (:3001), `garage-backend` (:8080), `garage-sqlserver` (:1433), connected via `garage-network`.
-- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageSystemDB.sql` + `V01__development_seed.sql` + `V02__restore_original_roles.sql` only on first run if DB does not exist.
-- **Backend Service**: Multi-stage `maven:3.9-eclipse-temurin-17` builder and `eclipse-temurin:17-jre-jammy` runner.
-- **Frontend Service**: `node:20-alpine` running Vite dev server bound to `0.0.0.0:3001`.
-- **Secrets Management**: `.env.example` at root, `.gitignore` preventing `.env` and sensitive build/log files from being committed.
+- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageSystemDB.sql` + `V01__development_seed.sql` + `V02__restore_original_roles.sql` only on first run if DB does not exist. Client devices in LAN do not require local SQL Server.
+- **Backend Service**: Multi-stage `maven:3.9-eclipse-temurin-17` builder and `eclipse-temurin:17-jre-jammy` runner. Configurable `CORS_ALLOWED_ORIGIN_PATTERNS` supporting `*` and LAN host origins.
+- **Frontend Service**: `node:20-alpine` running Vite dev server bound to `0.0.0.0:3001` with dynamic hostname resolution in `env.ts` (`http://<HOST_IP>:8080/api` and `ws://<HOST_IP>:8080/ws`) for cross-device LAN development.
+- **Secrets & Configuration**: `.env.example` at root, `.gitignore` protecting `.env`.
 - **Persistence**: Named volume `garage-sqlserver-data` keeps database changes across container restarts.
 
 ## 8. Nguyên tắc cốt lõi

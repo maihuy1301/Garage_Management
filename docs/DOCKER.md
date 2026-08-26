@@ -155,7 +155,26 @@ docker compose up -d --build frontend
 **Cơ chế**: Compose đã cấu hình `healthcheck` trên SQL Server và `depends_on: { sqlserver: { condition: service_healthy } }` để đảm bảo Backend chỉ start sau khi SQL Server đã sẵn sàng nhận kết nối TCP port 1433.
 
 ### Lỗi 3: WebSocket không kết nối được
-**Hiện tượng**: Trình duyệt báo CORS hoặc WebSocket handshake error từ `http://localhost:3001`.
+**Hiện tượng**: Trình duyệt báo CORS hoặc WebSocket handshake error.
 **Kiểm tra**:
-- Backend đã cho phép origin `http://localhost:3001` và `http://127.0.0.1:3001` trong cả `SecurityConfig.java` và `WebSocketConfig.java`.
+- Backend hỗ trợ dynamic allowed origin patterns qua `CORS_ALLOWED_ORIGIN_PATTERNS` (mặc định `*` cho development) trong cả `SecurityConfig.java` và `WebSocketConfig.java`.
 - STOMP connect header phải truyền đúng token `Authorization: Bearer <JWT_TOKEN>`.
+
+---
+
+## 8. Phát triển nhiều máy trong cùng mạng LAN (Multi-Machine LAN Development)
+
+Hệ thống hỗ trợ phát triển và kiểm thử đồng thời từ nhiều máy tính / thiết bị di động trong cùng mạng LAN mà không cần sửa code hay hard-code IP:
+
+### 8.1. Địa chỉ truy cập từ máy khác trong LAN:
+Giả sử máy chạy Docker có địa chỉ IP LAN là `192.168.1.50` (hoặc hostname LAN):
+- **Frontend SPA**: `http://192.168.1.50:3001`
+- **Backend REST API**: `http://192.168.1.50:8080/api`
+- **WebSocket STOMP**: `ws://192.168.1.50:8080/ws`
+- **SQL Server**: Tiếp tục chạy cô lập trong mạng nội bộ Docker (`garage-sqlserver:1433`) phục vụ Backend. Các máy client trong LAN **không cần cài đặt SQL Server**.
+
+### 8.2. Cơ chế Dynamic Host Resolution:
+- Frontend (`env.ts`) tự động trích xuất `window.location.hostname` tại thời điểm client mở web, tự động định tuyến API và WebSocket đến đúng máy chủ Docker Host (`http://<HOST_IP>:8080/api` và `ws://<HOST_IP>:8080/ws`).
+- Khi chạy trên chính máy host, frontend tự động kết nối qua `localhost` mà không bị xung đột.
+- Backend cấu hình CORS và WebSocket cho phép kết nối linh hoạt theo mẫu `CORS_ALLOWED_ORIGIN_PATTERNS=*` (hoặc tùy biến qua `.env`).
+

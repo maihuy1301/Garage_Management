@@ -2748,4 +2748,47 @@ Remaining issues:
 None
 
 Next task:
-FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
+INFRASTRUCTURE TASK 02 — DOCKER LAN NETWORKING & MULTI-MACHINE DEVELOPMENT
+
+============================================================
+INFRASTRUCTURE TASK 02 — DOCKER LAN NETWORKING & MULTI-MACHINE DEVELOPMENT
+============================================================
+Date: 2026-08-26
+Status: PASS
+
+Architecture & Infrastructure Deliverables:
+- Dynamic LAN Host Resolution (`frontend/src/app/config/env.ts`):
+  * Implemented dynamic resolver inspecting `window.location.hostname` in browser runtime.
+  * Allows any client machine across the LAN accessing `http://<DOCKER_HOST_IP>:3001` to automatically target Backend REST API (`http://<DOCKER_HOST_IP>:8080/api`) and WebSocket STOMP (`ws://<DOCKER_HOST_IP>:8080/ws`) without hardcoding personal host IPs.
+  * Preserves full compatibility with `localhost` on the Docker host machine and explicit environment variable overrides.
+- Backend CORS & WebSocket Origin Patterns:
+  * `SecurityConfig.java`: Configured `setAllowedOriginPatterns` with `@Value("${cors.allowed-origin-patterns:*}")` to support preflight and cross-origin requests from LAN IP addresses and hostnames.
+  * `WebSocketConfig.java`: Configured `registerStompEndpoints` with `setAllowedOriginPatterns` to accept STOMP connections across LAN origins without 403 Forbidden blocking.
+  * `application.properties`: Added `cors.allowed-origin-patterns=${CORS_ALLOWED_ORIGIN_PATTERNS:*}` with fallback default JWT properties.
+- Docker Compose & Environment Variables:
+  * `docker-compose.yml`: Added `CORS_ALLOWED_ORIGIN_PATTERNS` to `backend` service environment.
+  * `vite.config.ts`: Ensured `preview.host: true` and `server.host: true`.
+  * `.env` & `.env.example`: Documented `CORS_ALLOWED_ORIGIN_PATTERNS` and dynamic LAN host behavior.
+  * SQL Server: Retained isolation inside `garage-network` bridge (`garage-sqlserver:1433`), no client machine installation required.
+- Documentation:
+  * Updated `docs/DOCKER.md` with Section 8: Multi-Machine LAN Development guide.
+  * Updated `docs/PROJECT_CONTEXT.md` and `README.md`.
+
+Testing & Validation:
+- Frontend Build: `npm run build` PASS (0 TypeScript errors, 0 build errors).
+- Backend Regression: `mvn test` PASS (374/374 tests pass, 0 failures, 0 errors) including `WebSocketIntegrationTest`.
+- Docker Compose validation: `docker compose config` PASS.
+- Code & Architecture Integrity:
+  * Business logic changed: NO
+  * API response / DTOs changed: NO
+  * Database schema changed: NO
+  * RBAC changed: NO
+  * JWT logic changed: NO
+  * WebSocket business logic changed: NO
+  * Frontend architecture changed: NO
+
+Remaining issues:
+None
+
+Next task:
+FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
