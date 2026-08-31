@@ -47,7 +47,7 @@ AUTO_GARAGE/
 │   ├── service/          # AuthService, UserService, EmployeeService, CustomerService (TASK 06C), VehicleService (TASK 07), AppointmentService (TASK 08), ReceptionService (TASK 09), RepairOrderService (TASK 10), RepairItemService (TASK 11), TechnicianAssignmentService (TASK 12), TechnicianExecutionService (TASK 12 Execution), InventoryService (TASK 13), RepairPartService (TASK 13), QuotationService (TASK 14), InvoiceService (TASK 15), PaymentService (TASK 15), NotificationService (TASK 16), ChatService (TASK 18), ReportService (TASK 19)
 │   └── websocket/        # WebSocketConfig (TASK 17), WebSocketAuthChannelInterceptor (TASK 17), WebSocketEventPublisher (TASK 17)
 ├── frontend/             # React + Vite foundation
-├── mobile/               # Flutter foundation
+├── mobile/               # Flutter customer/technician app foundation
 ├── database/
 │   ├── GarageSystemDB.sql               # SQL Server DDL schema (source of truth)
 │   └── seed/
@@ -76,6 +76,11 @@ AUTO_GARAGE/
   - Web URL: `http://localhost:3001/`
   - Command: `npm run dev` (in `frontend/`)
   - Production Build: `npm run build`
+- **Mobile (Flutter)**:
+  - Khi mở app, splash screen AutoCare dùng ảnh `mobile/asset/screen.png` được hiển thị trong lúc khôi phục session, tối thiểu 1,6 giây.
+  - Android emulator: `flutter run` (in `mobile/`, mặc định gọi `http://10.0.2.2:8080/api`).
+  - Thiết bị thật/iOS/Desktop: `flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api`.
+  - Customer/guest foundation: guest home, JWT login, secure token storage, role routing và protected navigation với `returnTo`.
 
 ## 4.2 Docker Development Environment
 Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).

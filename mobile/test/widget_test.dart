@@ -1,30 +1,27 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:garage_mobile/main.dart';
+import 'package:garage_mobile/features/public/presentation/splash_page.dart';
+import 'package:garage_mobile/shared/widgets/brand_mark.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('hiển thị nhận diện AutoCare', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: BrandMark())),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('AutoCare'), findsOneWidget);
+    expect(find.byIcon(Icons.precision_manufacturing_rounded), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('splash screen sử dụng ảnh nhận diện trong asset', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: SplashPage()));
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byKey(const ValueKey('splash-background')), findsOneWidget);
+    expect(find.text('Đang khởi động...'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 }

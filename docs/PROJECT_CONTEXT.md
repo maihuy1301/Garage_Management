@@ -271,7 +271,19 @@
   - Top Navigation Header with system title, search bar, notification bell with unread dot, and user profile dropdown with logout.
   - Responsive layout with mobile drawer toggle and overlay backdrop.
 
-## 7. Docker Infrastructure Status
+## 7. Mobile App Status
+- **Nền tảng**: Flutter app dùng chung cho `ROLE_CUSTOMER` và `ROLE_TECHNICIAN`, tổ chức theo `app/core/features/shared`.
+- **Foundation đã có**:
+  - AutoCare Material 3 theme theo Deep Blue / Orange design direction.
+  - Splash screen toàn màn hình dùng `mobile/asset/screen.png`, có loading state và thời gian hiển thị tối thiểu 1,6 giây trong lúc khôi phục session.
+  - Guest home không yêu cầu đăng nhập ngay khi mở app.
+  - Đăng nhập thật qua `POST /api/auth/login`, JWT lưu bằng secure storage và kiểm tra session qua `GET /api/auth/me`.
+  - Role đọc từ claim `roles` để điều hướng customer/technician; backend vẫn là authority cho RBAC, branch và ownership.
+  - Các route cá nhân yêu cầu đăng nhập và bảo toàn route đích qua tham số `returnTo`.
+- **API base URL**: mặc định `http://10.0.2.2:8080/api` cho Android emulator; override bằng `--dart-define=API_BASE_URL=...` cho thiết bị/môi trường khác.
+- **Customer feature screens**: appointment, repair tracking, notification và account routes đã có shell/navigation; các module nghiệp vụ ngoài account đang là điểm nối cho phase tiếp theo.
+
+## 8. Docker Infrastructure Status
 - **Docker Compose**: `docker-compose.yml` defining `garage-frontend` (:3001), `garage-backend` (:8080), `garage-sqlserver` (:1433), connected via `garage-network`.
 - **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageSystemDB.sql` + `V01__development_seed.sql` + `V02__restore_original_roles.sql` only on first run if DB does not exist.
 - **Backend Service**: Multi-stage `maven:3.9-eclipse-temurin-17` builder and `eclipse-temurin:17-jre-jammy` runner.
@@ -279,7 +291,7 @@
 - **Secrets Management**: `.env.example` at root, `.gitignore` preventing `.env` and sensitive build/log files from being committed.
 - **Persistence**: Named volume `garage-sqlserver-data` keeps database changes across container restarts.
 
-## 8. Nguyên tắc cốt lõi
+## 9. Nguyên tắc cốt lõi
 - Không triển khai business feature chưa được yêu cầu.
 - Không sửa schema SQL Server nếu chưa được phê duyệt.
 - Backend là authority cuối cùng — không tin role/branch/ownership từ client.

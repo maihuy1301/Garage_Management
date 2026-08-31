@@ -126,7 +126,7 @@ IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'technician2')
 
 INSERT INTO NguoiDung_VaiTro (MaNguoiDung, MaVaiTro)
 SELECT u.MaNguoiDung, r.MaVaiTro FROM NguoiDung u, VaiTro r
-WHERE u.TenDangNhap = 'technician2' AND r.TenVaiTro = 'TECHNICIAN'
+WHERE u.TenDangNhap = 'technician2' AND r.TenVaiTro = 'ROLE_TECHNICIAN'
   AND NOT EXISTS (SELECT 1 FROM NguoiDung_VaiTro WHERE MaNguoiDung = u.MaNguoiDung AND MaVaiTro = r.MaVaiTro);
 
 IF NOT EXISTS (SELECT 1 FROM NhanVien WHERE MaNhanVienCode = 'NV_TEC02')
@@ -148,7 +148,7 @@ IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'customer2')
 
 INSERT INTO NguoiDung_VaiTro (MaNguoiDung, MaVaiTro)
 SELECT u.MaNguoiDung, r.MaVaiTro FROM NguoiDung u, VaiTro r
-WHERE u.TenDangNhap = 'customer2' AND r.TenVaiTro = 'CUSTOMER'
+WHERE u.TenDangNhap = 'customer2' AND r.TenVaiTro = 'ROLE_CUSTOMER'
   AND NOT EXISTS (SELECT 1 FROM NguoiDung_VaiTro WHERE MaNguoiDung = u.MaNguoiDung AND MaVaiTro = r.MaVaiTro);
 
 IF NOT EXISTS (SELECT 1 FROM KhachHang WHERE MaKhachHangCode = 'KH002')
@@ -211,11 +211,11 @@ IF @MaDV1 IS NOT NULL AND @MaChiNhanh1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM
     VALUES (@MaChiNhanh1, @MaDV1, 250000.00, '2026-01-01', 1);
 
 IF @MaDV2 IS NOT NULL AND @MaChiNhanh1 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM GiaDichVuChiNhanh WHERE MaChiNhanh = @MaChiNhanh1 AND MaDichVu = @MaDV2)
-    INSERT INTO GiaDichVuChiNhanh (MaChiNhanh, @MaDV2, DonGia, NgayApDung, TrangThai)
+    INSERT INTO GiaDichVuChiNhanh (MaChiNhanh, MaDichVu, DonGia, NgayApDung, TrangThai)
     VALUES (@MaChiNhanh1, @MaDV2, 350000.00, '2026-01-01', 1);
 
 IF @MaDV1 IS NOT NULL AND @MaChiNhanh2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM GiaDichVuChiNhanh WHERE MaChiNhanh = @MaChiNhanh2 AND MaDichVu = @MaDV1)
-    INSERT INTO GiaDichVuChiNhanh (MaChiNhanh, @MaDV1, DonGia, NgayApDung, TrangThai)
+    INSERT INTO GiaDichVuChiNhanh (MaChiNhanh, MaDichVu, DonGia, NgayApDung, TrangThai)
     VALUES (@MaChiNhanh2, @MaDV1, 260000.00, '2026-01-01', 1);
 GO
 

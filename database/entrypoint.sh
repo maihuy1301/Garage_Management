@@ -8,13 +8,13 @@ MSSQL_PID=$!
 # Function to locate sqlcmd
 find_sqlcmd() {
     if [ -f /opt/mssql-tools18/bin/sqlcmd ]; then
-        echo "/opt/mssql-tools18/bin/sqlcmd -C"
+        echo "/opt/mssql-tools18/bin/sqlcmd -C -b"
     elif [ -f /opt/mssql-tools/bin/sqlcmd ]; then
-        echo "/opt/mssql-tools/bin/sqlcmd"
+        echo "/opt/mssql-tools/bin/sqlcmd -b"
     elif command -v sqlcmd >/dev/null 2>&1; then
-        echo "sqlcmd"
+        echo "sqlcmd -b"
     else
-        echo "sqlcmd"
+        echo "sqlcmd -b"
     fi
 }
 
