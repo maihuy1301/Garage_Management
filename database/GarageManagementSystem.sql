@@ -1,3 +1,7 @@
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
 create database GarageManagementSystem
 go
 use GarageManagementSystem

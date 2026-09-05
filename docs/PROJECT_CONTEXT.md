@@ -209,11 +209,15 @@
 ## 4. Database
 - Schema: `database/GarageManagementSystem.sql` (SQL Server DDL — single source of truth. **KHÔNG sửa nếu chưa được duyệt**).
 - Seed: `database/seed/V01__development_seed.sql`.
-  - 2 branches: `CN001`, `CN002`.
-  - 5 roles: `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `RECEPTIONIST`, `TECHNICIAN`, `CUSTOMER`.
-  - 7 dev accounts (BCrypt `Password123@`): `admin`, `manager` (CN001), `receptionist` (CN001), `technician` (CN001), `manager2` (CN002), `customer` (KH001), `customer2` (KH002).
-  - 2 seed vehicles: `51A-11111` (KH001/customer), `51B-22222` (KH002/customer2).
-  - 2 seed appointments: Appointment 1 (`KH001` - `51A-11111` - `CN001`), Appointment 2 (`KH002` - `51B-22222` - `CN002`).
+  - Bám schema identity hiện tại: `ChiNhanh`, `NhanVien`, `KhachHang` chỉ dùng khóa chính số; seed không dùng các cột code legacy. Chi nhánh được resolve bằng email ổn định, khách hàng/nhân viên qua `NguoiDung.TenDangNhap`.
+  - `DichVu` chứa trực tiếp `MaChiNhanh` và `DonGia`; seed không dùng bảng legacy `GiaDichVuChiNhanh`. `PhuTung` được seed riêng theo từng `MaChiNhanh`.
+  - 2 branches: `Garage Central Chi Nhánh 1`, `Garage Chi Nhánh 2 Bình Thạnh`.
+  - 5 roles: `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_TECHNICIAN`, `ROLE_CUSTOMER`.
+  - 8 dev accounts (BCrypt `Password123@`): `admin`, `manager`, `receptionist`, `technician`, `manager2`, `technician2`, `customer`, `customer2`.
+  - 2 seed vehicles: `51A-11111` (`customer`), `51B-22222` (`customer2`).
+  - 2 seed appointments, 3 branch services, 6 branch parts và 6 inventory rows.
+  - Fresh-schema validation ngày 2026-09-05: schema tạo thành công; seed chạy lặp hai lần không nhân bản dữ liệu; xác nhận `KhachHang.MaKhachHangCode` không tồn tại.
+- Cảnh báo đồng bộ: Docker volume local hiện tại và nhiều mapping/service backend vẫn theo schema legacy (`MaChiNhanhCode`, `MaNhanVienCode`, `GiaDichVuChiNhanh`). Seed nguồn đã theo schema mới nhưng chưa được chạy lên volume legacy; cần migration/backend refactor riêng trước khi thay DB đang dùng.
 
 ## 5. Nhật ký tiến độ
 - **TASK 01** (COMPLETED): Project Foundation.
@@ -285,7 +289,7 @@
   - Đăng nhập thật qua `POST /api/auth/login`, JWT lưu bằng secure storage và kiểm tra session qua `GET /api/auth/me`; cả hai luồng đều lưu trạng thái `hasPin` để chuẩn bị màn PIN sau đăng nhập.
   - Role đọc từ claim `roles` để điều hướng customer/technician; backend vẫn là authority cho RBAC, branch và ownership.
   - Các route cá nhân yêu cầu đăng nhập và bảo toàn route đích qua tham số `returnTo`.
-- **API base URL**: mặc định `http://10.0.2.2:8080/api` cho Android emulator; override bằng `--dart-define=API_BASE_URL=...` cho thiết bị/môi trường khác.
+- **API base URL**: mặc định `http://10.0.2.2:8080/api` cho Android emulator; override bằng `--dart-define=API_BASE_URL=...` cho thiết bị/môi trường khác. Với Android thật qua USB, chạy `adb reverse tcp:8080 tcp:8080` và dùng `http://127.0.0.1:8080/api`.
 - **Customer feature screens**: appointment, repair tracking, notification và account routes đã có shell/navigation; các module nghiệp vụ ngoài account đang là điểm nối cho phase tiếp theo.
 
 ## 8. Docker Infrastructure Status

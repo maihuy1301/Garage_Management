@@ -79,17 +79,10 @@ class AuthRepository {
     } on AuthException {
       rethrow;
     } on DioException catch (error) {
-      final body = error.response?.data;
-      final serverMessage = body is Map<String, dynamic>
-          ? body['message']?.toString()
-          : null;
       if (error.response?.statusCode == 401) {
         throw const AuthException('Tên đăng nhập hoặc mật khẩu không đúng.');
       }
-      throw AuthException(
-        serverMessage ??
-            'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối.',
-      );
+      throw AuthException(_messageFor(error));
     } on FormatException {
       throw const AuthException('Access token từ máy chủ không hợp lệ.');
     }
@@ -126,18 +119,23 @@ class AuthRepository {
     } on AuthException {
       rethrow;
     } on DioException catch (error) {
-      final body = error.response?.data;
-      final serverMessage = body is Map<String, dynamic>
-          ? body['message']?.toString()
-          : null;
-      throw AuthException(
-        serverMessage ??
-            'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối.',
-      );
+      throw AuthException(_messageFor(error));
     }
   }
 
   Future<void> logout() => _sessionStorage.clear();
+
+  String _messageFor(DioException error) {
+    final body = error.response?.data;
+    final serverMessage = body is Map<String, dynamic>
+        ? body['message']?.toString()
+        : null;
+    if (serverMessage != null && serverMessage.isNotEmpty) {
+      return serverMessage;
+    }
+
+    return 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.';
+  }
 
   AuthSession _sessionFromToken(
     String token, {

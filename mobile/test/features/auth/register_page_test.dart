@@ -61,4 +61,40 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('cho phép nhập họ tên tiếng Việt có dấu', (tester) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: authController,
+        child: const MaterialApp(home: RegisterPage()),
+      ),
+    );
+
+    const fullName = 'Nguyễn Văn Huy';
+    await tester.enterText(
+      find.byKey(const ValueKey('register-full-name-field')),
+      fullName,
+    );
+    await tester.pump();
+
+    expect(find.text(fullName), findsOneWidget);
+  });
+
+  testWidgets('ô số điện thoại không nhận ký tự chữ', (tester) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: authController,
+        child: const MaterialApp(home: RegisterPage()),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('register-phone-field')),
+      '09abc123',
+    );
+    await tester.pump();
+
+    expect(find.text('09123'), findsOneWidget);
+    expect(find.text('09abc123'), findsNothing);
+  });
 }

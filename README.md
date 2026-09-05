@@ -51,7 +51,7 @@ AUTO_GARAGE/
 ├── database/
 │   ├── GarageManagementSystem.sql       # SQL Server DDL schema (source of truth)
 │   └── seed/
-│       └── V01__development_seed.sql    # 5 roles, 6 dev accounts, 2 branches (BCrypt)
+│       └── V01__development_seed.sql    # 5 roles, 8 dev accounts, 2 branches (BCrypt)
 └── docs/PROJECT_CONTEXT.md
 ```
 
@@ -80,6 +80,7 @@ AUTO_GARAGE/
   - Khi mở app, splash screen AutoCare dùng ảnh `mobile/asset/screen.png` được hiển thị trong lúc khôi phục session, tối thiểu 1,6 giây.
   - Android emulator: `flutter run` (in `mobile/`, mặc định gọi `http://10.0.2.2:8080/api`).
   - Thiết bị thật/iOS/Desktop: `flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api`.
+  - Thiết bị Android thật qua USB: chạy `adb reverse tcp:8080 tcp:8080`, sau đó `flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8080/api`.
   - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`.
 
 ## 4.2 Docker Development Environment
@@ -103,19 +104,20 @@ docker compose up --build
 ## 5. Development Test Accounts (Password: `Password123@`)
 | Username | Role | Branch | Records |
 |---|---|---|---|
-| `admin` | `SYSTEM_ADMIN` | Global | — |
-| `manager` | `BRANCH_MANAGER` | CN001 | `NhanVien` (NV_MGR01) |
-| `receptionist` | `RECEPTIONIST` | CN001 | `NhanVien` (NV_REC01) |
-| `technician` | `TECHNICIAN` | CN001 | `NhanVien` (NV_TEC01) |
-| `manager2` | `BRANCH_MANAGER` | CN002 | `NhanVien` (NV_MGR02) |
-| `customer` | `CUSTOMER` | — | `KhachHang` (KH001), `Xe` (51A-11111) |
-| `customer2` | `CUSTOMER` | — | `KhachHang` (KH002), `Xe` (51B-22222) |
+| `admin` | `ROLE_ADMIN` | Global | — |
+| `manager` | `ROLE_MANAGER` | Garage Central Chi Nhánh 1 | `NhanVien` |
+| `receptionist` | `ROLE_FRONT_DESK` | Garage Central Chi Nhánh 1 | `NhanVien` |
+| `technician` | `ROLE_TECHNICIAN` | Garage Central Chi Nhánh 1 | `NhanVien` |
+| `manager2` | `ROLE_MANAGER` | Garage Chi Nhánh 2 Bình Thạnh | `NhanVien` |
+| `technician2` | `ROLE_TECHNICIAN` | Garage Chi Nhánh 2 Bình Thạnh | `NhanVien` |
+| `customer` | `ROLE_CUSTOMER` | — | `KhachHang`, `Xe` (51A-11111) |
+| `customer2` | `ROLE_CUSTOMER` | — | `KhachHang`, `Xe` (51B-22222) |
 
 ## 6. Seed Vehicles (TASK 07)
 | Biển số | Owner | Hãng xe | Model | Năm |
 |---|---|---|---|---|
-| `51A-11111` | `customer` (KH001) | Toyota | Camry | 2020 |
-| `51B-22222` | `customer2` (KH002) | Honda | Civic | 2021 |
+| `51A-11111` | `customer` | Toyota | Camry | 2020 |
+| `51B-22222` | `customer2` | Honda | Civic | 2021 |
 
 ## 7. Endpoints
 ### Authentication (`AuthController`)

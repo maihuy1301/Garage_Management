@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -123,11 +124,14 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 34),
                     _RegistrationField(
+                      fieldKey: const ValueKey('register-full-name-field'),
                       controller: _fullNameController,
                       label: 'Họ và tên',
                       hint: 'Nhập họ và tên',
                       icon: Icons.person_outline_rounded,
                       enabled: !auth.isSubmitting,
+                      keyboardType: TextInputType.name,
+                      textCapitalization: TextCapitalization.words,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.name],
                       validator: (value) {
@@ -141,6 +145,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 18),
                     _RegistrationField(
+                      fieldKey: const ValueKey('register-phone-field'),
                       controller: _phoneController,
                       label: 'Số điện thoại',
                       hint: 'Nhập số điện thoại',
@@ -149,6 +154,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.telephoneNumber],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                      ],
                       validator: (value) {
                         final phone = value?.trim() ?? '';
                         if (phone.isEmpty) {
@@ -164,6 +172,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 18),
                     _RegistrationField(
+                      fieldKey: const ValueKey('register-email-field'),
                       controller: _emailController,
                       label: 'Email',
                       optionalLabel: 'Không bắt buộc',
@@ -173,6 +182,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       autofillHints: const [AutofillHints.email],
+                      autocorrect: false,
+                      enableSuggestions: false,
                       validator: (value) {
                         final email = value?.trim() ?? '';
                         if (email.isEmpty) return null;
@@ -187,6 +198,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 18),
                     _RegistrationField(
+                      fieldKey: const ValueKey('register-password-field'),
                       controller: _passwordController,
                       label: 'Mật khẩu',
                       hint: 'Tạo mật khẩu',
@@ -195,6 +207,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
                       autofillHints: const [AutofillHints.newPassword],
+                      autocorrect: false,
+                      enableSuggestions: false,
                       onFieldSubmitted: (_) => _submit(),
                       suffixIcon: IconButton(
                         onPressed: auth.isSubmitting
@@ -342,6 +356,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
 class _RegistrationField extends StatelessWidget {
   const _RegistrationField({
+    this.fieldKey,
     required this.controller,
     required this.label,
     required this.hint,
@@ -350,13 +365,18 @@ class _RegistrationField extends StatelessWidget {
     required this.validator,
     this.optionalLabel,
     this.keyboardType,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
     this.autofillHints,
+    this.autocorrect = true,
+    this.enableSuggestions = true,
     this.obscureText = false,
     this.suffixIcon,
     this.onFieldSubmitted,
   });
 
+  final Key? fieldKey;
   final TextEditingController controller;
   final String label;
   final String? optionalLabel;
@@ -364,8 +384,12 @@ class _RegistrationField extends StatelessWidget {
   final IconData icon;
   final bool enabled;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
   final TextInputAction? textInputAction;
   final Iterable<String>? autofillHints;
+  final bool autocorrect;
+  final bool enableSuggestions;
   final bool obscureText;
   final Widget? suffixIcon;
   final FormFieldValidator<String> validator;
@@ -398,11 +422,16 @@ class _RegistrationField extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         TextFormField(
+          key: fieldKey,
           controller: controller,
           enabled: enabled,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          textCapitalization: textCapitalization,
           textInputAction: textInputAction,
           autofillHints: autofillHints,
+          autocorrect: autocorrect,
+          enableSuggestions: enableSuggestions,
           obscureText: obscureText,
           onFieldSubmitted: onFieldSubmitted,
           decoration: InputDecoration(
