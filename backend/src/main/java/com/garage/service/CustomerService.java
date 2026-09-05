@@ -77,10 +77,6 @@ public class CustomerService {
 
     @Transactional
     public CustomerResponse createCustomer(CreateCustomerRequest request) {
-        if (khachHangRepository.existsByMaKhachHangCode(request.getMaKhachHangCode())) {
-            throw new DuplicateResourceException("Mã khách hàng '" + request.getMaKhachHangCode() + "' đã tồn tại");
-        }
-
         if (khachHangRepository.existsByNguoiDungMaNguoiDung(request.getMaNguoiDung())) {
             throw new DuplicateResourceException("Tài khoản người dùng ID " + request.getMaNguoiDung() + " đã được liên kết với khách hàng khác");
         }
@@ -89,7 +85,6 @@ public class CustomerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với ID: " + request.getMaNguoiDung()));
 
         KhachHang customer = new KhachHang();
-        customer.setMaKhachHangCode(request.getMaKhachHangCode());
         customer.setNguoiDung(user);
         customer.setDiaChi(request.getDiaChi());
         customer.setNgaySinh(request.getNgaySinh());
@@ -204,7 +199,6 @@ public class CustomerService {
 
         return new CustomerResponse(
                 kh.getMaKhachHang(),
-                kh.getMaKhachHangCode(),
                 kh.getDiaChi(),
                 kh.getNgaySinh(),
                 user != null ? user.getMaNguoiDung() : null,

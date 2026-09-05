@@ -1,17 +1,36 @@
-# garage_mobile
+# AutoCare Garage Mobile
 
-A new Flutter project.
+Flutter app dùng chung cho khách hàng và kỹ thuật viên của hệ thống Garage Management.
 
-## Getting Started
+## Foundation hiện tại
 
-This project is a starting point for a Flutter application.
+- Splash screen toàn màn hình dùng ảnh nhận diện `asset/screen.png`, hiển thị trong lúc khôi phục session và tối thiểu 1,6 giây.
+- Guest home theo AutoCare design direction, không bắt đăng nhập khi mở app.
+- Đăng nhập qua backend, lưu JWT bằng `flutter_secure_storage`.
+- Điều hướng theo role `ROLE_CUSTOMER` / `ROLE_TECHNICIAN`.
+- Các màn cá nhân được bảo vệ và quay lại đúng màn ban đầu sau login bằng `returnTo`.
+- Customer bottom navigation: Trang chủ, Đặt lịch, Theo dõi, Thông báo, Tài khoản.
 
-A few resources to get you started if this is your first Flutter project:
+## Chạy ứng dụng
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```powershell
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Mặc định app gọi `http://10.0.2.2:8080/api`, phù hợp với Android emulator khi backend chạy ở máy phát triển.
+
+Với thiết bị thật, iOS simulator hoặc desktop, truyền URL backend có thể truy cập được:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api
+```
+
+HTTP cleartext chỉ được bật trong Android debug manifest. Bản phát hành cần dùng backend HTTPS.
+
+## Kiểm tra
+
+```powershell
+flutter analyze
+flutter test
+```

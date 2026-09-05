@@ -7,14 +7,17 @@ public class LoginResponse {
     private Integer maNguoiDung;
     private String tenDangNhap;
     private String hoTen;
+    private boolean hasPin;
 
     public LoginResponse() {}
 
-    public LoginResponse(String accessToken, Integer maNguoiDung, String tenDangNhap, String hoTen) {
+    public LoginResponse(String accessToken, Integer maNguoiDung, String tenDangNhap, String hoTen,
+                         boolean hasPin) {
         this.accessToken = accessToken;
         this.maNguoiDung = maNguoiDung;
         this.tenDangNhap = tenDangNhap;
         this.hoTen = hoTen;
+        this.hasPin = hasPin;
     }
 
     public String getAccessToken() {
@@ -55,5 +58,13 @@ public class LoginResponse {
 
     public void setHoTen(String hoTen) {
         this.hoTen = hoTen;
+    }
+
+    public boolean isHasPin() {
+        return hasPin;
+    }
+
+    public void setHasPin(boolean hasPin) {
+        this.hasPin = hasPin;
     }
 }

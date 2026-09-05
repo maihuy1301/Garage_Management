@@ -47,11 +47,11 @@ AUTO_GARAGE/
 │   ├── service/          # AuthService, UserService, EmployeeService, CustomerService (TASK 06C), VehicleService (TASK 07), AppointmentService (TASK 08), ReceptionService (TASK 09), RepairOrderService (TASK 10), RepairItemService (TASK 11), TechnicianAssignmentService (TASK 12), TechnicianExecutionService (TASK 12 Execution), InventoryService (TASK 13), RepairPartService (TASK 13), QuotationService (TASK 14), InvoiceService (TASK 15), PaymentService (TASK 15), NotificationService (TASK 16), ChatService (TASK 18), ReportService (TASK 19)
 │   └── websocket/        # WebSocketConfig (TASK 17), WebSocketAuthChannelInterceptor (TASK 17), WebSocketEventPublisher (TASK 17)
 ├── frontend/             # React + Vite foundation
-├── mobile/               # Flutter foundation
+├── mobile/               # Flutter customer/technician app foundation
 ├── database/
-│   ├── GarageSystemDB.sql               # SQL Server DDL schema (source of truth)
+│   ├── GarageManagementSystem.sql       # SQL Server DDL schema (source of truth)
 │   └── seed/
-│       └── V01__development_seed.sql    # 5 roles, 6 dev accounts, 2 branches (BCrypt)
+│       └── V01__development_seed.sql    # 5 roles, 8 dev accounts, 2 branches (BCrypt)
 └── docs/PROJECT_CONTEXT.md
 ```
 
@@ -76,6 +76,12 @@ AUTO_GARAGE/
   - Web URL: `http://localhost:3001/`
   - Command: `npm run dev` (in `frontend/`)
   - Production Build: `npm run build`
+- **Mobile (Flutter)**:
+  - Khi mở app, splash screen AutoCare dùng ảnh `mobile/asset/screen.png` được hiển thị trong lúc khôi phục session, tối thiểu 1,6 giây.
+  - Android emulator: `flutter run` (in `mobile/`, mặc định gọi `http://10.0.2.2:8080/api`).
+  - Thiết bị thật/iOS/Desktop: `flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api`.
+  - Thiết bị Android thật qua USB: chạy `adb reverse tcp:8080 tcp:8080`, sau đó `flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8080/api`.
+  - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`.
 
 ## 4.2 Docker Development Environment
 Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).
@@ -105,21 +111,29 @@ Hỗ trợ truy cập đồng thời từ các máy tính / thiết bị di đ�
 ## 5. Development Test Accounts (Password: `Password123@`)
 | Username | Role | Branch | Records |
 |---|---|---|---|
-| `admin` | `SYSTEM_ADMIN` | Global | — |
-| `manager` | `BRANCH_MANAGER` | CN001 | `NhanVien` (NV_MGR01) |
-| `receptionist` | `RECEPTIONIST` | CN001 | `NhanVien` (NV_REC01) |
-| `technician` | `TECHNICIAN` | CN001 | `NhanVien` (NV_TEC01) |
-| `manager2` | `BRANCH_MANAGER` | CN002 | `NhanVien` (NV_MGR02) |
-| `customer` | `CUSTOMER` | — | `KhachHang` (KH001), `Xe` (51A-11111) |
-| `customer2` | `CUSTOMER` | — | `KhachHang` (KH002), `Xe` (51B-22222) |
+| `admin` | `ROLE_ADMIN` | Global | — |
+| `manager` | `ROLE_MANAGER` | Garage Central Chi Nhánh 1 | `NhanVien` |
+| `receptionist` | `ROLE_FRONT_DESK` | Garage Central Chi Nhánh 1 | `NhanVien` |
+| `technician` | `ROLE_TECHNICIAN` | Garage Central Chi Nhánh 1 | `NhanVien` |
+| `manager2` | `ROLE_MANAGER` | Garage Chi Nhánh 2 Bình Thạnh | `NhanVien` |
+| `technician2` | `ROLE_TECHNICIAN` | Garage Chi Nhánh 2 Bình Thạnh | `NhanVien` |
+| `customer` | `ROLE_CUSTOMER` | — | `KhachHang`, `Xe` (51A-11111) |
+| `customer2` | `ROLE_CUSTOMER` | — | `KhachHang`, `Xe` (51B-22222) |
 
 ## 6. Seed Vehicles (TASK 07)
 | Biển số | Owner | Hãng xe | Model | Năm |
 |---|---|---|---|---|
-| `51A-11111` | `customer` (KH001) | Toyota | Camry | 2020 |
-| `51B-22222` | `customer2` (KH002) | Honda | Civic | 2021 |
+| `51A-11111` | `customer` | Toyota | Camry | 2020 |
+| `51B-22222` | `customer2` | Honda | Civic | 2021 |
 
 ## 7. Endpoints
+### Authentication (`AuthController`)
+| Method | Endpoint | Description | Permission |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Đăng ký khách hàng bằng số điện thoại; tạo transaction `NguoiDung` + `ROLE_CUSTOMER` + `KhachHang`, BCrypt hash mật khẩu; không dùng `MaKhachHangCode` trong schema mới | Public |
+| `POST` | `/api/auth/login` | Đăng nhập bằng số điện thoại/tên đăng nhập hoặc email và mật khẩu; trả thêm `hasPin` để mobile biết có cần màn nhập PIN không | Public |
+| `GET` | `/api/auth/me` | Lấy thông tin người dùng hiện tại, gồm trạng thái `hasPin` | Authenticated |
+
 ### Branch Master Data (`BranchController`)
 | Method | Endpoint | Description | Permission |
 |---|---|---|---|
@@ -295,7 +309,7 @@ Hỗ trợ truy cập đồng thời từ các máy tính / thiết bị di đ�
 | 401 Unauthorized | Chưa đăng nhập / JWT không hợp lệ / hết hạn |
 | 403 Forbidden | Đã đăng nhập nhưng không đủ quyền vai trò, sai chi nhánh, hoặc truy cập trái phép profile khách hàng khác |
 | 404 Not Found | Tài nguyên không tồn tại |
-| 409 Conflict | Mã khách hàng, mã nhân viên, tên đăng nhập hoặc email đã tồn tại |
+| 409 Conflict | Mã nhân viên, tên đăng nhập hoặc email đã tồn tại |
 
 ## 8. Completed Tasks
 - **TASK 01**: Project Foundation — PASS
@@ -326,6 +340,7 @@ Hỗ trợ truy cập đồng thời từ các máy tính / thiết bị di đ�
 - **FRONTEND TASK 03**: Dashboard & Real Data Integration (Role-Specific Dashboards for Admin, Manager, Receptionist, Technician, Customer; Live Backend Reports API `/api/reports/*`, Vehicles `/api/vehicles`, Appointments `/api/appointments`) — PASS
 - **FRONTEND TASK 05**: User / Employee / Customer Management (Employee List/Detail/Form/Status, Customer List/Detail/Form/Status/Vehicles, User List/Detail/Form/Status, RoleGuards for `/app/employees`, `/app/customers`, `/app/users`) — PASS
 - **FRONTEND TASK 06**: Vehicle Management (Vehicle List/Detail/Form/Delete, Customer Ownership Protection, License Plate/VIN validation, RoleGuards for `/app/vehicles` for `ROLE_ADMIN` & `ROLE_CUSTOMER`) — PASS
+- **MOBILE CUSTOMER REGISTRATION & LOGIN PIN STATE**: Public registration UI, phone-as-username contract, transactional customer account creation without `MaKhachHangCode`, fixed `ROLE_CUSTOMER`, BCrypt password hashing, login/session exposes `hasPin` from `NguoiDung.MaPinHash` — PASS (87 targeted backend tests, backend compile, 6 Flutter tests, Flutter analyze clean)
 - **INFRASTRUCTURE TASK 01**: Docker Development Environment (Docker Compose, Multi-stage Backend Dockerfile, React/Vite Frontend Dockerfile, MSSQL Container with Auto-Init & Named Volume Persistence, Zero Source Code Regressions) — PASS (374/374 backend tests, 0 build errors)
 
 ## 9. Next Step

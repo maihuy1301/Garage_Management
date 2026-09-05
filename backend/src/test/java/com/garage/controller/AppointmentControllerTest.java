@@ -75,7 +75,7 @@ class AppointmentControllerTest {
 
     private AppointmentResponse sampleAppointment(Integer id, Integer customerId, Integer branchId, String status) {
         return new AppointmentResponse(
-                id, customerId, "KH00" + customerId, "Khách Hàng " + customerId, "090000000" + customerId,
+                id, customerId, "Khách Hàng " + customerId, "090000000" + customerId,
                 100, "51A-11111", "Toyota", "Camry",
                 branchId, "CN00" + branchId, "Chi Nhánh " + branchId,
                 LocalDateTime.now().plusDays(1), status, "Ghi chú test", LocalDateTime.now()

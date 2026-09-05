@@ -198,14 +198,12 @@ public class ReceptionService {
         NhanVien nv = slip.getNhanVienTiepNhan();
 
         Integer maKhachHang = null;
-        String maKhachHangCode = null;
         String tenKhachHang = null;
         String soDienThoaiKhachHang = null;
 
         if (xe != null && xe.getKhachHang() != null) {
             KhachHang kh = xe.getKhachHang();
             maKhachHang = kh.getMaKhachHang();
-            maKhachHangCode = kh.getMaKhachHangCode();
             if (kh.getNguoiDung() != null) {
                 tenKhachHang = kh.getNguoiDung().getHoTen();
                 soDienThoaiKhachHang = kh.getNguoiDung().getSoDienThoai();
@@ -220,7 +218,6 @@ public class ReceptionService {
                 xe != null ? xe.getHangXe() : null,
                 xe != null ? xe.getModel() : null,
                 maKhachHang,
-                maKhachHangCode,
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 cn != null ? cn.getMaChiNhanh() : null,

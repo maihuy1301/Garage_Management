@@ -17,7 +17,6 @@ public class RepairOrderResponse {
     private String modelXe;
 
     private Integer maKhachHang;
-    private String maKhachHangCode;
     private String tenKhachHang;
     private String soDienThoaiKhachHang;
 
@@ -34,7 +33,7 @@ public class RepairOrderResponse {
 
     public RepairOrderResponse(Integer maPhieuSuaChua, Integer maTiepNhan, Integer maDatLich,
                                Integer maXe, String bienSoXe, String hangXe, String modelXe,
-                               Integer maKhachHang, String maKhachHangCode, String tenKhachHang, String soDienThoaiKhachHang,
+                               Integer maKhachHang, String tenKhachHang, String soDienThoaiKhachHang,
                                Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
                                LocalDateTime thoiGianBatDau, LocalDateTime thoiGianHoanTat,
                                String trangThai, String ghiChu) {
@@ -46,7 +45,6 @@ public class RepairOrderResponse {
         this.hangXe = hangXe;
         this.modelXe = modelXe;
         this.maKhachHang = maKhachHang;
-        this.maKhachHangCode = maKhachHangCode;
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
         this.maChiNhanh = maChiNhanh;
@@ -81,9 +79,6 @@ public class RepairOrderResponse {
 
     public Integer getMaKhachHang() { return maKhachHang; }
     public void setMaKhachHang(Integer maKhachHang) { this.maKhachHang = maKhachHang; }
-
-    public String getMaKhachHangCode() { return maKhachHangCode; }
-    public void setMaKhachHangCode(String maKhachHangCode) { this.maKhachHangCode = maKhachHangCode; }
 
     public String getTenKhachHang() { return tenKhachHang; }
     public void setTenKhachHang(String tenKhachHang) { this.tenKhachHang = tenKhachHang; }

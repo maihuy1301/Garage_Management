@@ -9,7 +9,5 @@ import java.util.Optional;
 @Repository
 public interface KhachHangRepository extends JpaRepository<KhachHang, Integer> {
     Optional<KhachHang> findByNguoiDungMaNguoiDung(Integer maNguoiDung);
-    Optional<KhachHang> findByMaKhachHangCode(String maKhachHangCode);
-    boolean existsByMaKhachHangCode(String maKhachHangCode);
     boolean existsByNguoiDungMaNguoiDung(Integer maNguoiDung);
 }

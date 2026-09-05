@@ -93,7 +93,6 @@ class QuotationServiceTest {
 
         customer1 = new KhachHang();
         customer1.setMaKhachHang(1);
-        customer1.setMaKhachHangCode("KH001");
         customer1.setNguoiDung(userCustomer1);
 
         vehicle1 = new Xe();

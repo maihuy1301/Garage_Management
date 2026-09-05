@@ -76,7 +76,7 @@ class RepairOrderControllerTest {
         return new RepairOrderResponse(
                 id, receptionId, 1001,
                 100, "51A-11111", "Toyota", "Camry",
-                1, "KH001", "Phạm Văn Khách Hàng", "0900000005",
+                1, "Phạm Văn Khách Hàng", "0900000005",
                 branchId, "CN00" + branchId, "Chi Nhánh " + branchId,
                 LocalDateTime.now(), null, "CHO_XU_LY", "Kiểm tra động cơ"
         );

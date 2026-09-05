@@ -13,8 +13,9 @@
 ## 2. Backend Module Status
 - Framework: Spring Boot 3.2.5, Java 17.
 - **Authentication**: Stateless JWT (JJWT 0.12.5), BCryptPasswordEncoder.
-  - `POST /api/auth/login` → xác thực `tenDangNhap/email` + BCrypt + `trangThai`. Trả JWT với `roles` claim.
-  - `GET /api/auth/me` → trả thông tin user hiện tại.
+  - `POST /api/auth/register` → public customer registration. Số điện thoại được dùng làm `NguoiDung.TenDangNhap`; backend cố định `ROLE_CUSTOMER`, BCrypt hash mật khẩu và tạo `NguoiDung` + `NguoiDung_VaiTro` + `KhachHang` trong cùng transaction. DTO không nhận role/branch và response không chứa mật khẩu/hash; schema mới không dùng `MaKhachHangCode`.
+  - `POST /api/auth/login` → xác thực `tenDangNhap/email` + BCrypt + `trangThai`. Trả JWT với `roles` claim và `hasPin` dựa trên `NguoiDung.MaPinHash`.
+  - `GET /api/auth/me` → trả thông tin user hiện tại và `hasPin`.
 - **Authorization (RBAC)**: `@EnableMethodSecurity`, `@PreAuthorize("hasRole('...')")`.
   - Convention: `ROLE_SYSTEM_ADMIN`, `ROLE_BRANCH_MANAGER`, `ROLE_RECEPTIONIST`, `ROLE_TECHNICIAN`, `ROLE_CUSTOMER`.
   - Role source: `NguoiDung → NguoiDung_VaiTro → VaiTro` (DB only, never client).
@@ -183,6 +184,7 @@
   - Customer Ownership: CUSTOMER chỉ được xem/sửa profile của chính mình qua `JWT → NguoiDung → KhachHang`. Cố ý truy cập profile khách hàng khác bị trả về 403 Forbidden.
   - DTOs: `CustomerResponse`, `CreateCustomerRequest`, `UpdateCustomerRequest`, `UpdateCustomerStatusRequest`.
   - Relationship: `NguoiDung (1-1) KhachHang`.
+  - Schema hiện tại không có `MaKhachHangCode`; backend customer/vehicle/appointment/reception/repair-order response dùng `maKhachHang` làm định danh khách hàng.
 - **Test suite**: `mvn test` → **76/76 tests PASS**.
 
 ## 3. Repositories
@@ -193,7 +195,7 @@
 | `VaiTroRepository` | `VaiTro` | `findByTenVaiTro` |
 | `ChiNhanhRepository` | `ChiNhanh` | `findByMaChiNhanhCode` |
 | `NhanVienRepository` | `NhanVien` | `findByNguoiDungMaNguoiDung`, `findByMaNhanVienCode`, `findByChiNhanhMaChiNhanh`, `existsByMaNhanVienCode`, `existsByNguoiDungMaNguoiDung` |
-| `KhachHangRepository` | `KhachHang` | `findByNguoiDungMaNguoiDung`, `findByMaKhachHangCode`, `existsByMaKhachHangCode`, `existsByNguoiDungMaNguoiDung` |
+| `KhachHangRepository` | `KhachHang` | `findByNguoiDungMaNguoiDung`, `existsByNguoiDungMaNguoiDung` |
 | `XeRepository` | `Xe` | `findByKhachHangMaKhachHang`, `findByMaXeAndKhachHangMaKhachHang`, `existsByBienSo`, `existsBySoVIN` |
 | `DatLichRepository` | `DatLich` | `findByKhachHangMaKhachHang`, `findByChiNhanhMaChiNhanh`, `findByMaDatLichAndKhachHangMaKhachHang`, `existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn` |
 | `PhieuTiepNhanRepository` | `PhieuTiepNhan` | `findByChiNhanhMaChiNhanh`, `findByXeMaXe`, `existsByDatLichMaDatLich`, `findByDatLichMaDatLich` |
@@ -205,13 +207,17 @@
 | `GiaDichVuChiNhanhRepository` | `GiaDichVuChiNhanh` | `findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue` |
 
 ## 4. Database
-- Schema: `database/GarageSystemDB.sql` (32+ tables — single source of truth. **KHÔNG sửa**).
+- Schema: `database/GarageManagementSystem.sql` (SQL Server DDL — single source of truth. **KHÔNG sửa nếu chưa được duyệt**).
 - Seed: `database/seed/V01__development_seed.sql`.
-  - 2 branches: `CN001`, `CN002`.
-  - 5 roles: `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `RECEPTIONIST`, `TECHNICIAN`, `CUSTOMER`.
-  - 7 dev accounts (BCrypt `Password123@`): `admin`, `manager` (CN001), `receptionist` (CN001), `technician` (CN001), `manager2` (CN002), `customer` (KH001), `customer2` (KH002).
-  - 2 seed vehicles: `51A-11111` (KH001/customer), `51B-22222` (KH002/customer2).
-  - 2 seed appointments: Appointment 1 (`KH001` - `51A-11111` - `CN001`), Appointment 2 (`KH002` - `51B-22222` - `CN002`).
+  - Bám schema identity hiện tại: `ChiNhanh`, `NhanVien`, `KhachHang` chỉ dùng khóa chính số; seed không dùng các cột code legacy. Chi nhánh được resolve bằng email ổn định, khách hàng/nhân viên qua `NguoiDung.TenDangNhap`.
+  - `DichVu` chứa trực tiếp `MaChiNhanh` và `DonGia`; seed không dùng bảng legacy `GiaDichVuChiNhanh`. `PhuTung` được seed riêng theo từng `MaChiNhanh`.
+  - 2 branches: `Garage Central Chi Nhánh 1`, `Garage Chi Nhánh 2 Bình Thạnh`.
+  - 5 roles: `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_TECHNICIAN`, `ROLE_CUSTOMER`.
+  - 8 dev accounts (BCrypt `Password123@`): `admin`, `manager`, `receptionist`, `technician`, `manager2`, `technician2`, `customer`, `customer2`.
+  - 2 seed vehicles: `51A-11111` (`customer`), `51B-22222` (`customer2`).
+  - 2 seed appointments, 3 branch services, 6 branch parts và 6 inventory rows.
+  - Fresh-schema validation ngày 2026-09-05: schema tạo thành công; seed chạy lặp hai lần không nhân bản dữ liệu; xác nhận `KhachHang.MaKhachHangCode` không tồn tại.
+- Cảnh báo đồng bộ: Docker volume local hiện tại và nhiều mapping/service backend vẫn theo schema legacy (`MaChiNhanhCode`, `MaNhanVienCode`, `GiaDichVuChiNhanh`). Seed nguồn đã theo schema mới nhưng chưa được chạy lên volume legacy; cần migration/backend refactor riêng trước khi thay DB đang dùng.
 
 ## 5. Nhật ký tiến độ
 - **TASK 01** (COMPLETED): Project Foundation.
@@ -243,6 +249,7 @@
 - **FRONTEND TASK 05** (COMPLETED): User / Employee / Customer Management (Full CRUD interfaces, dynamic filters, detail & form modals, status toggles, branch constraints, RoleGuard protection for `/app/employees`, `/app/customers`, `/app/users`) — PASS.
 - **FRONTEND TASK 06** (COMPLETED): Vehicle Management (Full CRUD interfaces, customer ownership isolation, license plate & VIN validation, detail & form & delete modals, RoleGuard protection for `/app/vehicles` for `ROLE_ADMIN` & `ROLE_CUSTOMER`) — PASS.
 - **INFRASTRUCTURE TASK 01** (COMPLETED): Docker Development Environment (Docker Compose orchestration, multi-stage Spring Boot Dockerfile, React/Vite dev Dockerfile, MS SQL Server 2022 container with automatic DB schema + seed initialization via entrypoint script, named volume persistence `garage-sqlserver-data`, bridge network `garage-network`) — PASS.
+- **MOBILE CUSTOMER REGISTRATION & LOGIN PIN STATE** (COMPLETED): Public `/api/auth/register`, fixed `ROLE_CUSTOMER`, BCrypt + transactional account/profile creation without `MaKhachHangCode`, Flutter registration screen and login handoff, `/api/auth/login` and `/api/auth/me` expose `hasPin` from `NguoiDung.MaPinHash` — 87 targeted backend tests PASS, backend compile PASS, 6 Flutter tests PASS, `flutter analyze` clean.
 
 ## 6. Frontend Status & Architecture
 - **Framework & Build**: React 18, TypeScript, Vite 5 (`frontend/`).
@@ -271,15 +278,29 @@
   - Top Navigation Header with system title, search bar, notification bell with unread dot, and user profile dropdown with logout.
   - Responsive layout with mobile drawer toggle and overlay backdrop.
 
-## 7. Docker Infrastructure & LAN Networking Status
+## 7. Mobile App Status
+- **Nền tảng**: Flutter app dùng chung cho `ROLE_CUSTOMER` và `ROLE_TECHNICIAN`, tổ chức theo `app/core/features/shared`.
+- **Foundation đã có**:
+  - AutoCare Material 3 theme theo Deep Blue / Orange design direction.
+  - Splash screen toàn màn hình dùng `mobile/asset/screen.png`, có loading state và thời gian hiển thị tối thiểu 1,6 giây trong lúc khôi phục session.
+  - Guest home không yêu cầu đăng nhập ngay khi mở app.
+  - Màn hình `/register` trước đăng nhập bám AutoCare design: họ tên, số điện thoại, email tùy chọn, mật khẩu, điều khoản; có validation/loading/error/success. Sau đăng ký, app chuyển sang login và điền sẵn số điện thoại.
+  - Đăng ký thật qua `POST /api/auth/register`; số điện thoại là tên đăng nhập. Role khách hàng do backend gán cố định, không do mobile gửi.
+  - Đăng nhập thật qua `POST /api/auth/login`, JWT lưu bằng secure storage và kiểm tra session qua `GET /api/auth/me`; cả hai luồng đều lưu trạng thái `hasPin` để chuẩn bị màn PIN sau đăng nhập.
+  - Role đọc từ claim `roles` để điều hướng customer/technician; backend vẫn là authority cho RBAC, branch và ownership.
+  - Các route cá nhân yêu cầu đăng nhập và bảo toàn route đích qua tham số `returnTo`.
+- **API base URL**: mặc định `http://10.0.2.2:8080/api` cho Android emulator; override bằng `--dart-define=API_BASE_URL=...` cho thiết bị/môi trường khác. Với Android thật qua USB, chạy `adb reverse tcp:8080 tcp:8080` và dùng `http://127.0.0.1:8080/api`.
+- **Customer feature screens**: appointment, repair tracking, notification và account routes đã có shell/navigation; các module nghiệp vụ ngoài account đang là điểm nối cho phase tiếp theo.
+
+## 8. Docker Infrastructure & LAN Networking Status
 - **Docker Compose**: `docker-compose.yml` defining `garage-frontend` (:3001), `garage-backend` (:8080), `garage-sqlserver` (:1433), connected via `garage-network`.
-- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageSystemDB.sql` + `V01__development_seed.sql` + `V02__restore_original_roles.sql` only on first run if DB does not exist. Client devices in LAN do not require local SQL Server.
+- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageManagementSystem.sql` + `V01__development_seed.sql` + `V02__restore_original_roles.sql` only on first run if DB does not exist. Client devices in LAN do not require local SQL Server.
 - **Backend Service**: Multi-stage `maven:3.9-eclipse-temurin-17` builder and `eclipse-temurin:17-jre-jammy` runner. Configurable `CORS_ALLOWED_ORIGIN_PATTERNS` supporting `*` and LAN host origins.
 - **Frontend Service**: `node:20-alpine` running Vite dev server bound to `0.0.0.0:3001` with dynamic hostname resolution in `env.ts` (`http://<HOST_IP>:8080/api` and `ws://<HOST_IP>:8080/ws`) for cross-device LAN development.
-- **Secrets & Configuration**: `.env.example` at root, `.gitignore` protecting `.env`.
+- **Secrets & Configuration**: `.env.example` at root, `.gitignore` protecting `.env` and sensitive build/log files.
 - **Persistence**: Named volume `garage-sqlserver-data` keeps database changes across container restarts.
 
-## 8. Nguyên tắc cốt lõi
+## 9. Nguyên tắc cốt lõi
 - Không triển khai business feature chưa được yêu cầu.
 - Không sửa schema SQL Server nếu chưa được phê duyệt.
 - Backend là authority cuối cùng — không tin role/branch/ownership từ client.

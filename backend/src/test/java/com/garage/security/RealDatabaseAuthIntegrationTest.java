@@ -5,6 +5,8 @@ import com.garage.dto.LoginResponse;
 import com.garage.entity.NguoiDung;
 import com.garage.repository.NguoiDungRepository;
 import com.garage.repository.NguoiDungVaiTroRepository;
+import com.garage.repository.KhachHangRepository;
+import com.garage.repository.VaiTroRepository;
 import com.garage.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,12 @@ class RealDatabaseAuthIntegrationTest {
     private NguoiDungVaiTroRepository nguoiDungVaiTroRepository;
 
     @Mock
+    private VaiTroRepository vaiTroRepository;
+
+    @Mock
+    private KhachHangRepository khachHangRepository;
+
+    @Mock
     private JwtService jwtService;
 
     private PasswordEncoder passwordEncoder;
@@ -37,7 +45,14 @@ class RealDatabaseAuthIntegrationTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(nguoiDungRepository, nguoiDungVaiTroRepository, passwordEncoder, jwtService);
+        authService = new AuthService(
+                nguoiDungRepository,
+                nguoiDungVaiTroRepository,
+                vaiTroRepository,
+                khachHangRepository,
+                passwordEncoder,
+                jwtService
+        );
     }
 
     @Test

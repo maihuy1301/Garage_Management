@@ -98,7 +98,6 @@ class ReceptionServiceTest {
 
         customer = new KhachHang();
         customer.setMaKhachHang(1);
-        customer.setMaKhachHangCode("KH001");
         customer.setNguoiDung(customerUser);
 
         vehicle = new Xe();

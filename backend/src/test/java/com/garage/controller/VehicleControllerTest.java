@@ -77,7 +77,7 @@ class VehicleControllerTest {
     }
 
     private VehicleResponse sampleVehicle(Integer maXe, Integer maKhachHang, String bienSo) {
-        return new VehicleResponse(maXe, maKhachHang, "KH00" + maKhachHang,
+        return new VehicleResponse(maXe, maKhachHang,
                 "Chủ Xe " + maKhachHang, bienSo, "Toyota", "Camry",
                 2022, "Black", null, 0, true, LocalDateTime.now());
     }
