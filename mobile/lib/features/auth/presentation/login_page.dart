@@ -7,9 +7,16 @@ import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/brand_mark.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.returnTo});
+  const LoginPage({
+    super.key,
+    this.returnTo,
+    this.initialUsername,
+    this.registrationSucceeded = false,
+  });
 
   final String? returnTo;
+  final String? initialUsername;
+  final bool registrationSucceeded;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -20,6 +27,12 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController.text = widget.initialUsername ?? '';
+  }
 
   @override
   void dispose() {
@@ -123,6 +136,32 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 22),
+                  if (widget.registrationSucceeded) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F7ED),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: AppColors.success,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Tạo tài khoản thành công. Bạn có thể đăng nhập bằng số điện thoại.',
+                              style: TextStyle(color: Color(0xFF166534)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Form(
                     key: _formKey,
                     child: Column(
@@ -136,12 +175,12 @@ class _LoginPageState extends State<LoginPage> {
                             AutofillHints.email,
                           ],
                           decoration: const InputDecoration(
-                            labelText: 'Tên đăng nhập hoặc email',
+                            labelText: 'Số điện thoại hoặc email',
                             prefixIcon: Icon(Icons.person_outline_rounded),
                           ),
                           validator: (value) =>
                               value == null || value.trim().isEmpty
-                              ? 'Vui lòng nhập tên đăng nhập hoặc email.'
+                              ? 'Vui lòng nhập số điện thoại hoặc email.'
                               : null,
                         ),
                         const SizedBox(height: 14),
@@ -221,6 +260,18 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                   ),
                   const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Chưa có tài khoản?'),
+                      TextButton(
+                        onPressed: auth.isSubmitting
+                            ? null
+                            : () => context.go('/register'),
+                        child: const Text('Đăng ký'),
+                      ),
+                    ],
+                  ),
                   TextButton(
                     onPressed: auth.isSubmitting ? null : () => context.go('/'),
                     child: const Text('Tiếp tục xem với tư cách khách'),

@@ -9,7 +9,6 @@ public class AppointmentResponse {
 
     private Integer maDatLich;
     private Integer maKhachHang;
-    private String maKhachHangCode;
     private String tenKhachHang;
     private String soDienThoaiKhachHang;
 
@@ -29,7 +28,7 @@ public class AppointmentResponse {
 
     public AppointmentResponse() {}
 
-    public AppointmentResponse(Integer maDatLich, Integer maKhachHang, String maKhachHangCode,
+    public AppointmentResponse(Integer maDatLich, Integer maKhachHang,
                                String tenKhachHang, String soDienThoaiKhachHang,
                                Integer maXe, String bienSoXe, String hangXe, String modelXe,
                                Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
@@ -37,7 +36,6 @@ public class AppointmentResponse {
                                LocalDateTime ngayDat) {
         this.maDatLich = maDatLich;
         this.maKhachHang = maKhachHang;
-        this.maKhachHangCode = maKhachHangCode;
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
         this.maXe = maXe;
@@ -58,9 +56,6 @@ public class AppointmentResponse {
 
     public Integer getMaKhachHang() { return maKhachHang; }
     public void setMaKhachHang(Integer maKhachHang) { this.maKhachHang = maKhachHang; }
-
-    public String getMaKhachHangCode() { return maKhachHangCode; }
-    public void setMaKhachHangCode(String maKhachHangCode) { this.maKhachHangCode = maKhachHangCode; }
 
     public String getTenKhachHang() { return tenKhachHang; }
     public void setTenKhachHang(String tenKhachHang) { this.tenKhachHang = tenKhachHang; }

@@ -206,7 +206,6 @@ public class RepairOrderService {
         String modelXe = null;
 
         Integer maKhachHang = null;
-        String maKhachHangCode = null;
         String tenKhachHang = null;
         String soDienThoaiKhachHang = null;
 
@@ -224,7 +223,6 @@ public class RepairOrderService {
                 if (xe.getKhachHang() != null) {
                     KhachHang kh = xe.getKhachHang();
                     maKhachHang = kh.getMaKhachHang();
-                    maKhachHangCode = kh.getMaKhachHangCode();
                     if (kh.getNguoiDung() != null) {
                         tenKhachHang = kh.getNguoiDung().getHoTen();
                         soDienThoaiKhachHang = kh.getNguoiDung().getSoDienThoai();
@@ -242,7 +240,6 @@ public class RepairOrderService {
                 hangXe,
                 modelXe,
                 maKhachHang,
-                maKhachHangCode,
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 cn != null ? cn.getMaChiNhanh() : null,

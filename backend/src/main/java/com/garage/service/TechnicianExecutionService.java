@@ -259,7 +259,6 @@ public class TechnicianExecutionService {
         String modelXe = null;
 
         Integer maKhachHang = null;
-        String maKhachHangCode = null;
         String tenKhachHang = null;
         String soDienThoaiKhachHang = null;
 
@@ -277,7 +276,6 @@ public class TechnicianExecutionService {
                 if (xe.getKhachHang() != null) {
                     KhachHang kh = xe.getKhachHang();
                     maKhachHang = kh.getMaKhachHang();
-                    maKhachHangCode = kh.getMaKhachHangCode();
                     if (kh.getNguoiDung() != null) {
                         tenKhachHang = kh.getNguoiDung().getHoTen();
                         soDienThoaiKhachHang = kh.getNguoiDung().getSoDienThoai();
@@ -295,7 +293,6 @@ public class TechnicianExecutionService {
                 hangXe,
                 modelXe,
                 maKhachHang,
-                maKhachHangCode,
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 cn != null ? cn.getMaChiNhanh() : null,

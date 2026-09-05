@@ -301,7 +301,6 @@ public class AppointmentService {
         return new AppointmentResponse(
                 dl.getMaDatLich(),
                 kh != null ? kh.getMaKhachHang() : null,
-                kh != null ? kh.getMaKhachHangCode() : null,
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 xe != null ? xe.getMaXe() : null,

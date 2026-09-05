@@ -64,6 +64,34 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<bool> registerCustomer({
+    required String fullName,
+    required String phoneNumber,
+    String? email,
+    required String password,
+    required bool acceptedTerms,
+  }) async {
+    _isSubmitting = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _repository.registerCustomer(
+        fullName: fullName,
+        phoneNumber: phoneNumber,
+        email: email,
+        password: password,
+        acceptedTerms: acceptedTerms,
+      );
+      return true;
+    } on AuthException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     _session = null;

@@ -1,39 +1,22 @@
 package com.garage.dto;
 
-public class LoginResponse {
+public class CurrentUserResponse {
 
-    private String accessToken;
-    private String tokenType = "Bearer";
     private Integer maNguoiDung;
     private String tenDangNhap;
     private String hoTen;
+    private String email;
     private boolean hasPin;
 
-    public LoginResponse() {}
+    public CurrentUserResponse() {}
 
-    public LoginResponse(String accessToken, Integer maNguoiDung, String tenDangNhap, String hoTen,
-                         boolean hasPin) {
-        this.accessToken = accessToken;
+    public CurrentUserResponse(Integer maNguoiDung, String tenDangNhap, String hoTen,
+                               String email, boolean hasPin) {
         this.maNguoiDung = maNguoiDung;
         this.tenDangNhap = tenDangNhap;
         this.hoTen = hoTen;
+        this.email = email;
         this.hasPin = hasPin;
-    }
-
-    public String getAccessToken() {
-        return accessToken;
-    }
-
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
-    }
-
-    public String getTokenType() {
-        return tokenType;
-    }
-
-    public void setTokenType(String tokenType) {
-        this.tokenType = tokenType;
     }
 
     public Integer getMaNguoiDung() {
@@ -58,6 +41,14 @@ public class LoginResponse {
 
     public void setHoTen(String hoTen) {
         this.hoTen = hoTen;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public boolean isHasPin() {

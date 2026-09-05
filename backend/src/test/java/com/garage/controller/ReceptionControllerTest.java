@@ -77,7 +77,7 @@ class ReceptionControllerTest {
         return new ReceptionResponse(
                 id, appointmentId,
                 100, "51A-11111", "Toyota", "Camry",
-                1, "KH001", "Phạm Văn Khách Hàng", "0900000005",
+                1, "Phạm Văn Khách Hàng", "0900000005",
                 branchId, "CN00" + branchId, "Chi Nhánh " + branchId,
                 10, "NV_REC01", "Trần Thị Tiếp Nhận",
                 LocalDateTime.now(), 15500, "Xước cản trước", "Thay dầu", "DA_TIEP_NHAN"

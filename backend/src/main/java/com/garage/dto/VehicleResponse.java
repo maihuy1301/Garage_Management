@@ -10,7 +10,6 @@ public class VehicleResponse {
 
     private Integer maXe;
     private Integer maKhachHang;
-    private String maKhachHangCode;
     private String tenChuXe;
     private String bienSo;
     private String hangXe;
@@ -24,13 +23,12 @@ public class VehicleResponse {
 
     public VehicleResponse() {}
 
-    public VehicleResponse(Integer maXe, Integer maKhachHang, String maKhachHangCode,
+    public VehicleResponse(Integer maXe, Integer maKhachHang,
                            String tenChuXe, String bienSo, String hangXe, String model,
                            Integer namSanXuat, String mauXe, String soVIN,
                            Integer soKmHienTai, Boolean trangThai, LocalDateTime ngayTao) {
         this.maXe = maXe;
         this.maKhachHang = maKhachHang;
-        this.maKhachHangCode = maKhachHangCode;
         this.tenChuXe = tenChuXe;
         this.bienSo = bienSo;
         this.hangXe = hangXe;
@@ -48,9 +46,6 @@ public class VehicleResponse {
 
     public Integer getMaKhachHang() { return maKhachHang; }
     public void setMaKhachHang(Integer maKhachHang) { this.maKhachHang = maKhachHang; }
-
-    public String getMaKhachHangCode() { return maKhachHangCode; }
-    public void setMaKhachHangCode(String maKhachHangCode) { this.maKhachHangCode = maKhachHangCode; }
 
     public String getTenChuXe() { return tenChuXe; }
     public void setTenChuXe(String tenChuXe) { this.tenChuXe = tenChuXe; }

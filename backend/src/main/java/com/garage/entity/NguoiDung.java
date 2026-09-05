@@ -1,5 +1,6 @@
 package com.garage.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -15,8 +16,13 @@ public class NguoiDung {
     @Column(name = "TenDangNhap", nullable = false, unique = true, length = 50)
     private String tenDangNhap;
 
+    @JsonIgnore
     @Column(name = "MatKhauHash", nullable = false, length = 255)
     private String matKhauHash;
+
+    @JsonIgnore
+    @Column(name = "MaPinHash", length = 255)
+    private String maPinHash;
 
     @Column(name = "HoTen", nullable = false, length = 100)
     private String hoTen;
@@ -60,6 +66,14 @@ public class NguoiDung {
 
     public void setMatKhauHash(String matKhauHash) {
         this.matKhauHash = matKhauHash;
+    }
+
+    public String getMaPinHash() {
+        return maPinHash;
+    }
+
+    public void setMaPinHash(String maPinHash) {
+        this.maPinHash = maPinHash;
     }
 
     public String getHoTen() {

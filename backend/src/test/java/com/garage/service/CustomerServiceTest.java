@@ -64,7 +64,6 @@ class CustomerServiceTest {
     private KhachHang createMockCustomer(Integer id, String code, NguoiDung user) {
         KhachHang kh = new KhachHang();
         kh.setMaKhachHang(id);
-        kh.setMaKhachHangCode(code);
         kh.setNguoiDung(user);
         kh.setDiaChi("123 Test Street");
         kh.setNgaySinh(LocalDate.of(1995, 5, 10));
@@ -92,7 +91,7 @@ class CustomerServiceTest {
 
         CustomerResponse res = customerService.getCurrentCustomerProfile();
         assertNotNull(res);
-        assertEquals("KH001", res.getMaKhachHangCode());
+        assertEquals(1, res.getMaKhachHang());
         assertEquals("customer", res.getTenDangNhap());
     }
 
@@ -107,7 +106,7 @@ class CustomerServiceTest {
 
         CustomerResponse res = customerService.getCustomerById(1);
         assertNotNull(res);
-        assertEquals("KH001", res.getMaKhachHangCode());
+        assertEquals(1, res.getMaKhachHang());
     }
 
     @Test
@@ -136,15 +135,14 @@ class CustomerServiceTest {
 
         CustomerResponse res = customerService.getCustomerById(2);
         assertNotNull(res);
-        assertEquals("KH002", res.getMaKhachHangCode());
+        assertEquals(2, res.getMaKhachHang());
     }
 
     @Test
     void createCustomer_Success() {
-        CreateCustomerRequest req = new CreateCustomerRequest("KH099", 10, "456 New Road", LocalDate.of(1990, 1, 1));
+        CreateCustomerRequest req = new CreateCustomerRequest(10, "456 New Road", LocalDate.of(1990, 1, 1));
         NguoiDung u10 = createMockUser(10, "newuser");
 
-        when(khachHangRepository.existsByMaKhachHangCode("KH099")).thenReturn(false);
         when(khachHangRepository.existsByNguoiDungMaNguoiDung(10)).thenReturn(false);
         when(nguoiDungRepository.findById(10)).thenReturn(Optional.of(u10));
 
@@ -153,13 +151,13 @@ class CustomerServiceTest {
 
         CustomerResponse res = customerService.createCustomer(req);
         assertNotNull(res);
-        assertEquals("KH099", res.getMaKhachHangCode());
+        assertEquals(99, res.getMaKhachHang());
     }
 
     @Test
-    void createCustomer_DuplicateCode_ThrowsConflict() {
-        CreateCustomerRequest req = new CreateCustomerRequest("KH001", 10, "456 New Road", LocalDate.of(1990, 1, 1));
-        when(khachHangRepository.existsByMaKhachHangCode("KH001")).thenReturn(true);
+    void createCustomer_DuplicateLinkedUser_ThrowsConflict() {
+        CreateCustomerRequest req = new CreateCustomerRequest(10, "456 New Road", LocalDate.of(1990, 1, 1));
+        when(khachHangRepository.existsByNguoiDungMaNguoiDung(10)).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> customerService.createCustomer(req));
     }

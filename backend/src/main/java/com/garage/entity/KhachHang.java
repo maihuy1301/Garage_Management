@@ -16,9 +16,6 @@ public class KhachHang {
     @JoinColumn(name = "MaNguoiDung", nullable = false, unique = true)
     private NguoiDung nguoiDung;
 
-    @Column(name = "MaKhachHangCode", nullable = false, unique = true, length = 20)
-    private String maKhachHangCode;
-
     @Column(name = "DiaChi", length = 255)
     private String diaChi;
 
@@ -41,14 +38,6 @@ public class KhachHang {
 
     public void setNguoiDung(NguoiDung nguoiDung) {
         this.nguoiDung = nguoiDung;
-    }
-
-    public String getMaKhachHangCode() {
-        return maKhachHangCode;
-    }
-
-    public void setMaKhachHangCode(String maKhachHangCode) {
-        this.maKhachHangCode = maKhachHangCode;
     }
 
     public String getDiaChi() {

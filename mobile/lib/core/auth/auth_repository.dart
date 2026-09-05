@@ -22,8 +22,14 @@ class AuthRepository {
         await _sessionStorage.clear();
         return null;
       }
-      await _apiClient.dio.get<Map<String, dynamic>>('/auth/me');
-      return _sessionFromToken(token);
+      final response = await _apiClient.dio.get<Map<String, dynamic>>(
+        '/auth/me',
+      );
+      final currentUser = response.data?['data'];
+      return _sessionFromToken(
+        token,
+        userData: currentUser is Map<String, dynamic> ? currentUser : null,
+      );
     } on DioException catch (error) {
       if (error.response?.statusCode == 401 ||
           error.response?.statusCode == 403) {
@@ -66,6 +72,7 @@ class AuthRepository {
         username: data['tenDangNhap']?.toString() ?? payload.subject,
         fullName: data['hoTen']?.toString(),
         roles: payload.roles,
+        hasPin: data['hasPin'] == true,
       );
       await _sessionStorage.writeToken(token);
       return session;
@@ -88,14 +95,62 @@ class AuthRepository {
     }
   }
 
+  Future<void> registerCustomer({
+    required String fullName,
+    required String phoneNumber,
+    String? email,
+    required String password,
+    required bool acceptedTerms,
+  }) async {
+    try {
+      final normalizedEmail = email?.trim();
+      final response = await _apiClient.dio.post<Map<String, dynamic>>(
+        '/auth/register',
+        data: {
+          'hoTen': fullName.trim(),
+          'soDienThoai': phoneNumber.trim(),
+          'email': normalizedEmail == null || normalizedEmail.isEmpty
+              ? null
+              : normalizedEmail,
+          'matKhau': password,
+          'dongYDieuKhoan': acceptedTerms,
+        },
+      );
+      final envelope = response.data;
+      if (envelope?['success'] != true ||
+          envelope?['data'] is! Map<String, dynamic>) {
+        throw AuthException(
+          envelope?['message']?.toString() ?? 'Phản hồi đăng ký không hợp lệ.',
+        );
+      }
+    } on AuthException {
+      rethrow;
+    } on DioException catch (error) {
+      final body = error.response?.data;
+      final serverMessage = body is Map<String, dynamic>
+          ? body['message']?.toString()
+          : null;
+      throw AuthException(
+        serverMessage ??
+            'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại kết nối.',
+      );
+    }
+  }
+
   Future<void> logout() => _sessionStorage.clear();
 
-  AuthSession _sessionFromToken(String token) {
+  AuthSession _sessionFromToken(
+    String token, {
+    Map<String, dynamic>? userData,
+  }) {
     final payload = JwtDecoder.decode(token);
     return AuthSession(
       accessToken: token,
-      username: payload.subject,
+      userId: (userData?['maNguoiDung'] as num?)?.toInt(),
+      username: userData?['tenDangNhap']?.toString() ?? payload.subject,
+      fullName: userData?['hoTen']?.toString(),
       roles: payload.roles,
+      hasPin: userData?['hasPin'] == true,
     );
   }
 }

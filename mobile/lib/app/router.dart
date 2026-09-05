@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_controller.dart';
 import '../features/auth/presentation/login_page.dart';
+import '../features/auth/presentation/register_page.dart';
 import '../features/customer/presentation/account_page.dart';
 import '../features/customer/presentation/customer_shell.dart';
 import '../features/customer/presentation/feature_placeholder_page.dart';
@@ -23,8 +24,16 @@ class AppRouter {
           ),
           GoRoute(
             path: '/login',
-            builder: (context, state) =>
-                LoginPage(returnTo: state.uri.queryParameters['returnTo']),
+            builder: (context, state) => LoginPage(
+              returnTo: state.uri.queryParameters['returnTo'],
+              initialUsername: state.uri.queryParameters['username'],
+              registrationSucceeded:
+                  state.uri.queryParameters['registered'] == 'true',
+            ),
+          ),
+          GoRoute(
+            path: '/register',
+            builder: (context, state) => const RegisterPage(),
           ),
           ShellRoute(
             builder: (context, state, child) =>
@@ -104,7 +113,8 @@ class AppRouter {
       ).toString();
     }
 
-    if (auth.isAuthenticated && location == '/login') {
+    if (auth.isAuthenticated &&
+        (location == '/login' || location == '/register')) {
       if (auth.session?.isTechnician == true) return '/technician';
       final returnTo = state.uri.queryParameters['returnTo'];
       return _safeReturnTo(returnTo) ?? '/';

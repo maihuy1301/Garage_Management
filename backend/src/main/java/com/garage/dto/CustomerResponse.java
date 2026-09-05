@@ -7,7 +7,6 @@ import java.util.List;
 public class CustomerResponse {
 
     private Integer maKhachHang;
-    private String maKhachHangCode;
     private String diaChi;
     private LocalDate ngaySinh;
 
@@ -24,12 +23,11 @@ public class CustomerResponse {
 
     public CustomerResponse() {}
 
-    public CustomerResponse(Integer maKhachHang, String maKhachHangCode, String diaChi,
+    public CustomerResponse(Integer maKhachHang, String diaChi,
                             LocalDate ngaySinh, Integer maNguoiDung, String tenDangNhap,
                             String hoTen, String email, String soDienThoai, String anhDaiDien,
                             Boolean trangThai, LocalDateTime ngayTao, List<String> roles) {
         this.maKhachHang = maKhachHang;
-        this.maKhachHangCode = maKhachHangCode;
         this.diaChi = diaChi;
         this.ngaySinh = ngaySinh;
         this.maNguoiDung = maNguoiDung;
@@ -49,14 +47,6 @@ public class CustomerResponse {
 
     public void setMaKhachHang(Integer maKhachHang) {
         this.maKhachHang = maKhachHang;
-    }
-
-    public String getMaKhachHangCode() {
-        return maKhachHangCode;
-    }
-
-    public void setMaKhachHangCode(String maKhachHangCode) {
-        this.maKhachHangCode = maKhachHangCode;
     }
 
     public String getDiaChi() {

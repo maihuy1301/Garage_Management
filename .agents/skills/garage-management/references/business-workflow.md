@@ -34,6 +34,7 @@ Tài liệu này tóm tắt định hướng nghiệp vụ từ `01_DeCuong_Nghi
 
 ### Kỹ thuật viên
 
+- Không có luồng tự đăng ký tài khoản cho kỹ thuật viên. Tài khoản kỹ thuật viên phải do quản lý chi nhánh tạo/cấp trên web, gắn đúng hồ sơ `NhanVien`, vai trò `ROLE_TECHNICIAN` và chi nhánh thuộc phạm vi quản lý; sau đó kỹ thuật viên mới dùng tài khoản này để đăng nhập vào giao diện kỹ thuật.
 - Nhận thông báo và xem danh sách phiếu sửa chữa được quản lý chi nhánh phân công.
 - Xem chi tiết khách hàng, xe, ghi chú tiếp nhận và hình ảnh hiện trạng ban đầu.
 - Cập nhật tiến độ thực tế: đang kiểm tra, đang sửa chữa, hoàn tất sửa chữa.
@@ -42,6 +43,7 @@ Tài liệu này tóm tắt định hướng nghiệp vụ từ `01_DeCuong_Nghi
 
 ### Khách hàng
 
+- Có thể mở giao diện đăng ký công khai trước khi đăng nhập. Mọi tài khoản được tạo từ luồng đăng ký công khai luôn là khách hàng; client không được gửi hoặc tự chọn vai trò.
 - Đăng ký/đăng nhập, thêm và quản lý xe cá nhân: biển số, hãng, dòng xe, năm sản xuất, số km.
 - Xem thông tin garage: chi nhánh, dịch vụ, bảng giá và đánh giá.
 - Dùng AI chatbot để tư vấn lỗi tự động và tạo lịch hẹn nháp; chat realtime với nhân viên tiếp nhận khi cần hỗ trợ sâu.
@@ -75,3 +77,22 @@ Tài liệu này tóm tắt định hướng nghiệp vụ từ `01_DeCuong_Nghi
 - Báo giá phát sinh trong đề cương có ảnh minh chứng và tách chi phí phụ tùng/tiền công; source hiện tại đã có báo giá dịch vụ/phụ tùng nhưng cần kiểm tra có hỗ trợ ảnh hay không.
 - Thanh toán online sandbox, chatbot AI, đánh giá dịch vụ và lịch sử bảo dưỡng là định hướng nghiệp vụ quan trọng nhưng phải xem là backlog nếu source chưa có module tương ứng.
 - Khi xây UI, nên hiển thị luồng theo đời thực: đặt lịch -> tiếp nhận -> sửa chữa -> báo giá phát sinh -> hóa đơn -> bàn giao -> đánh giá, nhưng chỉ bật thao tác khi backend đã có endpoint an toàn.
+
+## 5. Luồng tạo và cấp tài khoản đã chốt
+
+### 5.1. Khách hàng tự đăng ký
+
+- Giao diện tham chiếu nằm tại `D:\KLCN\stitch_stitch_garage_design_system\Giao diện đăng ký` và xuất hiện trước màn hình đăng nhập. Form hiện có họ tên, số điện thoại, email không bắt buộc, mật khẩu và xác nhận điều khoản/chính sách bảo mật.
+- Endpoint đăng ký là endpoint công khai nhưng backend là authority: luôn gán duy nhất `ROLE_CUSTOMER`, không nhận `roles`, `branchId`, loại tài khoản hoặc quyền hạn từ request của client.
+- Một lần đăng ký thành công phải tạo đồng bộ bản ghi `NguoiDung`, liên kết `NguoiDung_VaiTro` với `ROLE_CUSTOMER` và hồ sơ `KhachHang`. Các thao tác phải nằm trong cùng transaction để không tạo tài khoản thiếu vai trò hoặc thiếu hồ sơ khách hàng.
+- Mật khẩu thô chỉ được dùng làm đầu vào cho `PasswordEncoder`; phải BCrypt hash tại backend trước khi lưu vào `NguoiDung.MatKhauHash`. Không lưu, log hoặc trả mật khẩu thô/hash trong response.
+- Contract đã triển khai dùng số điện thoại hợp lệ làm `NguoiDung.TenDangNhap`; email là tùy chọn. Backend kiểm tra trùng số điện thoại/tên đăng nhập và email, còn mobile điền sẵn số điện thoại khi chuyển sang màn hình đăng nhập.
+- Source ngày 2026-08-31 đã có `POST /api/auth/register` và màn hình Flutter `/register` trước đăng nhập. Endpoint tạo `NguoiDung`, `NguoiDung_VaiTro` và `KhachHang` trong cùng transaction, gán cố định `ROLE_CUSTOMER` và BCrypt hash mật khẩu.
+
+### 5.2. Kỹ thuật viên được quản lý cấp tài khoản
+
+- Kỹ thuật viên không được dùng endpoint tự đăng ký và không có lựa chọn tạo tài khoản kỹ thuật viên ở giao diện công khai.
+- Quản lý chi nhánh tạo/cấp tài khoản trên web, gắn tài khoản với hồ sơ `NhanVien`, gán `ROLE_TECHNICIAN` và chi nhánh thuộc phạm vi quản lý. Backend phải tự kiểm tra quyền quản lý và branch isolation; không tin `role` hoặc `branchId` do client gửi ngoài phạm vi được phép.
+- Sau khi được cấp tài khoản hợp lệ và đang hoạt động, kỹ thuật viên mới đăng nhập vào ứng dụng/giao diện kỹ thuật để xem công việc được phân công.
+- Mật khẩu tài khoản do quản lý tạo cũng phải được BCrypt hash tại backend trước khi lưu. Cách cấp mật khẩu ban đầu và yêu cầu đổi mật khẩu lần đầu chưa được người dùng chốt; cần xác nhận khi triển khai.
+- Source hiện tại đã có luồng quản trị tạo `NguoiDung` dùng `PasswordEncoder`, nhưng quyền tạo tài khoản người dùng đang được tài liệu ghi nhận ở module quản trị hệ thống. Khi triển khai yêu cầu quản lý chi nhánh cấp tài khoản kỹ thuật viên, phải đối chiếu và mở rộng API/RBAC có kiểm soát thay vì chỉ mở quyền endpoint quản trị hiện hữu.
