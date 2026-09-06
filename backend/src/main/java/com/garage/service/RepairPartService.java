@@ -248,7 +248,7 @@ public class RepairPartService {
             if (user != null) {
                 NhanVien tech = nhanVienRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung()).orElse(null);
                 if (tech != null) {
-                    boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(
+                    boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(
                             order.getMaPhieuSuaChua(), tech.getMaNhanVien()
                     );
                     if (!isAssigned) {

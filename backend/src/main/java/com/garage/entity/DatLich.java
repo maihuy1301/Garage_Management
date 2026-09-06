@@ -17,6 +17,10 @@ public class DatLich {
     private KhachHang khachHang;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaNhanVienXacNhan")
+    private NhanVien nhanVienXacNhan;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "MaXe", nullable = false)
     private Xe xe;
 
@@ -52,6 +56,14 @@ public class DatLich {
 
     public void setKhachHang(KhachHang khachHang) {
         this.khachHang = khachHang;
+    }
+
+    public NhanVien getNhanVienXacNhan() {
+        return nhanVienXacNhan;
+    }
+
+    public void setNhanVienXacNhan(NhanVien nhanVienXacNhan) {
+        this.nhanVienXacNhan = nhanVienXacNhan;
     }
 
     public Xe getXe() {

@@ -61,6 +61,7 @@ class InvoiceControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         u.setTrangThai(true);
         return u;
     }
@@ -82,7 +83,7 @@ class InvoiceControllerTest {
                 new BigDecimal("600000.00"), BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal("600000.00"),
                 BigDecimal.ZERO, new BigDecimal("600000.00"),
                 "CHUA_THANH_TOAN", LocalDateTime.now(),
-                List.of(new InvoiceServiceItemResponse(1, 10, "Thay dầu", 1, new BigDecimal("300000.00"), new BigDecimal("300000.00"))),
+                List.of(new InvoiceServiceItemResponse(1, 10, "Thay dầu", new BigDecimal("300000.00"), new BigDecimal("300000.00"))),
                 List.of(new InvoicePartItemResponse(2, 20, "PT001", "Dầu nhớt", "Chai", 2, new BigDecimal("150000.00"), new BigDecimal("300000.00"))),
                 List.of()
         );

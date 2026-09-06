@@ -39,9 +39,9 @@ SQLCMD=$(find_sqlcmd)
     else
         echo "Database 'GarageManagementSystem' not found. Running initialization scripts..."
 
-        if [ -f /docker-init/GarageSystemDB.sql ]; then
-            echo "-> Executing /docker-init/GarageSystemDB.sql..."
-            $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -i /docker-init/GarageSystemDB.sql
+        if [ -f /docker-init/GarageManagementSystem_modified.sql ]; then
+            echo "-> Executing /docker-init/GarageManagementSystem_modified.sql..."
+            $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -i /docker-init/GarageManagementSystem_modified.sql
         fi
 
         if [ -f /docker-init/seed/V01__development_seed.sql ]; then

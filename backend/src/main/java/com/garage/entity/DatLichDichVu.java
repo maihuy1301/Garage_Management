@@ -19,9 +19,6 @@ public class DatLichDichVu {
     @JoinColumn(name = "MaDichVu", nullable = false)
     private DichVu dichVu;
 
-    @Column(name = "SoLuong")
-    private Integer soLuong = 1;
-
     @Column(name = "GhiChu", length = 255)
     private String ghiChu;
 
@@ -55,14 +52,6 @@ public class DatLichDichVu {
 
     public void setDichVu(DichVu dichVu) {
         this.dichVu = dichVu;
-    }
-
-    public Integer getSoLuong() {
-        return soLuong;
-    }
-
-    public void setSoLuong(Integer soLuong) {
-        this.soLuong = soLuong;
     }
 
     public String getGhiChu() {

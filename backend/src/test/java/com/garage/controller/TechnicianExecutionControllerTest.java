@@ -58,6 +58,7 @@ class TechnicianExecutionControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
         u.setTrangThai(true);
         return u;
     }
@@ -84,18 +85,11 @@ class TechnicianExecutionControllerTest {
         return res;
     }
 
-    private RepairProgressResponse sampleProgress(Integer id, Integer orderId) {
-        return new RepairProgressResponse(
-                id, orderId, 100, "Nguyễn Văn Kỹ Thuật",
-                "DANG_SUA", 40, "Đang tiến hành", LocalDateTime.now()
-        );
-    }
-
     private RepairItemResponse sampleItem(Integer id, Integer orderId) {
         return new RepairItemResponse(
                 id, orderId, 10, "Thay dầu",
                 1, "Bảo Dưỡng",
-                1, new BigDecimal("150000.00"), new BigDecimal("150000.00"), "DANG_SUA"
+                new BigDecimal("150000.00"), new BigDecimal("150000.00"), "DANG_SUA"
         );
     }
 
@@ -137,7 +131,7 @@ class TechnicianExecutionControllerTest {
         stubUser(rec, "ROLE_FRONT_DESK");
         String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
 
-        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("DANG_SUA", 30, "Lễ tân cố sửa");
+        UpdateProgressRequest req = new UpdateProgressRequest("DANG_SUA", null, null, "Lễ tân cố sửa");
 
         mockMvc.perform(patch("/api/technician/repair-orders/601/progress")
                         .header("Authorization", "Bearer " + token)
@@ -197,17 +191,17 @@ class TechnicianExecutionControllerTest {
         stubUser(tech, "ROLE_TECHNICIAN");
         String token = jwtService.generateToken("technician", List.of("ROLE_TECHNICIAN"));
 
-        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("DANG_SUA", 40, "Đang xử lý");
-        when(technicianExecutionService.updateProgress(eq(601), any(UpdateRepairProgressRequest.class)))
-                .thenReturn(sampleProgress(901, 601));
+        UpdateProgressRequest req = new UpdateProgressRequest("DANG_SUA", null, null, "Đang xử lý");
+        when(technicianExecutionService.updateProgress(eq(601), any(UpdateProgressRequest.class)))
+                .thenReturn(sampleOrder(601));
 
         mockMvc.perform(patch("/api/technician/repair-orders/601/progress")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.maTienDo").value(901))
-                .andExpect(jsonPath("$.data.phanTramHoanThanh").value(40));
+                .andExpect(jsonPath("$.data.maPhieuSuaChua").value(601))
+                .andExpect(jsonPath("$.data.trangThai").value("DANG_SUA"));
     }
 
     @Test
@@ -226,18 +220,5 @@ class TechnicianExecutionControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.maChiTiet").value(701));
-    }
-
-    @Test
-    void technician_getProgressHistory_returns200() throws Exception {
-        NguoiDung tech = mockUser(4, "technician");
-        stubUser(tech, "ROLE_TECHNICIAN");
-        String token = jwtService.generateToken("technician", List.of("ROLE_TECHNICIAN"));
-
-        when(technicianExecutionService.getProgressHistory(601)).thenReturn(List.of(sampleProgress(901, 601)));
-
-        mockMvc.perform(get("/api/technician/repair-orders/601/progress-history").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1));
     }
 }

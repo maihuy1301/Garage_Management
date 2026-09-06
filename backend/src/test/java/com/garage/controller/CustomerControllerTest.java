@@ -57,6 +57,7 @@ class CustomerControllerTest {
         user.setHoTen(username + " FullName");
         user.setEmail(username + "@garage.com");
         user.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        user.setMaPinHash("$2a$10$hashedPinValue");
         user.setTrangThai(true);
         return user;
     }
@@ -82,7 +83,7 @@ class CustomerControllerTest {
         stubAuthenticatedUser(customer, cusRole);
 
         CustomerResponse res = new CustomerResponse(
-                1, "KH001", "123 Đường Số 1", LocalDate.of(1990, 1, 1),
+                1, "123 Đường Số 1", LocalDate.of(1990, 1, 1),
                 5, "customer", "Phạm Văn Khách Hàng", "customer@garage.com", "0900000005",
                 null, true, LocalDateTime.now(), List.of("ROLE_CUSTOMER")
         );
@@ -94,7 +95,7 @@ class CustomerControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.maKhachHangCode").value("KH001"));
+                .andExpect(jsonPath("$.data.maKhachHang").value(1));
     }
 
     @Test
@@ -104,7 +105,7 @@ class CustomerControllerTest {
         stubAuthenticatedUser(admin, adminRole);
 
         CustomerResponse res = new CustomerResponse(
-                1, "KH001", "123 Đường Số 1", LocalDate.of(1990, 1, 1),
+                1, "123 Đường Số 1", LocalDate.of(1990, 1, 1),
                 5, "customer", "Phạm Văn Khách Hàng", "customer@garage.com", "0900000005",
                 null, true, LocalDateTime.now(), List.of("ROLE_CUSTOMER")
         );
@@ -116,7 +117,7 @@ class CustomerControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].maKhachHangCode").value("KH001"));
+                .andExpect(jsonPath("$.data[0].maKhachHang").value(1));
     }
 
     @Test
@@ -157,9 +158,9 @@ class CustomerControllerTest {
         VaiTro adminRole = createMockRole(1, "ROLE_ADMIN");
         stubAuthenticatedUser(admin, adminRole);
 
-        CreateCustomerRequest req = new CreateCustomerRequest("KH002", 6, "456 Đường Số 2", LocalDate.of(1992, 2, 2));
+        CreateCustomerRequest req = new CreateCustomerRequest(6, "456 Đường Số 2", LocalDate.of(1992, 2, 2));
         CustomerResponse res = new CustomerResponse(
-                2, "KH002", "456 Đường Số 2", LocalDate.of(1992, 2, 2),
+                2, "456 Đường Số 2", LocalDate.of(1992, 2, 2),
                 6, "customer2", "Khách Hàng 2", "customer2@garage.com", "0900000006",
                 null, true, LocalDateTime.now(), List.of("ROLE_CUSTOMER")
         );
@@ -173,6 +174,6 @@ class CustomerControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.maKhachHangCode").value("KH002"));
+                .andExpect(jsonPath("$.data.maKhachHang").value(2));
     }
 }

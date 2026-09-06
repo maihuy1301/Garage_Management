@@ -27,7 +27,6 @@ public class QuotationService {
     private final PhieuSuaChuaRepository phieuSuaChuaRepository;
     private final DichVuRepository dichVuRepository;
     private final PhuTungRepository phuTungRepository;
-    private final GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository;
     private final PhanCongRepository phanCongRepository;
     private final NhanVienRepository nhanVienRepository;
     private final NguoiDungRepository nguoiDungRepository;
@@ -39,7 +38,6 @@ public class QuotationService {
                             PhieuSuaChuaRepository phieuSuaChuaRepository,
                             DichVuRepository dichVuRepository,
                             PhuTungRepository phuTungRepository,
-                            GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository,
                             PhanCongRepository phanCongRepository,
                             NhanVienRepository nhanVienRepository,
                             NguoiDungRepository nguoiDungRepository,
@@ -50,7 +48,6 @@ public class QuotationService {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.dichVuRepository = dichVuRepository;
         this.phuTungRepository = phuTungRepository;
-        this.giaDichVuChiNhanhRepository = giaDichVuChiNhanhRepository;
         this.phanCongRepository = phanCongRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
@@ -59,7 +56,8 @@ public class QuotationService {
 
     /**
      * Tạo báo giá phát sinh cho phiếu sửa chữa:
-     * - Tính toán đơn giá server-side
+     * - Giá dịch vụ lấy trực tiếp từ DichVu.donGia (không dùng SoLuong)
+     * - Phụ tùng tính theo SoLuong * GiaBan
      * - Tính tổng tiền tự động
      * - Lưu chi tiết dịch vụ và phụ tùng trong Transaction
      */
@@ -90,9 +88,7 @@ public class QuotationService {
         List<QuotationServiceItemResponse> serviceResponses = new ArrayList<>();
         List<QuotationPartItemResponse> partResponses = new ArrayList<>();
 
-        Integer branchId = order.getChiNhanh().getMaChiNhanh();
-
-        // Xử lý dịch vụ
+        // Xử lý dịch vụ (không có số lượng, thành tiền = đơn giá)
         if (hasServices) {
             for (QuotationServiceItemRequest svcReq : request.getServices()) {
                 DichVu dv = dichVuRepository.findById(svcReq.getMaDichVu())
@@ -102,14 +98,12 @@ public class QuotationService {
                     throw new BadRequestException("Dịch vụ '" + dv.getTenDichVu() + "' hiện đang ngưng hoạt động");
                 }
 
-                BigDecimal donGia = resolveServicePrice(branchId, dv.getMaDichVu());
-                BigDecimal thanhTien = donGia.multiply(BigDecimal.valueOf(svcReq.getSoLuong()));
-                totalAmount = totalAmount.add(thanhTien);
+                BigDecimal donGia = dv.getDonGia() != null ? dv.getDonGia() : BigDecimal.ZERO;
+                totalAmount = totalAmount.add(donGia);
 
                 BaoGiaPhatSinhDichVu item = new BaoGiaPhatSinhDichVu();
                 item.setBaoGiaPhatSinh(savedQuotation);
                 item.setDichVu(dv);
-                item.setSoLuong(svcReq.getSoLuong());
                 item.setDonGia(donGia);
 
                 BaoGiaPhatSinhDichVu savedItem = baoGiaPhatSinhDichVuRepository.save(item);
@@ -117,14 +111,13 @@ public class QuotationService {
                         savedItem.getMaChiTiet(),
                         dv.getMaDichVu(),
                         dv.getTenDichVu(),
-                        savedItem.getSoLuong(),
                         donGia,
-                        thanhTien
+                        donGia
                 ));
             }
         }
 
-        // Xử lý phụ tùng
+        // Xử lý phụ tùng (có số lượng)
         if (hasParts) {
             for (QuotationPartItemRequest partReq : request.getParts()) {
                 PhuTung pt = phuTungRepository.findById(partReq.getMaPhuTung())
@@ -194,7 +187,7 @@ public class QuotationService {
     }
 
     /**
-     * Khách hàng duyệt báo giá phát sinh (hoặc nhân viên xử lý)
+     * Khách hàng duyệt báo giá phát sinh
      */
     @Transactional
     public QuotationResponse approveQuotation(Integer quotationId) {
@@ -260,7 +253,7 @@ public class QuotationService {
             if (user != null) {
                 NhanVien tech = nhanVienRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung()).orElse(null);
                 if (tech != null) {
-                    boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(
+                    boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(
                             order.getMaPhieuSuaChua(), tech.getMaNhanVien()
                     );
                     if (!isAssigned) {
@@ -320,30 +313,19 @@ public class QuotationService {
         }
     }
 
-    private BigDecimal resolveServicePrice(Integer branchId, Integer serviceId) {
-        List<GiaDichVuChiNhanh> prices = giaDichVuChiNhanhRepository
-                .findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(branchId, serviceId);
-
-        if (!prices.isEmpty() && prices.get(0).getDonGia() != null) {
-            return prices.get(0).getDonGia();
-        }
-        return BigDecimal.ZERO;
-    }
-
     private QuotationResponse loadAndMapQuotationResponse(BaoGiaPhatSinh q) {
         List<QuotationServiceItemResponse> services = baoGiaPhatSinhDichVuRepository
                 .findByBaoGiaPhatSinhMaBaoGia(q.getMaBaoGia())
                 .stream()
                 .map(item -> {
                     DichVu dv = item.getDichVu();
-                    BigDecimal tt = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+                    BigDecimal donGia = item.getDonGia() != null ? item.getDonGia() : BigDecimal.ZERO;
                     return new QuotationServiceItemResponse(
                             item.getMaChiTiet(),
                             dv != null ? dv.getMaDichVu() : null,
                             dv != null ? dv.getTenDichVu() : null,
-                            item.getSoLuong(),
-                            item.getDonGia(),
-                            tt
+                            donGia,
+                            donGia
                     );
                 })
                 .collect(Collectors.toList());
@@ -353,15 +335,17 @@ public class QuotationService {
                 .stream()
                 .map(item -> {
                     PhuTung pt = item.getPhuTung();
-                    BigDecimal tt = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+                    BigDecimal donGia = item.getDonGia() != null ? item.getDonGia() : BigDecimal.ZERO;
+                    int sl = item.getSoLuong() != null ? item.getSoLuong() : 1;
+                    BigDecimal tt = donGia.multiply(BigDecimal.valueOf(sl));
                     return new QuotationPartItemResponse(
                             item.getMaChiTiet(),
                             pt != null ? pt.getMaPhuTung() : null,
                             pt != null ? pt.getMaPhuTungCode() : null,
                             pt != null ? pt.getTenPhuTung() : null,
                             pt != null ? pt.getDonViTinh() : null,
-                            item.getSoLuong(),
-                            item.getDonGia(),
+                            sl,
+                            donGia,
                             tt
                     );
                 })

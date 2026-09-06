@@ -1,16 +1,10 @@
 package com.garage.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
 import java.time.LocalDate;
 
 public class CreateEmployeeRequest {
-
-    @NotBlank(message = "Mã nhân viên không được để trống")
-    @Size(max = 20, message = "Mã nhân viên tối đa 20 ký tự")
-    private String maNhanVienCode;
 
     @NotNull(message = "Mã người dùng không được để trống")
     private Integer maNguoiDung;
@@ -25,20 +19,11 @@ public class CreateEmployeeRequest {
 
     public CreateEmployeeRequest() {}
 
-    public CreateEmployeeRequest(String maNhanVienCode, Integer maNguoiDung, Integer maChiNhanh, String chucVu, LocalDate ngayVaoLam) {
-        this.maNhanVienCode = maNhanVienCode;
+    public CreateEmployeeRequest(Integer maNguoiDung, Integer maChiNhanh, String chucVu, LocalDate ngayVaoLam) {
         this.maNguoiDung = maNguoiDung;
         this.maChiNhanh = maChiNhanh;
         this.chucVu = chucVu;
         this.ngayVaoLam = ngayVaoLam;
-    }
-
-    public String getMaNhanVienCode() {
-        return maNhanVienCode;
-    }
-
-    public void setMaNhanVienCode(String maNhanVienCode) {
-        this.maNhanVienCode = maNhanVienCode;
     }
 
     public Integer getMaNguoiDung() {

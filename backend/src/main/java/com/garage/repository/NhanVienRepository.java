@@ -10,8 +10,6 @@ import java.util.Optional;
 @Repository
 public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
     Optional<NhanVien> findByNguoiDungMaNguoiDung(Integer maNguoiDung);
-    Optional<NhanVien> findByMaNhanVienCode(String maNhanVienCode);
     List<NhanVien> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
-    boolean existsByMaNhanVienCode(String maNhanVienCode);
     boolean existsByNguoiDungMaNguoiDung(Integer maNguoiDung);
 }

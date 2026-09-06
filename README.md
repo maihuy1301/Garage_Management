@@ -65,42 +65,57 @@ AUTO_GARAGE/
 | Flutter/Dart | Installed |
 | Git | 2.51.0 |
 
-## 4.1 Running the Project
-- **Backend (Spring Boot)**:
-  - Port: `8080`
-  - Base API URL: `http://localhost:8080/api`
-  - Realtime WebSocket: `http://localhost:8080/ws`
-  - Command: `mvn spring-boot:run` (in `backend/`) or `java -jar target/garage-backend-0.0.1-SNAPSHOT.jar`
-- **Frontend (React + Vite + TypeScript)**:
-  - Port: `3001`
-  - Web URL: `http://localhost:3001/`
-  - Command: `npm run dev` (in `frontend/`)
-  - Production Build: `npm run build`
+## 4. Environment & Port Architecture
 
-## 4.2 Docker Development Environment
-Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).
+Hệ thống được thiết kế theo kiến trúc **Infrastructure in Docker — Apps on Host**:
+- **Docker**: Chỉ chịu trách nhiệm chạy các dịch vụ hạ tầng (Database MS SQL Server).
+- **Backend**: Chạy trực tiếp trên máy developer (Java 17 / Maven / Spring Boot).
+- **Frontend**: Chạy trực tiếp trên máy developer (Node.js / npm / Vite).
+
+### 4.1 Port Ownership Matrix
+
+| Port (Host) | Service / Thành phần | Môi trường chạy | Mục đích | Command khởi động |
+| :--- | :--- | :--- | :--- | :--- |
+| **`1433`** | `garage-sqlserver` | **Docker Container** | MS SQL Server 2022 Database | `docker compose up -d` |
+| **`8080`** | `garage-backend` | **Host Machine (Local)** | Spring Boot REST API & WebSocket | `mvn spring-boot:run` (in `backend/`) |
+| **`3001`** | `garage-frontend` | **Host Machine (Local)** | React / Vite SPA UI | `npm run dev` (in `frontend/`) |
+
+> [!IMPORTANT]
+> **Quy tắc Port Isolation:**
+> - Docker Compose **chỉ bind duy nhất port `1433`** cho SQL Server.
+> - Port `8080` và port `3001` được giải phóng hoàn toàn khỏi Docker để Backend và Frontend local chạy mà không bao giờ bị xung đột cổng (port conflict).
+
+---
+
+### 4.2 Hướng dẫn khởi động từng thành phần
 
 ```bash
-# 1. Tạo file môi trường từ file mẫu
+# =======================================================
+# BƯỚC 1: Khởi động Infrastructure (Docker)
+# =======================================================
 cp .env.example .env
+docker compose up -d
 
-# 2. Khởi động toàn bộ stack (SQL Server 2022 + Spring Boot + React Vite)
-docker compose up --build
+# Kiểm tra container SQL Server:
+docker compose ps
+
+# =======================================================
+# BƯỚC 2: Khởi động Backend (Local)
+# =======================================================
+cd backend
+mvn spring-boot:run
+# Backend sẽ kết nối đến localhost:1433 và phục vụ tại http://localhost:8080
+
+# =======================================================
+# BƯỚC 3: Khởi động Frontend (Local)
+# =======================================================
+cd frontend
+npm install
+npm run dev
+# Frontend sẽ phục vụ tại http://localhost:3001 và kết nối đến http://localhost:8080/api
 ```
 
-### Containers & Ports
-| Container | Service | Host Port | Technology |
-|---|---|---|---|
-| `garage-sqlserver` | SQL Server Database | `1433` | MS SQL Server 2022 (Persistent Volume `garage-sqlserver-data`) |
-| `garage-backend` | Spring Boot API | `8080` | Java 17 / Spring Boot 3.2.5 (`http://localhost:8080/api` & `http://<HOST_IP>:8080/api`) |
-| `garage-frontend` | React SPA | `3001` | Node 20 / React 18 / Vite 5 (`http://localhost:3001/` & `http://<HOST_IP>:3001/`) |
 
-### Multi-Machine LAN Access
-Hỗ trợ truy cập đồng thời từ các máy tính / thiết bị di động khác trong cùng mạng LAN:
-- **Frontend**: `http://<DOCKER_HOST_IP>:3001`
-- **Backend API**: `http://<DOCKER_HOST_IP>:8080/api`
-- **WebSocket**: `ws://<DOCKER_HOST_IP>:8080/ws`
-- Frontend tự động nhận diện hostname/IP của máy Docker Host khi chạy trên browser mà không cần sửa code.
 
 ## 5. Development Test Accounts (Password: `Password123@`)
 | Username | Role | Branch | Records |

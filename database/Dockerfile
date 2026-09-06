@@ -4,7 +4,7 @@ USER root
 
 # Create init directory and copy SQL initialization and seed scripts
 WORKDIR /docker-init
-COPY GarageSystemDB.sql /docker-init/
+COPY GarageManagementSystem_modified.sql /docker-init/
 COPY seed /docker-init/seed/
 COPY entrypoint.sh /docker-init/
 

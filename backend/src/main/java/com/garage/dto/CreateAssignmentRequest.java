@@ -1,43 +1,47 @@
 package com.garage.dto;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
-/**
- * Request DTO để phân công kỹ thuật viên cho Phiếu sửa chữa.
- */
 public class CreateAssignmentRequest {
 
-    @NotNull(message = "Mã nhân viên kỹ thuật không được để trống")
-    private Integer technicianId;
+    private Integer maQuanLy;
 
-    @Size(max = 100, message = "Vai trò trong công việc không được vượt quá 100 ký tự")
-    private String vaiTroTrongCongViec;
+    @NotNull(message = "Mã nhân viên được phân công không được để trống")
+    private Integer maNhanVienDuocPhanCong;
 
     public CreateAssignmentRequest() {}
 
-    public CreateAssignmentRequest(Integer technicianId) {
-        this.technicianId = technicianId;
+    public CreateAssignmentRequest(Integer maNhanVienDuocPhanCong) {
+        this.maNhanVienDuocPhanCong = maNhanVienDuocPhanCong;
     }
 
-    public CreateAssignmentRequest(Integer technicianId, String vaiTroTrongCongViec) {
-        this.technicianId = technicianId;
-        this.vaiTroTrongCongViec = vaiTroTrongCongViec;
+    public CreateAssignmentRequest(Integer maQuanLy, Integer maNhanVienDuocPhanCong) {
+        this.maQuanLy = maQuanLy;
+        this.maNhanVienDuocPhanCong = maNhanVienDuocPhanCong;
     }
 
+    public Integer getMaQuanLy() {
+        return maQuanLy;
+    }
+
+    public void setMaQuanLy(Integer maQuanLy) {
+        this.maQuanLy = maQuanLy;
+    }
+
+    public Integer getMaNhanVienDuocPhanCong() {
+        return maNhanVienDuocPhanCong;
+    }
+
+    public void setMaNhanVienDuocPhanCong(Integer maNhanVienDuocPhanCong) {
+        this.maNhanVienDuocPhanCong = maNhanVienDuocPhanCong;
+    }
+
+    // Alias for backward compatibility
     public Integer getTechnicianId() {
-        return technicianId;
+        return maNhanVienDuocPhanCong;
     }
 
     public void setTechnicianId(Integer technicianId) {
-        this.technicianId = technicianId;
-    }
-
-    public String getVaiTroTrongCongViec() {
-        return vaiTroTrongCongViec;
-    }
-
-    public void setVaiTroTrongCongViec(String vaiTroTrongCongViec) {
-        this.vaiTroTrongCongViec = vaiTroTrongCongViec;
+        this.maNhanVienDuocPhanCong = technicianId;
     }
 }

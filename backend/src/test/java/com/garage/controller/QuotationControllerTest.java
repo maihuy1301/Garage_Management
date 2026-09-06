@@ -57,6 +57,7 @@ class QuotationControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         u.setTrangThai(true);
         return u;
     }
@@ -76,7 +77,7 @@ class QuotationControllerTest {
                 id, orderId, 1, "Chi Nhánh 1",
                 "Phát sinh má phanh mòn", new BigDecimal("700000.00"),
                 "CHO_KHACH_DUYET", LocalDateTime.now(), null,
-                List.of(new QuotationServiceItemResponse(1, 10, "Bảo dưỡng phanh", 1, new BigDecimal("200000.00"), new BigDecimal("200000.00"))),
+                List.of(new QuotationServiceItemResponse(1, 10, "Bảo dưỡng phanh", new BigDecimal("200000.00"), new BigDecimal("200000.00"))),
                 List.of(new QuotationPartItemResponse(2, 20, "PT002", "Má phanh", "Bộ", 1, new BigDecimal("500000.00"), new BigDecimal("500000.00")))
         );
     }
@@ -110,7 +111,7 @@ class QuotationControllerTest {
         String token = jwtService.generateToken("customer", List.of("CUSTOMER"));
 
         CreateQuotationRequest req = new CreateQuotationRequest(
-                "Khách tự tạo", List.of(new QuotationServiceItemRequest(10, 1)), List.of()
+                "Khách tự tạo", List.of(new QuotationServiceItemRequest(10)), List.of()
         );
 
         mockMvc.perform(post("/api/repair-orders/601/quotations")
@@ -176,7 +177,7 @@ class QuotationControllerTest {
 
         CreateQuotationRequest req = new CreateQuotationRequest(
                 "Phát hiện mòn má phanh",
-                List.of(new QuotationServiceItemRequest(10, 1)),
+                List.of(new QuotationServiceItemRequest(10)),
                 List.of(new QuotationPartItemRequest(20, 1))
         );
 

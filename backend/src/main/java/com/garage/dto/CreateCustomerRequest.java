@@ -1,16 +1,10 @@
 package com.garage.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-
 import java.time.LocalDate;
 
 public class CreateCustomerRequest {
-
-    @NotBlank(message = "Mã khách hàng không được để trống")
-    @Size(max = 20, message = "Mã khách hàng tối đa 20 ký tự")
-    private String maKhachHangCode;
 
     @NotNull(message = "Mã người dùng không được để trống")
     private Integer maNguoiDung;
@@ -22,19 +16,10 @@ public class CreateCustomerRequest {
 
     public CreateCustomerRequest() {}
 
-    public CreateCustomerRequest(String maKhachHangCode, Integer maNguoiDung, String diaChi, LocalDate ngaySinh) {
-        this.maKhachHangCode = maKhachHangCode;
+    public CreateCustomerRequest(Integer maNguoiDung, String diaChi, LocalDate ngaySinh) {
         this.maNguoiDung = maNguoiDung;
         this.diaChi = diaChi;
         this.ngaySinh = ngaySinh;
-    }
-
-    public String getMaKhachHangCode() {
-        return maKhachHangCode;
-    }
-
-    public void setMaKhachHangCode(String maKhachHangCode) {
-        this.maKhachHangCode = maKhachHangCode;
     }
 
     public Integer getMaNguoiDung() {

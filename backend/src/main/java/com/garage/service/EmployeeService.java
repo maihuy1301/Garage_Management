@@ -79,10 +79,6 @@ public class EmployeeService {
     public EmployeeResponse createEmployee(CreateEmployeeRequest request) {
         validateBranchAccess(request.getMaChiNhanh());
 
-        if (nhanVienRepository.existsByMaNhanVienCode(request.getMaNhanVienCode())) {
-            throw new DuplicateResourceException("Mã nhân viên '" + request.getMaNhanVienCode() + "' đã tồn tại");
-        }
-
         if (nhanVienRepository.existsByNguoiDungMaNguoiDung(request.getMaNguoiDung())) {
             throw new DuplicateResourceException("Tài khoản người dùng ID " + request.getMaNguoiDung() + " đã được liên kết với nhân viên khác");
         }
@@ -94,7 +90,6 @@ public class EmployeeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chi nhánh với ID: " + request.getMaChiNhanh()));
 
         NhanVien employee = new NhanVien();
-        employee.setMaNhanVienCode(request.getMaNhanVienCode());
         employee.setNguoiDung(user);
         employee.setChiNhanh(branch);
         employee.setChucVu(request.getChucVu());
@@ -174,7 +169,6 @@ public class EmployeeService {
 
         return new EmployeeResponse(
                 nv.getMaNhanVien(),
-                nv.getMaNhanVienCode(),
                 nv.getChucVu(),
                 nv.getNgayVaoLam(),
                 nv.getTrangThai(),
@@ -185,7 +179,6 @@ public class EmployeeService {
                 user != null ? user.getSoDienThoai() : null,
                 roles,
                 branch != null ? branch.getMaChiNhanh() : null,
-                branch != null ? branch.getMaChiNhanhCode() : null,
                 branch != null ? branch.getTenChiNhanh() : null
         );
     }

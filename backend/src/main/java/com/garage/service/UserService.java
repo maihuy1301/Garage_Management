@@ -62,6 +62,10 @@ public class UserService {
             }
         }
 
+        if (request.getMaPin() == null || !request.getMaPin().matches("^\\d{6}$")) {
+            throw new BadRequestException("Mã PIN phải gồm đúng 6 chữ số");
+        }
+
         // Validate roles
         List<VaiTro> rolesToAssign = new ArrayList<>();
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
@@ -75,6 +79,7 @@ public class UserService {
         NguoiDung newUser = new NguoiDung();
         newUser.setTenDangNhap(request.getTenDangNhap());
         newUser.setMatKhauHash(passwordEncoder.encode(request.getMatKhau()));
+        newUser.setMaPinHash(passwordEncoder.encode(request.getMaPin()));
         newUser.setHoTen(request.getHoTen());
         newUser.setEmail(request.getEmail());
         newUser.setSoDienThoai(request.getSoDienThoai());

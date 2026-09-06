@@ -57,14 +57,14 @@ class CustomerServiceTest {
         u.setTenDangNhap(username);
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@test.com");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         u.setTrangThai(true);
         return u;
     }
 
-    private KhachHang createMockCustomer(Integer id, String code, NguoiDung user) {
+    private KhachHang createMockCustomer(Integer id, NguoiDung user) {
         KhachHang kh = new KhachHang();
         kh.setMaKhachHang(id);
-        kh.setMaKhachHangCode(code);
         kh.setNguoiDung(user);
         kh.setDiaChi("123 Test Street");
         kh.setNgaySinh(LocalDate.of(1995, 5, 10));
@@ -86,13 +86,13 @@ class CustomerServiceTest {
         NguoiDung user = createMockUser(5, "customer");
         setSecurityContextUser(user, "CUSTOMER");
 
-        KhachHang customer = createMockCustomer(1, "KH001", user);
+        KhachHang customer = createMockCustomer(1, user);
         when(khachHangRepository.findByNguoiDungMaNguoiDung(5)).thenReturn(Optional.of(customer));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(5)).thenReturn(Collections.emptyList());
 
         CustomerResponse res = customerService.getCurrentCustomerProfile();
         assertNotNull(res);
-        assertEquals("KH001", res.getMaKhachHangCode());
+        assertEquals(1, res.getMaKhachHang());
         assertEquals("customer", res.getTenDangNhap());
     }
 
@@ -101,13 +101,13 @@ class CustomerServiceTest {
         NguoiDung user = createMockUser(5, "customer");
         setSecurityContextUser(user, "CUSTOMER");
 
-        KhachHang customer = createMockCustomer(1, "KH001", user);
+        KhachHang customer = createMockCustomer(1, user);
         when(khachHangRepository.findById(1)).thenReturn(Optional.of(customer));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(5)).thenReturn(Collections.emptyList());
 
         CustomerResponse res = customerService.getCustomerById(1);
         assertNotNull(res);
-        assertEquals("KH001", res.getMaKhachHangCode());
+        assertEquals(1, res.getMaKhachHang());
     }
 
     @Test
@@ -116,7 +116,7 @@ class CustomerServiceTest {
         setSecurityContextUser(userA, "CUSTOMER");
 
         NguoiDung userB = createMockUser(6, "customerB");
-        KhachHang customerB = createMockCustomer(2, "KH002", userB);
+        KhachHang customerB = createMockCustomer(2, userB);
 
         when(khachHangRepository.findById(2)).thenReturn(Optional.of(customerB));
 
@@ -129,37 +129,36 @@ class CustomerServiceTest {
         setSecurityContextUser(admin, "ADMIN");
 
         NguoiDung userB = createMockUser(6, "customerB");
-        KhachHang customerB = createMockCustomer(2, "KH002", userB);
+        KhachHang customerB = createMockCustomer(2, userB);
 
         when(khachHangRepository.findById(2)).thenReturn(Optional.of(customerB));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(6)).thenReturn(Collections.emptyList());
 
         CustomerResponse res = customerService.getCustomerById(2);
         assertNotNull(res);
-        assertEquals("KH002", res.getMaKhachHangCode());
+        assertEquals(2, res.getMaKhachHang());
     }
 
     @Test
     void createCustomer_Success() {
-        CreateCustomerRequest req = new CreateCustomerRequest("KH099", 10, "456 New Road", LocalDate.of(1990, 1, 1));
+        CreateCustomerRequest req = new CreateCustomerRequest(10, "456 New Road", LocalDate.of(1990, 1, 1));
         NguoiDung u10 = createMockUser(10, "newuser");
 
-        when(khachHangRepository.existsByMaKhachHangCode("KH099")).thenReturn(false);
         when(khachHangRepository.existsByNguoiDungMaNguoiDung(10)).thenReturn(false);
         when(nguoiDungRepository.findById(10)).thenReturn(Optional.of(u10));
 
-        KhachHang saved = createMockCustomer(99, "KH099", u10);
+        KhachHang saved = createMockCustomer(99, u10);
         when(khachHangRepository.save(any(KhachHang.class))).thenReturn(saved);
 
         CustomerResponse res = customerService.createCustomer(req);
         assertNotNull(res);
-        assertEquals("KH099", res.getMaKhachHangCode());
+        assertEquals(99, res.getMaKhachHang());
     }
 
     @Test
-    void createCustomer_DuplicateCode_ThrowsConflict() {
-        CreateCustomerRequest req = new CreateCustomerRequest("KH001", 10, "456 New Road", LocalDate.of(1990, 1, 1));
-        when(khachHangRepository.existsByMaKhachHangCode("KH001")).thenReturn(true);
+    void createCustomer_DuplicateUser_ThrowsConflict() {
+        CreateCustomerRequest req = new CreateCustomerRequest(10, "456 New Road", LocalDate.of(1990, 1, 1));
+        when(khachHangRepository.existsByNguoiDungMaNguoiDung(10)).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> customerService.createCustomer(req));
     }

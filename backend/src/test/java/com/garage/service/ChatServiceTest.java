@@ -96,7 +96,6 @@ class ChatServiceTest {
 
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
 
         staff = new NhanVien();
         staff.setMaNhanVien(100);

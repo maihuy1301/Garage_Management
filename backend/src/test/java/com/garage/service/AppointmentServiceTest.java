@@ -90,23 +90,19 @@ class AppointmentServiceTest {
 
         customer1 = new KhachHang();
         customer1.setMaKhachHang(1);
-        customer1.setMaKhachHangCode("KH001");
         customer1.setNguoiDung(user1);
 
         customer2 = new KhachHang();
         customer2.setMaKhachHang(2);
-        customer2.setMaKhachHangCode("KH002");
         customer2.setNguoiDung(user2);
 
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
         branch1.setTrangThai(true);
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
         branch2.setTrangThai(true);
 

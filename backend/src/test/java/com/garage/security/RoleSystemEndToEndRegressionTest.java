@@ -45,6 +45,30 @@ class RoleSystemEndToEndRegressionTest {
     @Autowired
     private RoleService roleService;
 
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        if (vaiTroRepository.count() == 0) {
+            VaiTro r1 = new VaiTro(); r1.setTenVaiTro("ROLE_ADMIN"); vaiTroRepository.save(r1);
+            VaiTro r2 = new VaiTro(); r2.setTenVaiTro("ROLE_MANAGER"); vaiTroRepository.save(r2);
+            VaiTro r3 = new VaiTro(); r3.setTenVaiTro("ROLE_FRONT_DESK"); vaiTroRepository.save(r3);
+            VaiTro r4 = new VaiTro(); r4.setTenVaiTro("ROLE_TECHNICIAN"); vaiTroRepository.save(r4);
+            VaiTro r5 = new VaiTro(); r5.setTenVaiTro("ROLE_CUSTOMER"); vaiTroRepository.save(r5);
+        }
+        if (nguoiDungRepository.findByTenDangNhap("admin").isEmpty()) {
+            NguoiDung admin = new NguoiDung();
+            admin.setTenDangNhap("admin");
+            admin.setHoTen("System Admin");
+            admin.setEmail("admin@garage.com");
+            admin.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+            admin.setMaPinHash("$2a$10$hashedPinValue");
+            admin.setTrangThai(true);
+            admin = nguoiDungRepository.save(admin);
+
+            VaiTro adminRole = vaiTroRepository.findByTenVaiTro("ROLE_ADMIN").orElseThrow();
+            nguoiDungVaiTroRepository.save(new NguoiDungVaiTro(admin, adminRole));
+        }
+    }
+
     @Test
     @DisplayName("1. Verify Database contains exactly 5 standard Roles and no obsolete roles")
     void testDatabaseRolesIntegrity() {

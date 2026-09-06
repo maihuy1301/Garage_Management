@@ -18,17 +18,17 @@ public class BranchTestController {
 
     /**
      * Branch-scoped test endpoint.
-     * SYSTEM_ADMIN → allowed for any branchCode.
+     * SYSTEM_ADMIN → allowed for any branchId.
      * BRANCH_MANAGER / RECEPTIONIST / TECHNICIAN → allowed only for own branch.
      * CUSTOMER → denied (403 via RBAC).
      */
-    @GetMapping("/branches/{branchCode}")
+    @GetMapping("/branches/{branchId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'TECHNICIAN')")
-    public ResponseEntity<ApiResponse<String>> branchAccessTest(@PathVariable String branchCode) {
-        if (!branchAuthorizationService.isAllowedBranchByCode(branchCode)) {
+    public ResponseEntity<ApiResponse<Integer>> branchAccessTest(@PathVariable Integer branchId) {
+        if (!branchAuthorizationService.isAllowedBranch(branchId)) {
             return ResponseEntity.status(403)
-                    .body(ApiResponse.error("Forbidden: Bạn không có quyền truy cập chi nhánh " + branchCode));
+                    .body(ApiResponse.error("Forbidden: Bạn không có quyền truy cập chi nhánh " + branchId));
         }
-        return ResponseEntity.ok(ApiResponse.success("Access granted for branch " + branchCode, branchCode));
+        return ResponseEntity.ok(ApiResponse.success("Access granted for branch " + branchId, branchId));
     }
 }

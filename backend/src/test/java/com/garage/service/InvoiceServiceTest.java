@@ -84,7 +84,6 @@ class InvoiceServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         userCustomer1 = new NguoiDung();
@@ -94,7 +93,6 @@ class InvoiceServiceTest {
 
         customer1 = new KhachHang();
         customer1.setMaKhachHang(1);
-        customer1.setMaKhachHangCode("KH001");
         customer1.setNguoiDung(userCustomer1);
 
         vehicle1 = new Xe();
@@ -121,7 +119,6 @@ class InvoiceServiceTest {
         repairSvc1.setMaChiTiet(1);
         repairSvc1.setPhieuSuaChua(order1);
         repairSvc1.setDichVu(service1);
-        repairSvc1.setSoLuong(1);
         repairSvc1.setDonGia(new BigDecimal("300000.00"));
 
         part1 = new PhuTung();
@@ -181,7 +178,6 @@ class InvoiceServiceTest {
         HoaDonDichVu hdSvc = new HoaDonDichVu();
         hdSvc.setMaChiTiet(11);
         hdSvc.setDichVu(service1);
-        hdSvc.setSoLuong(1);
         hdSvc.setDonGia(new BigDecimal("300000.00"));
         when(hoaDonDichVuRepository.save(any(HoaDonDichVu.class))).thenReturn(hdSvc);
 

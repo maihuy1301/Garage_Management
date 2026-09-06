@@ -20,9 +20,6 @@ public class BaoGiaPhatSinhDichVu {
     @JoinColumn(name = "MaDichVu", nullable = false)
     private DichVu dichVu;
 
-    @Column(name = "SoLuong")
-    private Integer soLuong = 1;
-
     @Column(name = "DonGia", nullable = false, precision = 18, scale = 2)
     private BigDecimal donGia;
 
@@ -50,14 +47,6 @@ public class BaoGiaPhatSinhDichVu {
 
     public void setDichVu(DichVu dichVu) {
         this.dichVu = dichVu;
-    }
-
-    public Integer getSoLuong() {
-        return soLuong;
-    }
-
-    public void setSoLuong(Integer soLuong) {
-        this.soLuong = soLuong;
     }
 
     public BigDecimal getDonGia() {

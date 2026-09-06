@@ -22,7 +22,6 @@ public class TechnicianExecutionService {
     private final PhieuSuaChuaRepository phieuSuaChuaRepository;
     private final PhanCongRepository phanCongRepository;
     private final PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
-    private final TienDoSuaChuaRepository tienDoSuaChuaRepository;
     private final NhanVienRepository nhanVienRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final NguoiDungVaiTroRepository nguoiDungVaiTroRepository;
@@ -30,14 +29,12 @@ public class TechnicianExecutionService {
     public TechnicianExecutionService(PhieuSuaChuaRepository phieuSuaChuaRepository,
                                       PhanCongRepository phanCongRepository,
                                       PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
-                                      TienDoSuaChuaRepository tienDoSuaChuaRepository,
                                       NhanVienRepository nhanVienRepository,
                                       NguoiDungRepository nguoiDungRepository,
                                       NguoiDungVaiTroRepository nguoiDungVaiTroRepository) {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.phanCongRepository = phanCongRepository;
         this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
-        this.tienDoSuaChuaRepository = tienDoSuaChuaRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.nguoiDungVaiTroRepository = nguoiDungVaiTroRepository;
@@ -49,7 +46,7 @@ public class TechnicianExecutionService {
     @Transactional(readOnly = true)
     public List<RepairOrderResponse> getMyRepairOrders() {
         NhanVien tech = getCurrentTechnician();
-        return phanCongRepository.findByNhanVienMaNhanVien(tech.getMaNhanVien())
+        return phanCongRepository.findByNhanVienDuocPhanCongMaNhanVien(tech.getMaNhanVien())
                 .stream()
                 .map(PhanCong::getPhieuSuaChua)
                 .distinct()
@@ -84,56 +81,48 @@ public class TechnicianExecutionService {
      * Kỹ thuật viên cập nhật tiến độ thực hiện sửa chữa:
      * - Kiểm tra phân công hợp lệ
      * - Bảo vệ phiếu sửa chữa đã hoàn tất/hủy (400)
-     * - Ghi nhận lịch sử vào bảng TienDoSuaChua
-     * - Cập nhật trạng thái phiếu sửa chữa (DANG_SUA, TAM_DUNG, CHO_KH_DUYET, HOAN_TAT)
-     * - Tự động ghi nhận thoiGianBatDau / thoiGianHoanTat khi tương ứng
+     * - Cập nhật trực tiếp: TrangThai, ThoiGianBatDau, ThoiGianHoanTat, GhiChu của PhieuSuaChua
+     * - Tự động ghi nhận thoiGianBatDau / thoiGianHoanTat khi tương ứng nếu chưa có
+     * - Trả về thông tin PhieuSuaChua hiện tại
      */
     @Transactional
-    public RepairProgressResponse updateProgress(Integer repairOrderId, UpdateRepairProgressRequest request) {
+    public RepairOrderResponse updateProgress(Integer repairOrderId, UpdateProgressRequest request) {
         NhanVien tech = getCurrentTechnician();
         PhieuSuaChua order = validateTechnicianAssignment(tech, repairOrderId);
         validateOrderNotCompletedOrCancelled(order, "cập nhật tiến độ");
 
-        String newStatus = request.getTrangThai();
-        if ("DANG_SUA".equalsIgnoreCase(newStatus)) {
-            if (order.getThoiGianBatDau() == null) {
-                order.setThoiGianBatDau(LocalDateTime.now());
+        if (request.getTrangThai() != null && !request.getTrangThai().isBlank()) {
+            String newStatus = request.getTrangThai();
+            if ("DANG_SUA".equalsIgnoreCase(newStatus)) {
+                if (order.getThoiGianBatDau() == null) {
+                    order.setThoiGianBatDau(request.getThoiGianBatDau() != null ? request.getThoiGianBatDau() : LocalDateTime.now());
+                }
+                order.setTrangThai("DANG_SUA");
+            } else if ("HOAN_TAT".equalsIgnoreCase(newStatus)) {
+                if (order.getThoiGianBatDau() == null) {
+                    order.setThoiGianBatDau(request.getThoiGianBatDau() != null ? request.getThoiGianBatDau() : LocalDateTime.now());
+                }
+                order.setThoiGianHoanTat(request.getThoiGianHoanTat() != null ? request.getThoiGianHoanTat() : LocalDateTime.now());
+                order.setTrangThai("HOAN_TAT");
+            } else if ("TAM_DUNG".equalsIgnoreCase(newStatus) || "CHO_KH_DUYET".equalsIgnoreCase(newStatus) || "DA_PHAN_CONG".equalsIgnoreCase(newStatus)) {
+                order.setTrangThai(newStatus);
+            } else {
+                throw new BadRequestException("Trạng thái tiến độ không hợp lệ: " + newStatus);
             }
-            order.setTrangThai("DANG_SUA");
-        } else if ("HOAN_TAT".equalsIgnoreCase(newStatus) || (request.getPhanTramHoanThanh() != null && request.getPhanTramHoanThanh() == 100)) {
-            if (order.getThoiGianBatDau() == null) {
-                order.setThoiGianBatDau(LocalDateTime.now());
-            }
-            order.setThoiGianHoanTat(LocalDateTime.now());
-            order.setTrangThai("HOAN_TAT");
-        } else if ("TAM_DUNG".equalsIgnoreCase(newStatus) || "CHO_KH_DUYET".equalsIgnoreCase(newStatus) || "DA_PHAN_CONG".equalsIgnoreCase(newStatus)) {
-            order.setTrangThai(newStatus);
-        } else {
-            throw new BadRequestException("Trạng thái tiến độ không hợp lệ: " + newStatus);
         }
 
-        phieuSuaChuaRepository.save(order);
+        if (request.getThoiGianBatDau() != null) {
+            order.setThoiGianBatDau(request.getThoiGianBatDau());
+        }
+        if (request.getThoiGianHoanTat() != null) {
+            order.setThoiGianHoanTat(request.getThoiGianHoanTat());
+        }
+        if (request.getGhiChu() != null) {
+            order.setGhiChu(request.getGhiChu());
+        }
 
-        TienDoSuaChua tienDo = new TienDoSuaChua();
-        tienDo.setPhieuSuaChua(order);
-        tienDo.setNhanVien(tech);
-        tienDo.setTrangThai(newStatus);
-        tienDo.setPhanTramHoanThanh(request.getPhanTramHoanThanh());
-        tienDo.setMoTa(request.getMoTa());
-
-        TienDoSuaChua saved = tienDoSuaChuaRepository.save(tienDo);
-
-        String techName = (tech.getNguoiDung() != null) ? tech.getNguoiDung().getHoTen() : tech.getMaNhanVienCode();
-        return new RepairProgressResponse(
-                saved.getMaTienDo(),
-                order.getMaPhieuSuaChua(),
-                tech.getMaNhanVien(),
-                techName,
-                saved.getTrangThai(),
-                saved.getPhanTramHoanThanh(),
-                saved.getMoTa(),
-                saved.getThoiGian() != null ? saved.getThoiGian() : LocalDateTime.now()
-        );
+        PhieuSuaChua saved = phieuSuaChuaRepository.save(order);
+        return mapToRepairOrderResponse(saved);
     }
 
     /**
@@ -152,32 +141,6 @@ public class TechnicianExecutionService {
         item.setTrangThai(request.getTrangThai());
         PhieuSuaChuaDichVu updated = phieuSuaChuaDichVuRepository.save(item);
         return mapToRepairItemResponse(updated);
-    }
-
-    /**
-     * Xem lịch sử tiến độ của phiếu sửa chữa
-     */
-    @Transactional(readOnly = true)
-    public List<RepairProgressResponse> getProgressHistory(Integer repairOrderId) {
-        NhanVien tech = getCurrentTechnician();
-        validateTechnicianAssignment(tech, repairOrderId);
-        return tienDoSuaChuaRepository.findByPhieuSuaChuaMaPhieuSuaChuaOrderByThoiGianDesc(repairOrderId)
-                .stream()
-                .map(td -> {
-                    String techName = (td.getNhanVien() != null && td.getNhanVien().getNguoiDung() != null)
-                            ? td.getNhanVien().getNguoiDung().getHoTen() : "";
-                    return new RepairProgressResponse(
-                            td.getMaTienDo(),
-                            td.getPhieuSuaChua().getMaPhieuSuaChua(),
-                            td.getNhanVien() != null ? td.getNhanVien().getMaNhanVien() : null,
-                            techName,
-                            td.getTrangThai(),
-                            td.getPhanTramHoanThanh(),
-                            td.getMoTa(),
-                            td.getThoiGian()
-                    );
-                })
-                .collect(Collectors.toList());
     }
 
     // --- Private Helpers ---
@@ -229,7 +192,7 @@ public class TechnicianExecutionService {
         }
 
         // Kiểm tra phân công (Technician T1 không được xem/sửa phiếu của T2)
-        boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(
+        boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(
                 repairOrderId, tech.getMaNhanVien()
         );
 
@@ -259,7 +222,6 @@ public class TechnicianExecutionService {
         String modelXe = null;
 
         Integer maKhachHang = null;
-        String maKhachHangCode = null;
         String tenKhachHang = null;
         String soDienThoaiKhachHang = null;
 
@@ -277,7 +239,6 @@ public class TechnicianExecutionService {
                 if (xe.getKhachHang() != null) {
                     KhachHang kh = xe.getKhachHang();
                     maKhachHang = kh.getMaKhachHang();
-                    maKhachHangCode = kh.getMaKhachHangCode();
                     if (kh.getNguoiDung() != null) {
                         tenKhachHang = kh.getNguoiDung().getHoTen();
                         soDienThoaiKhachHang = kh.getNguoiDung().getSoDienThoai();
@@ -295,11 +256,9 @@ public class TechnicianExecutionService {
                 hangXe,
                 modelXe,
                 maKhachHang,
-                maKhachHangCode,
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 order.getThoiGianBatDau(),
                 order.getThoiGianHoanTat(),
@@ -317,10 +276,7 @@ public class TechnicianExecutionService {
             tenLoaiDichVu = dv.getLoaiDichVu().getTenLoai();
         }
 
-        BigDecimal thanhTien = BigDecimal.ZERO;
-        if (item.getDonGia() != null && item.getSoLuong() != null) {
-            thanhTien = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
-        }
+        BigDecimal thanhTien = item.getDonGia() != null ? item.getDonGia() : BigDecimal.ZERO;
 
         return new RepairItemResponse(
                 item.getMaChiTiet(),
@@ -329,7 +285,6 @@ public class TechnicianExecutionService {
                 dv != null ? dv.getTenDichVu() : null,
                 maLoaiDichVu,
                 tenLoaiDichVu,
-                item.getSoLuong(),
                 item.getDonGia(),
                 thanhTien,
                 item.getTrangThai()

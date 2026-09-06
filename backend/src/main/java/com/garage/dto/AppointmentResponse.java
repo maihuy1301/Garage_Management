@@ -2,26 +2,20 @@ package com.garage.dto;
 
 import java.time.LocalDateTime;
 
-/**
- * Response DTO cho DatLich — không expose trực tiếp JPA Entity.
- */
 public class AppointmentResponse {
 
     private Integer maDatLich;
     private Integer maKhachHang;
-    private String maKhachHangCode;
     private String tenKhachHang;
     private String soDienThoaiKhachHang;
-
+    private Integer maNhanVienXacNhan;
+    private String tenNhanVienXacNhan;
     private Integer maXe;
     private String bienSoXe;
     private String hangXe;
     private String modelXe;
-
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
-
     private LocalDateTime thoiGianHen;
     private String trangThai;
     private String ghiChu;
@@ -29,23 +23,22 @@ public class AppointmentResponse {
 
     public AppointmentResponse() {}
 
-    public AppointmentResponse(Integer maDatLich, Integer maKhachHang, String maKhachHangCode,
-                               String tenKhachHang, String soDienThoaiKhachHang,
+    public AppointmentResponse(Integer maDatLich, Integer maKhachHang, String tenKhachHang,
+                               String soDienThoaiKhachHang, Integer maNhanVienXacNhan, String tenNhanVienXacNhan,
                                Integer maXe, String bienSoXe, String hangXe, String modelXe,
-                               Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
-                               LocalDateTime thoiGianHen, String trangThai, String ghiChu,
-                               LocalDateTime ngayDat) {
+                               Integer maChiNhanh, String tenChiNhanh, LocalDateTime thoiGianHen,
+                               String trangThai, String ghiChu, LocalDateTime ngayDat) {
         this.maDatLich = maDatLich;
         this.maKhachHang = maKhachHang;
-        this.maKhachHangCode = maKhachHangCode;
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
+        this.maNhanVienXacNhan = maNhanVienXacNhan;
+        this.tenNhanVienXacNhan = tenNhanVienXacNhan;
         this.maXe = maXe;
         this.bienSoXe = bienSoXe;
         this.hangXe = hangXe;
         this.modelXe = modelXe;
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.thoiGianHen = thoiGianHen;
         this.trangThai = trangThai;
@@ -53,51 +46,131 @@ public class AppointmentResponse {
         this.ngayDat = ngayDat;
     }
 
-    public Integer getMaDatLich() { return maDatLich; }
-    public void setMaDatLich(Integer maDatLich) { this.maDatLich = maDatLich; }
+    public Integer getMaDatLich() {
+        return maDatLich;
+    }
 
-    public Integer getMaKhachHang() { return maKhachHang; }
-    public void setMaKhachHang(Integer maKhachHang) { this.maKhachHang = maKhachHang; }
+    public void setMaDatLich(Integer maDatLich) {
+        this.maDatLich = maDatLich;
+    }
 
-    public String getMaKhachHangCode() { return maKhachHangCode; }
-    public void setMaKhachHangCode(String maKhachHangCode) { this.maKhachHangCode = maKhachHangCode; }
+    public Integer getMaKhachHang() {
+        return maKhachHang;
+    }
 
-    public String getTenKhachHang() { return tenKhachHang; }
-    public void setTenKhachHang(String tenKhachHang) { this.tenKhachHang = tenKhachHang; }
+    public void setMaKhachHang(Integer maKhachHang) {
+        this.maKhachHang = maKhachHang;
+    }
 
-    public String getSoDienThoaiKhachHang() { return soDienThoaiKhachHang; }
-    public void setSoDienThoaiKhachHang(String soDienThoaiKhachHang) { this.soDienThoaiKhachHang = soDienThoaiKhachHang; }
+    public String getTenKhachHang() {
+        return tenKhachHang;
+    }
 
-    public Integer getMaXe() { return maXe; }
-    public void setMaXe(Integer maXe) { this.maXe = maXe; }
+    public void setTenKhachHang(String tenKhachHang) {
+        this.tenKhachHang = tenKhachHang;
+    }
 
-    public String getBienSoXe() { return bienSoXe; }
-    public void setBienSoXe(String bienSoXe) { this.bienSoXe = bienSoXe; }
+    public String getSoDienThoaiKhachHang() {
+        return soDienThoaiKhachHang;
+    }
 
-    public String getHangXe() { return hangXe; }
-    public void setHangXe(String hangXe) { this.hangXe = hangXe; }
+    public void setSoDienThoaiKhachHang(String soDienThoaiKhachHang) {
+        this.soDienThoaiKhachHang = soDienThoaiKhachHang;
+    }
 
-    public String getModelXe() { return modelXe; }
-    public void setModelXe(String modelXe) { this.modelXe = modelXe; }
+    public Integer getMaNhanVienXacNhan() {
+        return maNhanVienXacNhan;
+    }
 
-    public Integer getMaChiNhanh() { return maChiNhanh; }
-    public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
+    public void setMaNhanVienXacNhan(Integer maNhanVienXacNhan) {
+        this.maNhanVienXacNhan = maNhanVienXacNhan;
+    }
 
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
+    public String getTenNhanVienXacNhan() {
+        return tenNhanVienXacNhan;
+    }
 
-    public String getTenChiNhanh() { return tenChiNhanh; }
-    public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }
+    public void setTenNhanVienXacNhan(String tenNhanVienXacNhan) {
+        this.tenNhanVienXacNhan = tenNhanVienXacNhan;
+    }
 
-    public LocalDateTime getThoiGianHen() { return thoiGianHen; }
-    public void setThoiGianHen(LocalDateTime thoiGianHen) { this.thoiGianHen = thoiGianHen; }
+    public Integer getMaXe() {
+        return maXe;
+    }
 
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+    public void setMaXe(Integer maXe) {
+        this.maXe = maXe;
+    }
 
-    public String getGhiChu() { return ghiChu; }
-    public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
+    public String getBienSoXe() {
+        return bienSoXe;
+    }
 
-    public LocalDateTime getNgayDat() { return ngayDat; }
-    public void setNgayDat(LocalDateTime ngayDat) { this.ngayDat = ngayDat; }
+    public void setBienSoXe(String bienSoXe) {
+        this.bienSoXe = bienSoXe;
+    }
+
+    public String getHangXe() {
+        return hangXe;
+    }
+
+    public void setHangXe(String hangXe) {
+        this.hangXe = hangXe;
+    }
+
+    public String getModelXe() {
+        return modelXe;
+    }
+
+    public void setModelXe(String modelXe) {
+        this.modelXe = modelXe;
+    }
+
+    public Integer getMaChiNhanh() {
+        return maChiNhanh;
+    }
+
+    public void setMaChiNhanh(Integer maChiNhanh) {
+        this.maChiNhanh = maChiNhanh;
+    }
+
+    public String getTenChiNhanh() {
+        return tenChiNhanh;
+    }
+
+    public void setTenChiNhanh(String tenChiNhanh) {
+        this.tenChiNhanh = tenChiNhanh;
+    }
+
+    public LocalDateTime getThoiGianHen() {
+        return thoiGianHen;
+    }
+
+    public void setThoiGianHen(LocalDateTime thoiGianHen) {
+        this.thoiGianHen = thoiGianHen;
+    }
+
+    public String getTrangThai() {
+        return trangThai;
+    }
+
+    public void setTrangThai(String trangThai) {
+        this.trangThai = trangThai;
+    }
+
+    public String getGhiChu() {
+        return ghiChu;
+    }
+
+    public void setGhiChu(String ghiChu) {
+        this.ghiChu = ghiChu;
+    }
+
+    public LocalDateTime getNgayDat() {
+        return ngayDat;
+    }
+
+    public void setNgayDat(LocalDateTime ngayDat) {
+        this.ngayDat = ngayDat;
+    }
 }

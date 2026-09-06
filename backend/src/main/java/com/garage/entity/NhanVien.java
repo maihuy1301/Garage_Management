@@ -20,9 +20,6 @@ public class NhanVien {
     @JoinColumn(name = "MaChiNhanh", nullable = false)
     private ChiNhanh chiNhanh;
 
-    @Column(name = "MaNhanVienCode", nullable = false, unique = true, length = 20)
-    private String maNhanVienCode;
-
     @Column(name = "ChucVu", length = 100)
     private String chucVu;
 
@@ -56,14 +53,6 @@ public class NhanVien {
 
     public void setChiNhanh(ChiNhanh chiNhanh) {
         this.chiNhanh = chiNhanh;
-    }
-
-    public String getMaNhanVienCode() {
-        return maNhanVienCode;
-    }
-
-    public void setMaNhanVienCode(String maNhanVienCode) {
-        this.maNhanVienCode = maNhanVienCode;
     }
 
     public String getChucVu() {

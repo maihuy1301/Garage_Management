@@ -20,6 +20,10 @@ public class NhacBaoDuong {
     @JoinColumn(name = "MaDichVu")
     private DichVu dichVu;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaPhieuSuaChua")
+    private PhieuSuaChua phieuSuaChua;
+
     @Column(name = "NgayDuKien")
     private LocalDate ngayDuKien;
 
@@ -56,6 +60,14 @@ public class NhacBaoDuong {
 
     public void setDichVu(DichVu dichVu) {
         this.dichVu = dichVu;
+    }
+
+    public PhieuSuaChua getPhieuSuaChua() {
+        return phieuSuaChua;
+    }
+
+    public void setPhieuSuaChua(PhieuSuaChua phieuSuaChua) {
+        this.phieuSuaChua = phieuSuaChua;
     }
 
     public LocalDate getNgayDuKien() {

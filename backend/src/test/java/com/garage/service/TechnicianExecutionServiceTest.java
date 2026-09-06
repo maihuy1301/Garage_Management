@@ -38,9 +38,6 @@ class TechnicianExecutionServiceTest {
     private PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
 
     @Mock
-    private TienDoSuaChuaRepository tienDoSuaChuaRepository;
-
-    @Mock
     private NhanVienRepository nhanVienRepository;
 
     @Mock
@@ -64,18 +61,15 @@ class TechnicianExecutionServiceTest {
     private PhanCong assignment1;
     private DichVu service1;
     private PhieuSuaChuaDichVu item1;
-    private TienDoSuaChua progress1;
 
     @BeforeEach
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
 
         order1 = new PhieuSuaChua();
@@ -96,7 +90,6 @@ class TechnicianExecutionServiceTest {
 
         tech1 = new NhanVien();
         tech1.setMaNhanVien(100);
-        tech1.setMaNhanVienCode("NV001");
         tech1.setChiNhanh(branch1);
         tech1.setNguoiDung(userTech1);
         tech1.setTrangThai(true);
@@ -110,7 +103,7 @@ class TechnicianExecutionServiceTest {
         assignment1 = new PhanCong();
         assignment1.setMaPhanCong(801);
         assignment1.setPhieuSuaChua(order1);
-        assignment1.setNhanVien(tech1);
+        assignment1.setNhanVienDuocPhanCong(tech1);
         assignment1.setTrangThai("DA_GIAO");
 
         service1 = new DichVu();
@@ -121,19 +114,8 @@ class TechnicianExecutionServiceTest {
         item1.setMaChiTiet(701);
         item1.setPhieuSuaChua(order1);
         item1.setDichVu(service1);
-        item1.setSoLuong(1);
         item1.setDonGia(new BigDecimal("150000.00"));
         item1.setTrangThai("CHO_XU_LY");
-
-        progress1 = new TienDoSuaChua();
-        progress1.setMaTienDo(901);
-        progress1.setPhieuSuaChua(order1);
-        progress1.setNhanVien(tech1);
-        progress1.setTrangThai("DANG_SUA");
-        progress1.setPhanTramHoanThanh(30);
-        progress1.setMoTa("Đang xả dầu cũ");
-        progress1.setThoiGian(LocalDateTime.now());
-
     }
 
     private void stubCurrentTechnician() {
@@ -157,7 +139,7 @@ class TechnicianExecutionServiceTest {
     @Test
     void getMyRepairOrders_success() {
         stubCurrentTechnician();
-        when(phanCongRepository.findByNhanVienMaNhanVien(100)).thenReturn(List.of(assignment1));
+        when(phanCongRepository.findByNhanVienDuocPhanCongMaNhanVien(100)).thenReturn(List.of(assignment1));
 
         List<RepairOrderResponse> list = technicianExecutionService.getMyRepairOrders();
 
@@ -169,7 +151,7 @@ class TechnicianExecutionServiceTest {
     void getRepairOrderDetail_assigned_success() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
 
         RepairOrderResponse res = technicianExecutionService.getRepairOrderDetail(601);
 
@@ -181,7 +163,7 @@ class TechnicianExecutionServiceTest {
     void getRepairOrderDetail_unassignedOrder_throws403() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(602)).thenReturn(Optional.of(order2));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(602, 100)).thenReturn(false); // not assigned
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(602, 100)).thenReturn(false);
 
         assertThatThrownBy(() -> technicianExecutionService.getRepairOrderDetail(602))
                 .isInstanceOf(AccessDeniedException.class)
@@ -196,36 +178,27 @@ class TechnicianExecutionServiceTest {
     void updateProgress_toInProgress_setsStartTimeAndStatus() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true);
-        when(tienDoSuaChuaRepository.save(any(TienDoSuaChua.class))).thenReturn(progress1);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("DANG_SUA", 30, "Đang xả dầu cũ");
-        RepairProgressResponse res = technicianExecutionService.updateProgress(601, req);
+        UpdateProgressRequest req = new UpdateProgressRequest("DANG_SUA", null, null, "Đang xả dầu cũ");
+        RepairOrderResponse res = technicianExecutionService.updateProgress(601, req);
 
         assertThat(res).isNotNull();
         assertThat(order1.getTrangThai()).isEqualTo("DANG_SUA");
         assertThat(order1.getThoiGianBatDau()).isNotNull();
         verify(phieuSuaChuaRepository).save(order1);
-        verify(tienDoSuaChuaRepository).save(any(TienDoSuaChua.class));
     }
 
     @Test
     void updateProgress_toComplete_setsFinishTimeAndStatus() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        TienDoSuaChua completeProgress = new TienDoSuaChua();
-        completeProgress.setMaTienDo(902);
-        completeProgress.setPhieuSuaChua(order1);
-        completeProgress.setNhanVien(tech1);
-        completeProgress.setTrangThai("HOAN_TAT");
-        completeProgress.setPhanTramHoanThanh(100);
-        completeProgress.setMoTa("Đã hoàn tất toàn bộ");
-        when(tienDoSuaChuaRepository.save(any(TienDoSuaChua.class))).thenReturn(completeProgress);
-
-        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("HOAN_TAT", 100, "Đã hoàn tất toàn bộ");
-        RepairProgressResponse res = technicianExecutionService.updateProgress(601, req);
+        UpdateProgressRequest req = new UpdateProgressRequest("HOAN_TAT", null, null, "Đã hoàn tất toàn bộ");
+        RepairOrderResponse res = technicianExecutionService.updateProgress(601, req);
 
         assertThat(res).isNotNull();
         assertThat(order1.getTrangThai()).isEqualTo("HOAN_TAT");
@@ -238,9 +211,9 @@ class TechnicianExecutionServiceTest {
         order1.setTrangThai("HOAN_TAT");
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
 
-        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("DANG_SUA", 50, "Cố gắng sửa");
+        UpdateProgressRequest req = new UpdateProgressRequest("DANG_SUA", null, null, "Cố gắng sửa");
 
         assertThatThrownBy(() -> technicianExecutionService.updateProgress(601, req))
                 .isInstanceOf(BadRequestException.class)
@@ -252,9 +225,9 @@ class TechnicianExecutionServiceTest {
         order1.setTrangThai("HUY");
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
 
-        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("DANG_SUA", 50, "Cố gắng sửa");
+        UpdateProgressRequest req = new UpdateProgressRequest("DANG_SUA", null, null, "Cố gắng sửa");
 
         assertThatThrownBy(() -> technicianExecutionService.updateProgress(601, req))
                 .isInstanceOf(BadRequestException.class)
@@ -269,7 +242,7 @@ class TechnicianExecutionServiceTest {
     void updateItemStatus_assigned_success() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
         when(phieuSuaChuaDichVuRepository.findByMaChiTietAndPhieuSuaChuaMaPhieuSuaChua(701, 601))
                 .thenReturn(Optional.of(item1));
         when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(item1);
@@ -286,7 +259,7 @@ class TechnicianExecutionServiceTest {
     void updateItemStatus_unassigned_throws403() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(602)).thenReturn(Optional.of(order2));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(602, 100)).thenReturn(false);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(602, 100)).thenReturn(false);
 
         UpdateServiceItemStatusRequest req = new UpdateServiceItemStatusRequest("HOAN_TAT");
 

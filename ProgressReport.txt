@@ -2790,5 +2790,43 @@ Testing & Validation:
 Remaining issues:
 None
 
+============================================================
+INFRASTRUCTURE TASK 03 — DOCKER ENVIRONMENT REFACTOR (INFRASTRUCTURE ONLY)
+============================================================
+
+Objective:
+- Refactor Docker configuration so Docker Compose ONLY manages infrastructure (SQL Server Database).
+- Completely eliminate Backend Spring Boot and Frontend Node/React containers from Docker Compose.
+- Backend and Frontend run independently on the developer's host machine (IDE/Maven and npm/Vite).
+
+Work performed:
+1. Docker Compose Refactor (`docker-compose.yml`):
+   - Retained only `sqlserver` service (`garage-sqlserver`).
+   - Removed `backend` and `frontend` service definitions and build contexts.
+   - Exposed `1433:1433` for local host connection.
+   - Preserved named volume `garage-sqlserver-data` for database persistence.
+   - Preserved bridge network `garage-network`.
+2. Database Container Upgrade (`database/Dockerfile`, `database/entrypoint.sh`, `database/seed/`):
+   - Updated `database/Dockerfile` to copy `GarageManagementSystem_modified.sql`.
+   - Updated `database/entrypoint.sh` to initialize schema from `GarageManagementSystem_modified.sql`.
+   - Updated development seed data (`V01__development_seed.sql`) with valid `MaPinHash` and schema columns.
+3. Cleaned Up Dockerfiles:
+   - Deleted `backend/Dockerfile` and `backend/.dockerignore`.
+   - Deleted `frontend/Dockerfile` and `frontend/.dockerignore`.
+4. Environment & Backend Configuration:
+   - Updated root `.env` and `.env.example` to focus on infrastructure environment variables.
+   - Updated `backend/src/main/resources/application.properties` default connection to `localhost:1433`.
+5. Documentation:
+   - Updated `docs/DOCKER.md` and `README.md` to reflect the new architecture.
+
+Verification:
+- `docker compose config`: PASS (Syntactically valid, only `sqlserver` service).
+- `mvn clean compile`: PASS (194 source files compiled, BUILD SUCCESS).
+- `mvn clean test`: PASS (373/373 tests passed, 0 failures, 0 errors, 0 skipped).
+
+Remaining issues:
+None
+
 Next task:
-FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
+FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
+

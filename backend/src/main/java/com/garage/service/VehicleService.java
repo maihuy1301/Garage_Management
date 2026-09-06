@@ -257,7 +257,6 @@ public class VehicleService {
         return new VehicleResponse(
                 xe.getMaXe(),
                 kh != null ? kh.getMaKhachHang() : null,
-                kh != null ? kh.getMaKhachHangCode() : null,
                 tenChuXe,
                 xe.getBienSo(),
                 xe.getHangXe(),

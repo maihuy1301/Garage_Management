@@ -1,6 +1,5 @@
 package com.garage.security;
 
-import com.garage.entity.NhanVien;
 import com.garage.repository.NhanVienRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -60,27 +59,18 @@ public class BranchAuthorizationService {
     }
 
     /**
-     * Returns true if the currently authenticated user is allowed to access the given branch (by code string, e.g. "CN001").
+     * Returns true if the currently authenticated user is allowed to access the given branch (by ID string).
      */
-    public boolean isAllowedBranchByCode(String requestedBranchCode) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
+    public boolean isAllowedBranchByCode(String requestedBranchIdStr) {
+        if (requestedBranchIdStr == null || requestedBranchIdStr.isBlank()) {
             return false;
         }
-
-        if (hasRole(auth, "ROLE_ADMIN")) {
-            return true;
+        try {
+            Integer branchId = Integer.parseInt(requestedBranchIdStr.trim());
+            return isAllowedBranch(branchId);
+        } catch (NumberFormatException e) {
+            return false;
         }
-
-        if (hasRole(auth, "ROLE_MANAGER")
-                || hasRole(auth, "ROLE_FRONT_DESK")
-                || hasRole(auth, "ROLE_TECHNICIAN")) {
-            return resolveUserBranchCode(auth)
-                    .map(code -> code.equalsIgnoreCase(requestedBranchCode))
-                    .orElse(false);
-        }
-
-        return false;
     }
 
     /**
@@ -93,27 +83,15 @@ public class BranchAuthorizationService {
         if (userDetails == null) return Optional.empty();
         Integer maNguoiDung = userDetails.getNguoiDung().getMaNguoiDung();
         return nhanVienRepository.findByNguoiDungMaNguoiDung(maNguoiDung)
-                .map(nv -> nv.getChiNhanh().getMaChiNhanh());
+                .map(nv -> nv.getChiNhanh() != null ? nv.getChiNhanh().getMaChiNhanh() : null);
     }
 
     /**
-     * Resolves the branch code (MaChiNhanhCode, e.g. "CN001") for the currently authenticated user.
+     * Convenience: resolves branch ID for authenticated user from SecurityContext.
      */
-    public Optional<String> resolveUserBranchCode(Authentication auth) {
-        if (auth == null) return Optional.empty();
-        CustomUserDetails userDetails = extractUserDetails(auth);
-        if (userDetails == null) return Optional.empty();
-        Integer maNguoiDung = userDetails.getNguoiDung().getMaNguoiDung();
-        return nhanVienRepository.findByNguoiDungMaNguoiDung(maNguoiDung)
-                .map(nv -> nv.getChiNhanh().getMaChiNhanhCode());
-    }
-
-    /**
-     * Convenience: resolves branch code for authenticated user from SecurityContext.
-     */
-    public Optional<String> resolveCurrentUserBranchCode() {
+    public Optional<Integer> resolveCurrentUserBranchId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return resolveUserBranchCode(auth);
+        return resolveUserBranchId(auth);
     }
 
     // --- private helpers ---

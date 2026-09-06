@@ -59,6 +59,7 @@ class RepairItemControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         u.setTrangThai(true);
         return u;
     }
@@ -77,7 +78,7 @@ class RepairItemControllerTest {
         return new RepairItemResponse(
                 id, orderId, serviceId, "Thay dầu",
                 1, "Bảo Dưỡng",
-                2, new BigDecimal("150000.00"), new BigDecimal("300000.00"), "CHO_XU_LY"
+                new BigDecimal("150000.00"), new BigDecimal("150000.00"), "CHO_XU_LY"
         );
     }
 
@@ -119,7 +120,7 @@ class RepairItemControllerTest {
         stubUser(tech, "ROLE_TECHNICIAN");
         String token = jwtService.generateToken("technician", List.of("ROLE_TECHNICIAN"));
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
 
         mockMvc.perform(post("/api/repair-orders/601/items")
                         .header("Authorization", "Bearer " + token)
@@ -138,7 +139,7 @@ class RepairItemControllerTest {
         stubUser(mgr, "ROLE_MANAGER");
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 2);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
         when(repairItemService.addRepairItem(eq(601), any(CreateRepairItemRequest.class)))
                 .thenReturn(sampleItem(701, 601, 10));
 
@@ -149,7 +150,7 @@ class RepairItemControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.maChiTiet").value(701))
-                .andExpect(jsonPath("$.data.thanhTien").value(300000.00));
+                .andExpect(jsonPath("$.data.thanhTien").value(150000.00));
     }
 
     @Test
@@ -161,7 +162,7 @@ class RepairItemControllerTest {
         when(repairItemService.addRepairItem(eq(602), any(CreateRepairItemRequest.class)))
                 .thenThrow(new AccessDeniedException("Forbidden: Bạn không có quyền truy cập phiếu sửa chữa của chi nhánh khác"));
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
 
         mockMvc.perform(post("/api/repair-orders/602/items")
                         .header("Authorization", "Bearer " + token)
@@ -189,7 +190,7 @@ class RepairItemControllerTest {
         stubUser(mgr, "ROLE_MANAGER");
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        UpdateRepairItemRequest req = new UpdateRepairItemRequest(3, new BigDecimal("160000.00"));
+        UpdateRepairItemRequest req = new UpdateRepairItemRequest(new BigDecimal("160000.00"), "Ghi chu moi");
         when(repairItemService.updateRepairItem(eq(601), eq(701), any(UpdateRepairItemRequest.class)))
                 .thenReturn(sampleItem(701, 601, 10));
 
@@ -235,7 +236,7 @@ class RepairItemControllerTest {
         stubUser(admin, "ROLE_ADMIN");
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
         when(repairItemService.addRepairItem(eq(602), any(CreateRepairItemRequest.class)))
                 .thenReturn(sampleItem(702, 602, 10));
 

@@ -6,33 +6,25 @@ import java.util.List;
 public class EmployeeResponse {
 
     private Integer maNhanVien;
-    private String maNhanVienCode;
     private String chucVu;
     private LocalDate ngayVaoLam;
     private Boolean trangThai;
-
-    // User details
     private Integer maNguoiDung;
     private String tenDangNhap;
     private String hoTen;
     private String email;
     private String soDienThoai;
     private List<String> roles;
-
-    // Branch details
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
 
     public EmployeeResponse() {}
 
-    public EmployeeResponse(Integer maNhanVien, String maNhanVienCode, String chucVu,
-                            LocalDate ngayVaoLam, Boolean trangThai, Integer maNguoiDung,
-                            String tenDangNhap, String hoTen, String email, String soDienThoai,
-                            List<String> roles, Integer maChiNhanh, String maChiNhanhCode,
-                            String tenChiNhanh) {
+    public EmployeeResponse(Integer maNhanVien, String chucVu, LocalDate ngayVaoLam,
+                            Boolean trangThai, Integer maNguoiDung, String tenDangNhap,
+                            String hoTen, String email, String soDienThoai, List<String> roles,
+                            Integer maChiNhanh, String tenChiNhanh) {
         this.maNhanVien = maNhanVien;
-        this.maNhanVienCode = maNhanVienCode;
         this.chucVu = chucVu;
         this.ngayVaoLam = ngayVaoLam;
         this.trangThai = trangThai;
@@ -43,7 +35,6 @@ public class EmployeeResponse {
         this.soDienThoai = soDienThoai;
         this.roles = roles;
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
     }
 
@@ -53,14 +44,6 @@ public class EmployeeResponse {
 
     public void setMaNhanVien(Integer maNhanVien) {
         this.maNhanVien = maNhanVien;
-    }
-
-    public String getMaNhanVienCode() {
-        return maNhanVienCode;
-    }
-
-    public void setMaNhanVienCode(String maNhanVienCode) {
-        this.maNhanVienCode = maNhanVienCode;
     }
 
     public String getChucVu() {
@@ -141,14 +124,6 @@ public class EmployeeResponse {
 
     public void setMaChiNhanh(Integer maChiNhanh) {
         this.maChiNhanh = maChiNhanh;
-    }
-
-    public String getMaChiNhanhCode() {
-        return maChiNhanhCode;
-    }
-
-    public void setMaChiNhanhCode(String maChiNhanhCode) {
-        this.maChiNhanhCode = maChiNhanhCode;
     }
 
     public String getTenChiNhanh() {

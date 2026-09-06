@@ -69,8 +69,8 @@ public class ReportService {
     /**
      * A. Dashboard tổng quan
      */
-    public DashboardResponse getDashboardReport(String branchCode, LocalDate from, LocalDate to) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public DashboardResponse getDashboardReport(Integer branchId, LocalDate from, LocalDate to) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
 
         List<HoaDon> invoices = filterInvoices(branchOpt, from, to);
         List<ThanhToan> payments = filterPayments(branchOpt, from, to);
@@ -109,8 +109,8 @@ public class ReportService {
     /**
      * B. Thống kê doanh thu
      */
-    public RevenueReportResponse getRevenueReport(String branchCode, LocalDate from, LocalDate to) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public RevenueReportResponse getRevenueReport(Integer branchId, LocalDate from, LocalDate to) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
 
         List<HoaDon> invoices = filterInvoices(branchOpt, from, to);
         List<ThanhToan> payments = filterPayments(branchOpt, from, to);
@@ -154,15 +154,15 @@ public class ReportService {
     /**
      * D. Thống kê lịch hẹn
      */
-    public AppointmentReportResponse getAppointmentReport(String branchCode, LocalDate from, LocalDate to) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public AppointmentReportResponse getAppointmentReport(Integer branchId, LocalDate from, LocalDate to) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
 
         List<DatLich> appointments = filterAppointments(branchOpt, from, to);
 
         long choXacNhan = appointments.stream().filter(a -> "CHO_XAC_NHAN".equalsIgnoreCase(a.getTrangThai())).count();
         long daXacNhan = appointments.stream().filter(a -> "DA_XAC_NHAN".equalsIgnoreCase(a.getTrangThai())).count();
         long daTiepNhan = appointments.stream().filter(a -> "DA_TIEP_NHAN".equalsIgnoreCase(a.getTrangThai())).count();
-        long daHuy = appointments.stream().filter(a -> "DA_HUY".equalsIgnoreCase(a.getTrangThai())).count();
+        long daHuy = appointments.stream().filter(a -> "HUY".equalsIgnoreCase(a.getTrangThai())).count();
 
         return new AppointmentReportResponse(appointments.size(), choXacNhan, daXacNhan, daTiepNhan, daHuy);
     }
@@ -170,8 +170,8 @@ public class ReportService {
     /**
      * E. Thống kê phiếu sửa chữa
      */
-    public RepairOrderReportResponse getRepairOrderReport(String branchCode, LocalDate from, LocalDate to) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public RepairOrderReportResponse getRepairOrderReport(Integer branchId, LocalDate from, LocalDate to) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
 
         List<PhieuSuaChua> repairOrders = filterRepairOrders(branchOpt, from, to);
 
@@ -189,16 +189,16 @@ public class ReportService {
     /**
      * F. Thống kê dịch vụ sử dụng nhiều nhất
      */
-    public List<ServiceReportResponse> getServiceReport(String branchCode, LocalDate from, LocalDate to, Integer limit) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public List<ServiceReportResponse> getServiceReport(Integer branchId, LocalDate from, LocalDate to, Integer limit) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
         int maxResults = (limit != null && limit > 0) ? limit : 10;
 
         List<PhieuSuaChuaDichVu> items = phieuSuaChuaDichVuRepository.findAll();
         if (branchOpt.isPresent()) {
-            Integer branchId = branchOpt.get().getMaChiNhanh();
+            Integer bId = branchOpt.get().getMaChiNhanh();
             items = items.stream()
                     .filter(i -> i.getPhieuSuaChua() != null && i.getPhieuSuaChua().getChiNhanh() != null &&
-                            branchId.equals(i.getPhieuSuaChua().getChiNhanh().getMaChiNhanh()))
+                            bId.equals(i.getPhieuSuaChua().getChiNhanh().getMaChiNhanh()))
                     .collect(Collectors.toList());
         }
 
@@ -209,10 +209,9 @@ public class ReportService {
         return byService.entrySet().stream()
                 .map(e -> {
                     DichVu dv = e.getValue().get(0).getDichVu();
-                    long count = e.getValue().stream().mapToLong(i -> i.getSoLuong() != null ? i.getSoLuong() : 1).sum();
+                    long count = e.getValue().size();
                     BigDecimal rev = e.getValue().stream()
-                            .map(i -> (i.getDonGia() != null ? i.getDonGia() : BigDecimal.ZERO)
-                                    .multiply(BigDecimal.valueOf(i.getSoLuong() != null ? i.getSoLuong() : 1)))
+                            .map(i -> i.getDonGia() != null ? i.getDonGia() : BigDecimal.ZERO)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
                     return new ServiceReportResponse(dv.getMaDichVu(), dv.getTenDichVu(), count, rev);
                 })
@@ -224,16 +223,16 @@ public class ReportService {
     /**
      * G. Thống kê phụ tùng sử dụng nhiều nhất
      */
-    public List<PartReportResponse> getPartReport(String branchCode, LocalDate from, LocalDate to, Integer limit) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public List<PartReportResponse> getPartReport(Integer branchId, LocalDate from, LocalDate to, Integer limit) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
         int maxResults = (limit != null && limit > 0) ? limit : 10;
 
         List<PhieuSuaChuaPhuTung> items = phieuSuaChuaPhuTungRepository.findAll();
         if (branchOpt.isPresent()) {
-            Integer branchId = branchOpt.get().getMaChiNhanh();
+            Integer bId = branchOpt.get().getMaChiNhanh();
             items = items.stream()
                     .filter(i -> i.getPhieuSuaChua() != null && i.getPhieuSuaChua().getChiNhanh() != null &&
-                            branchId.equals(i.getPhieuSuaChua().getChiNhanh().getMaChiNhanh()))
+                            bId.equals(i.getPhieuSuaChua().getChiNhanh().getMaChiNhanh()))
                     .collect(Collectors.toList());
         }
 
@@ -259,8 +258,8 @@ public class ReportService {
     /**
      * G2. Thống kê tồn kho
      */
-    public List<InventoryReportResponse> getInventoryReport(String branchCode) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, null, null);
+    public List<InventoryReportResponse> getInventoryReport(Integer branchId) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, null, null);
 
         List<TonKho> list;
         if (branchOpt.isPresent()) {
@@ -295,8 +294,8 @@ public class ReportService {
     /**
      * H. Thống kê kỹ thuật viên
      */
-    public List<TechnicianReportResponse> getTechnicianReport(String branchCode, LocalDate from, LocalDate to) {
-        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchCode, from, to);
+    public List<TechnicianReportResponse> getTechnicianReport(Integer branchId, LocalDate from, LocalDate to) {
+        Optional<ChiNhanh> branchOpt = resolveBranchAndValidateDates(branchId, from, to);
 
         List<NhanVien> technicians = nhanVienRepository.findAll().stream()
                 .filter(nv -> nv.getChucVu() != null &&
@@ -304,9 +303,9 @@ public class ReportService {
                 .collect(Collectors.toList());
 
         if (branchOpt.isPresent()) {
-            Integer branchId = branchOpt.get().getMaChiNhanh();
+            Integer bId = branchOpt.get().getMaChiNhanh();
             technicians = technicians.stream()
-                    .filter(nv -> nv.getChiNhanh() != null && branchId.equals(nv.getChiNhanh().getMaChiNhanh()))
+                    .filter(nv -> nv.getChiNhanh() != null && bId.equals(nv.getChiNhanh().getMaChiNhanh()))
                     .collect(Collectors.toList());
         }
 
@@ -315,7 +314,7 @@ public class ReportService {
         return technicians.stream()
                 .map(tech -> {
                     List<PhanCong> myAssigns = assignments.stream()
-                            .filter(a -> a.getNhanVien() != null && tech.getMaNhanVien().equals(a.getNhanVien().getMaNhanVien()))
+                            .filter(a -> a.getNhanVienDuocPhanCong() != null && tech.getMaNhanVien().equals(a.getNhanVienDuocPhanCong().getMaNhanVien()))
                             .collect(Collectors.toList());
 
                     long totalAssign = myAssigns.size();
@@ -326,11 +325,10 @@ public class ReportService {
                             .filter(a -> a.getPhieuSuaChua() != null && "DANG_SUA".equalsIgnoreCase(a.getPhieuSuaChua().getTrangThai()))
                             .count();
 
-                    String hoTen = tech.getNguoiDung() != null ? tech.getNguoiDung().getHoTen() : tech.getMaNhanVienCode();
+                    String hoTen = tech.getNguoiDung() != null ? tech.getNguoiDung().getHoTen() : "ID " + tech.getMaNhanVien();
 
                     return new TechnicianReportResponse(
                             tech.getMaNhanVien(),
-                            tech.getMaNhanVienCode(),
                             hoTen,
                             totalAssign,
                             completed,
@@ -359,30 +357,29 @@ public class ReportService {
 
         return branches.stream()
                 .map(cn -> {
-                    Integer branchId = cn.getMaChiNhanh();
+                    Integer bId = cn.getMaChiNhanh();
 
                     BigDecimal rev = allInvoices.stream()
-                            .filter(h -> h.getChiNhanh() != null && branchId.equals(h.getChiNhanh().getMaChiNhanh()))
+                            .filter(h -> h.getChiNhanh() != null && bId.equals(h.getChiNhanh().getMaChiNhanh()))
                             .filter(h -> "DA_THANH_TOAN".equalsIgnoreCase(h.getTrangThai()))
                             .map(h -> h.getThanhTien() != null ? h.getThanhTien() : BigDecimal.ZERO)
                             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                     long appts = allAppointments.stream()
-                            .filter(a -> a.getChiNhanh() != null && branchId.equals(a.getChiNhanh().getMaChiNhanh()))
+                            .filter(a -> a.getChiNhanh() != null && bId.equals(a.getChiNhanh().getMaChiNhanh()))
                             .count();
 
                     long repairs = allRepairs.stream()
-                            .filter(r -> r.getChiNhanh() != null && branchId.equals(r.getChiNhanh().getMaChiNhanh()))
+                            .filter(r -> r.getChiNhanh() != null && bId.equals(r.getChiNhanh().getMaChiNhanh()))
                             .count();
 
                     long completedRepairs = allRepairs.stream()
-                            .filter(r -> r.getChiNhanh() != null && branchId.equals(r.getChiNhanh().getMaChiNhanh()))
+                            .filter(r -> r.getChiNhanh() != null && bId.equals(r.getChiNhanh().getMaChiNhanh()))
                             .filter(r -> "HOAN_TAT".equalsIgnoreCase(r.getTrangThai()))
                             .count();
 
                     return new BranchReportResponse(
                             cn.getMaChiNhanh(),
-                            cn.getMaChiNhanhCode(),
                             cn.getTenChiNhanh(),
                             rev,
                             appts,
@@ -395,7 +392,7 @@ public class ReportService {
 
     // --- Helpers & Security ---
 
-    private Optional<ChiNhanh> resolveBranchAndValidateDates(String branchCode, LocalDate from, LocalDate to) {
+    private Optional<ChiNhanh> resolveBranchAndValidateDates(Integer branchId, LocalDate from, LocalDate to) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             throw new AccessDeniedException("Forbidden: Yêu cầu đăng nhập");
@@ -414,9 +411,9 @@ public class ReportService {
         boolean isSystemAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isSystemAdmin) {
-            if (branchCode != null && !branchCode.isBlank()) {
-                ChiNhanh cn = chiNhanhRepository.findByMaChiNhanhCode(branchCode.trim().toUpperCase())
-                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chi nhánh với mã: " + branchCode));
+            if (branchId != null) {
+                ChiNhanh cn = chiNhanhRepository.findById(branchId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chi nhánh với ID: " + branchId));
                 return Optional.of(cn);
             }
             return Optional.empty(); // Toàn hệ thống
@@ -431,7 +428,7 @@ public class ReportService {
         ChiNhanh userBranch = chiNhanhRepository.findById(branchIdOpt.get())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin chi nhánh của tài khoản"));
 
-        if (branchCode != null && !branchCode.isBlank() && !userBranch.getMaChiNhanhCode().equalsIgnoreCase(branchCode.trim())) {
+        if (branchId != null && !userBranch.getMaChiNhanh().equals(branchId)) {
             throw new AccessDeniedException("Forbidden: Bạn không có quyền xem báo cáo của chi nhánh khác");
         }
 

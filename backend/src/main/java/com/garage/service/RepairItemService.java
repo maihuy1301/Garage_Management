@@ -8,7 +8,6 @@ import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.DichVuRepository;
-import com.garage.repository.GiaDichVuChiNhanhRepository;
 import com.garage.repository.PhieuSuaChuaDichVuRepository;
 import com.garage.repository.PhieuSuaChuaRepository;
 import com.garage.security.BranchAuthorizationService;
@@ -26,18 +25,15 @@ public class RepairItemService {
     private final PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
     private final PhieuSuaChuaRepository phieuSuaChuaRepository;
     private final DichVuRepository dichVuRepository;
-    private final GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository;
     private final BranchAuthorizationService branchAuthorizationService;
 
     public RepairItemService(PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
                              PhieuSuaChuaRepository phieuSuaChuaRepository,
                              DichVuRepository dichVuRepository,
-                             GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository,
                              BranchAuthorizationService branchAuthorizationService) {
         this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.dichVuRepository = dichVuRepository;
-        this.giaDichVuChiNhanhRepository = giaDichVuChiNhanhRepository;
         this.branchAuthorizationService = branchAuthorizationService;
     }
 
@@ -58,8 +54,8 @@ public class RepairItemService {
      * - Kiểm tra trạng thái phiếu sửa chữa (không được ở trạng thái HOAN_TAT hoặc HUY)
      * - Kiểm tra dịch vụ tồn tại & đang hoạt động
      * - Chống trùng lặp: Mỗi dịch vụ chỉ xuất hiện 1 lần trong 1 phiếu sửa chữa
-     * - Tự động lấy đơn giá từ catalog GiaDichVuChiNhanh nếu có, hoặc dùng đơn giá hợp lệ từ request
-     * - Tính thành tiền = số lượng * đơn giá
+     * - Tự động lấy đơn giá trực tiếp từ DichVu.donGia hoặc từ request nếu được cung cấp hợp lệ
+     * - Thành tiền = đơn giá (không có số lượng)
      */
     @Transactional
     public RepairItemResponse addRepairItem(Integer repairOrderId, CreateRepairItemRequest request) {
@@ -79,16 +75,14 @@ public class RepairItemService {
             throw new DuplicateResourceException("Dịch vụ '" + dichVu.getTenDichVu() + "' đã tồn tại trong phiếu sửa chữa này");
         }
 
-        // 3. Xác định đơn giá dịch vụ
-        BigDecimal donGia = resolveServicePrice(order.getChiNhanh().getMaChiNhanh(), dichVu.getMaDichVu(), request.getDonGia());
-
-        // 4. Số lượng
-        int soLuong = (request.getSoLuong() != null && request.getSoLuong() >= 1) ? request.getSoLuong() : 1;
+        // 3. Xác định đơn giá dịch vụ (lấy trực tiếp từ DichVu.donGia)
+        BigDecimal donGia = (request.getDonGia() != null && request.getDonGia().compareTo(BigDecimal.ZERO) >= 0)
+                ? request.getDonGia()
+                : dichVu.getDonGia();
 
         PhieuSuaChuaDichVu item = new PhieuSuaChuaDichVu();
         item.setPhieuSuaChua(order);
         item.setDichVu(dichVu);
-        item.setSoLuong(soLuong);
         item.setDonGia(donGia);
         item.setTrangThai(request.getTrangThai() != null ? request.getTrangThai() : "CHO_XU_LY");
 
@@ -97,7 +91,7 @@ public class RepairItemService {
     }
 
     /**
-     * Cập nhật số lượng, đơn giá hoặc trạng thái của hạng mục dịch vụ
+     * Cập nhật đơn giá hoặc trạng thái của hạng mục dịch vụ
      */
     @Transactional
     public RepairItemResponse updateRepairItem(Integer repairOrderId, Integer itemId, UpdateRepairItemRequest request) {
@@ -108,18 +102,12 @@ public class RepairItemService {
                 .findByMaChiTietAndPhieuSuaChuaMaPhieuSuaChua(itemId, repairOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hạng mục dịch vụ ID " + itemId + " trong phiếu sửa chữa này"));
 
-        if (request.getSoLuong() != null) {
-            if (request.getSoLuong() < 1) {
-                throw new BadRequestException("Số lượng phải lớn hơn hoặc bằng 1");
-            }
-            item.setSoLuong(request.getSoLuong());
-        }
-
         if (request.getDonGia() != null) {
             if (request.getDonGia().compareTo(BigDecimal.ZERO) < 0) {
                 throw new BadRequestException("Đơn giá không được nhỏ hơn 0");
             }
             item.setDonGia(request.getDonGia());
+            item.setThanhTien(request.getDonGia());
         }
 
         if (request.getTrangThai() != null) {
@@ -165,21 +153,6 @@ public class RepairItemService {
         }
     }
 
-    private BigDecimal resolveServicePrice(Integer branchId, Integer serviceId, BigDecimal requestPrice) {
-        List<GiaDichVuChiNhanh> prices = giaDichVuChiNhanhRepository
-                .findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(branchId, serviceId);
-
-        if (!prices.isEmpty() && prices.get(0).getDonGia() != null) {
-            return prices.get(0).getDonGia();
-        }
-
-        if (requestPrice != null && requestPrice.compareTo(BigDecimal.ZERO) >= 0) {
-            return requestPrice;
-        }
-
-        throw new BadRequestException("Chưa có đơn giá cho dịch vụ này tại chi nhánh. Vui lòng cung cấp đơn giá.");
-    }
-
     private RepairItemResponse mapToRepairItemResponse(PhieuSuaChuaDichVu item) {
         DichVu dv = item.getDichVu();
         Integer maLoaiDichVu = null;
@@ -189,10 +162,8 @@ public class RepairItemService {
             tenLoaiDichVu = dv.getLoaiDichVu().getTenLoai();
         }
 
-        BigDecimal thanhTien = BigDecimal.ZERO;
-        if (item.getDonGia() != null && item.getSoLuong() != null) {
-            thanhTien = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
-        }
+        BigDecimal donGia = item.getDonGia() != null ? item.getDonGia() : BigDecimal.ZERO;
+        BigDecimal thanhTien = donGia; // Thành tiền = Đơn giá
 
         return new RepairItemResponse(
                 item.getMaChiTiet(),
@@ -201,8 +172,7 @@ public class RepairItemService {
                 dv != null ? dv.getTenDichVu() : null,
                 maLoaiDichVu,
                 tenLoaiDichVu,
-                item.getSoLuong(),
-                item.getDonGia(),
+                donGia,
                 thanhTien,
                 item.getTrangThai()
         );

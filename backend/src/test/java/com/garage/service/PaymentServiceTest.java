@@ -56,7 +56,6 @@ class PaymentServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         invoice1 = new HoaDon();

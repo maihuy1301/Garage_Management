@@ -95,7 +95,7 @@ public class InvoiceService {
 
         BigDecimal totalServiceAmount = BigDecimal.ZERO;
         for (PhieuSuaChuaDichVu s : repairServices) {
-            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(s.getSoLuong()));
+            BigDecimal lineTotal = s.getDonGia();
             totalServiceAmount = totalServiceAmount.add(lineTotal);
         }
 
@@ -132,16 +132,14 @@ public class InvoiceService {
             HoaDonDichVu item = new HoaDonDichVu();
             item.setHoaDon(savedInvoice);
             item.setDichVu(s.getDichVu());
-            item.setSoLuong(s.getSoLuong());
             item.setDonGia(s.getDonGia());
             HoaDonDichVu savedItem = hoaDonDichVuRepository.save(item);
 
-            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(s.getSoLuong()));
+            BigDecimal lineTotal = s.getDonGia();
             serviceResponses.add(new InvoiceServiceItemResponse(
                     savedItem.getMaChiTiet(),
                     s.getDichVu().getMaDichVu(),
                     s.getDichVu().getTenDichVu(),
-                    savedItem.getSoLuong(),
                     savedItem.getDonGia(),
                     lineTotal
             ));
@@ -291,12 +289,11 @@ public class InvoiceService {
         List<InvoiceServiceItemResponse> services = hoaDonDichVuRepository.findByHoaDonMaHoaDon(invoice.getMaHoaDon())
                 .stream()
                 .map(item -> {
-                    BigDecimal lineTotal = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+                    BigDecimal lineTotal = item.getDonGia();
                     return new InvoiceServiceItemResponse(
                             item.getMaChiTiet(),
                             item.getDichVu().getMaDichVu(),
                             item.getDichVu().getTenDichVu(),
-                            item.getSoLuong(),
                             item.getDonGia(),
                             lineTotal
                     );

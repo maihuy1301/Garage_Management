@@ -59,11 +59,10 @@ class EmployeeServiceTest {
         );
     }
 
-    private ChiNhanh createMockBranch(Integer id, String code) {
+    private ChiNhanh createMockBranch(Integer id, String name) {
         ChiNhanh b = new ChiNhanh();
         b.setMaChiNhanh(id);
-        b.setMaChiNhanhCode(code);
-        b.setTenChiNhanh("Branch " + code);
+        b.setTenChiNhanh(name);
         return b;
     }
 
@@ -73,13 +72,13 @@ class EmployeeServiceTest {
         u.setTenDangNhap(username);
         u.setHoTen(username + " Name");
         u.setEmail(username + "@garage.com");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         return u;
     }
 
-    private NhanVien createMockEmployee(Integer id, String code, NguoiDung user, ChiNhanh branch) {
+    private NhanVien createMockEmployee(Integer id, NguoiDung user, ChiNhanh branch) {
         NhanVien nv = new NhanVien();
         nv.setMaNhanVien(id);
-        nv.setMaNhanVienCode(code);
         nv.setNguoiDung(user);
         nv.setChiNhanh(branch);
         nv.setChucVu("Thợ sửa chữa");
@@ -97,10 +96,10 @@ class EmployeeServiceTest {
         when(ctx.getAuthentication()).thenReturn(auth);
         SecurityContextHolder.setContext(ctx);
 
-        ChiNhanh cn1 = createMockBranch(1, "CN001");
-        ChiNhanh cn2 = createMockBranch(2, "CN002");
-        NhanVien nv1 = createMockEmployee(1, "NV01", createMockUser(1, "user1"), cn1);
-        NhanVien nv2 = createMockEmployee(2, "NV02", createMockUser(2, "user2"), cn2);
+        ChiNhanh cn1 = createMockBranch(1, "Branch 1");
+        ChiNhanh cn2 = createMockBranch(2, "Branch 2");
+        NhanVien nv1 = createMockEmployee(1, createMockUser(1, "user1"), cn1);
+        NhanVien nv2 = createMockEmployee(2, createMockUser(2, "user2"), cn2);
 
         when(nhanVienRepository.findAll()).thenReturn(List.of(nv1, nv2));
 
@@ -119,33 +118,33 @@ class EmployeeServiceTest {
 
         when(branchAuthorizationService.resolveUserBranchId(auth)).thenReturn(Optional.of(1));
 
-        ChiNhanh cn1 = createMockBranch(1, "CN001");
-        NhanVien nv1 = createMockEmployee(1, "NV01", createMockUser(1, "user1"), cn1);
+        ChiNhanh cn1 = createMockBranch(1, "Branch 1");
+        NhanVien nv1 = createMockEmployee(1, createMockUser(1, "user1"), cn1);
 
         when(nhanVienRepository.findByChiNhanhMaChiNhanh(1)).thenReturn(List.of(nv1));
 
         List<EmployeeResponse> results = employeeService.getAllEmployees();
         assertEquals(1, results.size());
-        assertEquals("CN001", results.get(0).getMaChiNhanhCode());
+        assertEquals(1, results.get(0).getMaChiNhanh());
     }
 
     @Test
     void getEmployeeById_OwnBranch_ReturnsSuccess() {
-        ChiNhanh cn1 = createMockBranch(1, "CN001");
-        NhanVien nv1 = createMockEmployee(1, "NV01", createMockUser(1, "user1"), cn1);
+        ChiNhanh cn1 = createMockBranch(1, "Branch 1");
+        NhanVien nv1 = createMockEmployee(1, createMockUser(1, "user1"), cn1);
 
         when(nhanVienRepository.findById(1)).thenReturn(Optional.of(nv1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
 
         EmployeeResponse res = employeeService.getEmployeeById(1);
         assertNotNull(res);
-        assertEquals("NV01", res.getMaNhanVienCode());
+        assertEquals(1, res.getMaNhanVien());
     }
 
     @Test
     void getEmployeeById_OtherBranch_ThrowsAccessDenied() {
-        ChiNhanh cn2 = createMockBranch(2, "CN002");
-        NhanVien nv2 = createMockEmployee(2, "NV02", createMockUser(2, "user2"), cn2);
+        ChiNhanh cn2 = createMockBranch(2, "Branch 2");
+        NhanVien nv2 = createMockEmployee(2, createMockUser(2, "user2"), cn2);
 
         when(nhanVienRepository.findById(2)).thenReturn(Optional.of(nv2));
         when(branchAuthorizationService.isAllowedBranch(2)).thenReturn(false);
@@ -155,36 +154,35 @@ class EmployeeServiceTest {
 
     @Test
     void createEmployee_Success() {
-        CreateEmployeeRequest req = new CreateEmployeeRequest("NV99", 10, 1, "Thợ chính", LocalDate.now());
-        ChiNhanh cn1 = createMockBranch(1, "CN001");
+        CreateEmployeeRequest req = new CreateEmployeeRequest(10, 1, "Thợ chính", LocalDate.now());
+        ChiNhanh cn1 = createMockBranch(1, "Branch 1");
         NguoiDung u10 = createMockUser(10, "user10");
 
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-        when(nhanVienRepository.existsByMaNhanVienCode("NV99")).thenReturn(false);
         when(nhanVienRepository.existsByNguoiDungMaNguoiDung(10)).thenReturn(false);
         when(nguoiDungRepository.findById(10)).thenReturn(Optional.of(u10));
         when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(cn1));
 
-        NhanVien saved = createMockEmployee(99, "NV99", u10, cn1);
+        NhanVien saved = createMockEmployee(99, u10, cn1);
         when(nhanVienRepository.save(any(NhanVien.class))).thenReturn(saved);
 
         EmployeeResponse res = employeeService.createEmployee(req);
         assertNotNull(res);
-        assertEquals("NV99", res.getMaNhanVienCode());
+        assertEquals(99, res.getMaNhanVien());
     }
 
     @Test
-    void createEmployee_DuplicateCode_ThrowsConflict() {
-        CreateEmployeeRequest req = new CreateEmployeeRequest("NV01", 10, 1, "Thợ chính", LocalDate.now());
+    void createEmployee_DuplicateUser_ThrowsConflict() {
+        CreateEmployeeRequest req = new CreateEmployeeRequest(10, 1, "Thợ chính", LocalDate.now());
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-        when(nhanVienRepository.existsByMaNhanVienCode("NV01")).thenReturn(true);
+        when(nhanVienRepository.existsByNguoiDungMaNguoiDung(10)).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> employeeService.createEmployee(req));
     }
 
     @Test
     void createEmployee_OtherBranch_ThrowsAccessDenied() {
-        CreateEmployeeRequest req = new CreateEmployeeRequest("NV99", 10, 2, "Thợ chính", LocalDate.now());
+        CreateEmployeeRequest req = new CreateEmployeeRequest(10, 2, "Thợ chính", LocalDate.now());
         when(branchAuthorizationService.isAllowedBranch(2)).thenReturn(false);
 
         assertThrows(AccessDeniedException.class, () -> employeeService.createEmployee(req));

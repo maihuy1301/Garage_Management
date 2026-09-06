@@ -2,6 +2,7 @@ package com.garage.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -15,6 +16,10 @@ public class CreateUserRequest {
     @NotBlank(message = "Mật khẩu không được để trống")
     @Size(min = 6, max = 100, message = "Mật khẩu phải có từ 6 đến 100 ký tự")
     private String matKhau;
+
+    @NotBlank(message = "Mã PIN không được để trống")
+    @Pattern(regexp = "^\\d{6}$", message = "Mã PIN phải gồm đúng 6 chữ số")
+    private String maPin;
 
     @NotBlank(message = "Họ tên không được để trống")
     @Size(max = 100, message = "Họ tên tối đa 100 ký tự")
@@ -34,10 +39,11 @@ public class CreateUserRequest {
 
     public CreateUserRequest() {}
 
-    public CreateUserRequest(String tenDangNhap, String matKhau, String hoTen, String email,
+    public CreateUserRequest(String tenDangNhap, String matKhau, String maPin, String hoTen, String email,
                              String soDienThoai, String anhDaiDien, List<String> roles) {
         this.tenDangNhap = tenDangNhap;
         this.matKhau = matKhau;
+        this.maPin = maPin;
         this.hoTen = hoTen;
         this.email = email;
         this.soDienThoai = soDienThoai;
@@ -59,6 +65,14 @@ public class CreateUserRequest {
 
     public void setMatKhau(String matKhau) {
         this.matKhau = matKhau;
+    }
+
+    public String getMaPin() {
+        return maPin;
+    }
+
+    public void setMaPin(String maPin) {
+        this.maPin = maPin;
     }
 
     public String getHoTen() {

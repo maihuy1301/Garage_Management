@@ -51,6 +51,7 @@ class ReportControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         u.setTrangThai(true);
         return u;
     }
@@ -186,13 +187,13 @@ class ReportControllerTest {
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
         BranchReportResponse mockRes = new BranchReportResponse(
-                1, "CN001", "Chi nhánh 1", new BigDecimal("2000000"), 5, 4, 3
+                1, "Chi nhánh 1", new BigDecimal("2000000"), 5L, 4L, 3L
         );
         when(reportService.getBranchReport(any(), any())).thenReturn(List.of(mockRes));
 
         mockMvc.perform(get("/api/reports/branches")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].maChiNhanhCode").value("CN001"));
+                .andExpect(jsonPath("$.data[0].maChiNhanh").value(1));
     }
 }

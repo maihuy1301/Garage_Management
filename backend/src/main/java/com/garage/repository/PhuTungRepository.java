@@ -12,6 +12,10 @@ public interface PhuTungRepository extends JpaRepository<PhuTung, Integer> {
 
     List<PhuTung> findByTrangThaiTrue();
 
+    List<PhuTung> findByChiNhanhMaChiNhanhAndTrangThaiTrue(Integer maChiNhanh);
+
+    List<PhuTung> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
+
     Optional<PhuTung> findByMaPhuTungCode(String maPhuTungCode);
 
     boolean existsByMaPhuTungCode(String maPhuTungCode);

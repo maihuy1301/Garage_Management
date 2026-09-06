@@ -50,9 +50,6 @@ class QuotationServiceTest {
     private PhuTungRepository phuTungRepository;
 
     @Mock
-    private GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository;
-
-    @Mock
     private PhanCongRepository phanCongRepository;
 
     @Mock
@@ -75,7 +72,6 @@ class QuotationServiceTest {
     private PhieuTiepNhan ptn1;
     private PhieuSuaChua order1;
     private DichVu service1;
-    private GiaDichVuChiNhanh branchServicePrice1;
     private PhuTung part1;
     private BaoGiaPhatSinh quotation1;
 
@@ -83,7 +79,6 @@ class QuotationServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         userCustomer1 = new NguoiDung();
@@ -93,7 +88,6 @@ class QuotationServiceTest {
 
         customer1 = new KhachHang();
         customer1.setMaKhachHang(1);
-        customer1.setMaKhachHangCode("KH001");
         customer1.setNguoiDung(userCustomer1);
 
         vehicle1 = new Xe();
@@ -115,13 +109,8 @@ class QuotationServiceTest {
         service1 = new DichVu();
         service1.setMaDichVu(10);
         service1.setTenDichVu("Bảo dưỡng phanh");
+        service1.setDonGia(new BigDecimal("200000.00"));
         service1.setTrangThai(true);
-
-        branchServicePrice1 = new GiaDichVuChiNhanh();
-        branchServicePrice1.setChiNhanh(branch1);
-        branchServicePrice1.setDichVu(service1);
-        branchServicePrice1.setDonGia(new BigDecimal("200000.00"));
-        branchServicePrice1.setTrangThai(true);
 
         part1 = new PhuTung();
         part1.setMaPhuTung(20);
@@ -168,13 +157,10 @@ class QuotationServiceTest {
         when(baoGiaPhatSinhRepository.save(any(BaoGiaPhatSinh.class))).thenReturn(quotation1);
 
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
-        when(giaDichVuChiNhanhRepository.findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(1, 10))
-                .thenReturn(List.of(branchServicePrice1));
 
         BaoGiaPhatSinhDichVu savedSvcItem = new BaoGiaPhatSinhDichVu();
         savedSvcItem.setMaChiTiet(1);
         savedSvcItem.setDichVu(service1);
-        savedSvcItem.setSoLuong(1);
         savedSvcItem.setDonGia(new BigDecimal("200000.00"));
         when(baoGiaPhatSinhDichVuRepository.save(any(BaoGiaPhatSinhDichVu.class))).thenReturn(savedSvcItem);
 
@@ -188,7 +174,7 @@ class QuotationServiceTest {
 
         CreateQuotationRequest req = new CreateQuotationRequest(
                 "Phát hiện mòn má phanh",
-                List.of(new QuotationServiceItemRequest(10, 1)),
+                List.of(new QuotationServiceItemRequest(10)),
                 List.of(new QuotationPartItemRequest(20, 1))
         );
 
@@ -224,7 +210,7 @@ class QuotationServiceTest {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
 
         CreateQuotationRequest req = new CreateQuotationRequest(
-                "Thử thêm", List.of(new QuotationServiceItemRequest(10, 1)), List.of()
+                "Thử thêm", List.of(new QuotationServiceItemRequest(10)), List.of()
         );
 
         assertThatThrownBy(() -> quotationService.createQuotation(601, req))
@@ -243,7 +229,7 @@ class QuotationServiceTest {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
 
         CreateQuotationRequest req = new CreateQuotationRequest(
-                "Thử thêm", List.of(new QuotationServiceItemRequest(10, 1)), List.of()
+                "Thử thêm", List.of(new QuotationServiceItemRequest(10)), List.of()
         );
 
         assertThatThrownBy(() -> quotationService.createQuotation(601, req))

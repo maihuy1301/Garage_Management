@@ -58,6 +58,7 @@ class TechnicianAssignmentControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$hashedPinValue");
         u.setTrangThai(true);
         return u;
     }
@@ -74,9 +75,9 @@ class TechnicianAssignmentControllerTest {
 
     private AssignmentResponse sampleAssignment(Integer id, Integer orderId, Integer techId) {
         return new AssignmentResponse(
-                id, orderId, techId, "NV001", "Nguyễn Văn Kỹ Thuật",
-                1, "CN001", "Chi Nhánh 1",
-                "Kỹ thuật viên chính", LocalDateTime.now(), "DA_GIAO"
+                id, orderId, 2, "Nguyễn Văn Quản Lý",
+                techId, "Nguyễn Văn Kỹ Thuật",
+                LocalDateTime.now(), "DA_PHAN_CONG"
         );
     }
 
@@ -152,7 +153,7 @@ class TechnicianAssignmentControllerTest {
         stubUser(mgr, "ROLE_MANAGER");
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Kỹ thuật viên chính");
+        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
         when(technicianAssignmentService.createAssignment(eq(601), any(CreateAssignmentRequest.class)))
                 .thenReturn(sampleAssignment(801, 601, 100));
 
@@ -163,7 +164,7 @@ class TechnicianAssignmentControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.maPhanCong").value(801))
-                .andExpect(jsonPath("$.data.tenNhanVien").value("Nguyễn Văn Kỹ Thuật"));
+                .andExpect(jsonPath("$.data.tenNhanVienDuocPhanCong").value("Nguyễn Văn Kỹ Thuật"));
     }
 
     @Test

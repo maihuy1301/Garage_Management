@@ -58,6 +58,7 @@ class AdminUserControllerTest {
         user.setHoTen(username + " FullName");
         user.setEmail(username + "@garage.com");
         user.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        user.setMaPinHash("$2a$10$hashedPinValue");
         user.setTrangThai(true);
         return user;
     }
@@ -143,7 +144,7 @@ class AdminUserControllerTest {
 
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
-        CreateUserRequest req = new CreateUserRequest("newtech", "Password123@", "Kỹ Thuật Mới", "newtech@garage.com", "0900000099", null, List.of("ROLE_TECHNICIAN"));
+        CreateUserRequest req = new CreateUserRequest("newtech", "Password123@", "123456", "Kỹ Thuật Mới", "newtech@garage.com", "0900000099", null, List.of("ROLE_TECHNICIAN"));
 
         mockMvc.perform(post("/api/admin/users")
                         .header("Authorization", "Bearer " + token)
@@ -153,7 +154,8 @@ class AdminUserControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.tenDangNhap").value("newtech"))
                 .andExpect(jsonPath("$.data.matKhau").doesNotExist())
-                .andExpect(jsonPath("$.data.matKhauHash").doesNotExist());
+                .andExpect(jsonPath("$.data.matKhauHash").doesNotExist())
+                .andExpect(jsonPath("$.data.maPinHash").doesNotExist());
     }
 
     @Test
@@ -167,7 +169,7 @@ class AdminUserControllerTest {
 
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
-        CreateUserRequest req = new CreateUserRequest("admin", "Password123@", "Admin", "admin@garage.com", null, null, null);
+        CreateUserRequest req = new CreateUserRequest("admin", "Password123@", "123456", "Admin", "admin@garage.com", null, null, null);
 
         mockMvc.perform(post("/api/admin/users")
                         .header("Authorization", "Bearer " + token)

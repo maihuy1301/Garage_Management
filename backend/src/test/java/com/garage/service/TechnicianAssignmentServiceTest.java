@@ -6,6 +6,7 @@ import com.garage.entity.*;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
+import com.garage.repository.NguoiDungRepository;
 import com.garage.repository.NguoiDungVaiTroRepository;
 import com.garage.repository.NhanVienRepository;
 import com.garage.repository.PhanCongRepository;
@@ -40,6 +41,9 @@ class TechnicianAssignmentServiceTest {
     private NhanVienRepository nhanVienRepository;
 
     @Mock
+    private NguoiDungRepository nguoiDungRepository;
+
+    @Mock
     private NguoiDungVaiTroRepository nguoiDungVaiTroRepository;
 
     @Mock
@@ -62,12 +66,10 @@ class TechnicianAssignmentServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
 
         order1 = new PhieuSuaChua();
@@ -83,7 +85,6 @@ class TechnicianAssignmentServiceTest {
 
         tech1 = new NhanVien();
         tech1.setMaNhanVien(100);
-        tech1.setMaNhanVienCode("NV001");
         tech1.setChiNhanh(branch1);
         tech1.setNguoiDung(userTech1);
         tech1.setTrangThai(true);
@@ -97,8 +98,7 @@ class TechnicianAssignmentServiceTest {
         assignment1 = new PhanCong();
         assignment1.setMaPhanCong(801);
         assignment1.setPhieuSuaChua(order1);
-        assignment1.setNhanVien(tech1);
-        assignment1.setVaiTroTrongCongViec("Kỹ thuật viên chính");
+        assignment1.setNhanVienDuocPhanCong(tech1);
         assignment1.setTrangThai("DA_GIAO");
     }
 
@@ -112,16 +112,16 @@ class TechnicianAssignmentServiceTest {
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(10)).thenReturn(List.of(userRoleTech));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(false);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(false);
         when(phanCongRepository.save(any(PhanCong.class))).thenReturn(assignment1);
 
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Kỹ thuật viên chính");
+        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
         AssignmentResponse res = technicianAssignmentService.createAssignment(601, req);
 
         assertThat(res).isNotNull();
         assertThat(res.getMaPhanCong()).isEqualTo(801);
-        assertThat(res.getMaNhanVien()).isEqualTo(100);
-        assertThat(res.getTenNhanVien()).isEqualTo("Nguyễn Văn Kỹ Thuật");
+        assertThat(res.getMaNhanVienDuocPhanCong()).isEqualTo(100);
+        assertThat(res.getTenNhanVienDuocPhanCong()).isEqualTo("Nguyễn Văn Kỹ Thuật");
         assertThat(order1.getTrangThai()).isEqualTo("DA_PHAN_CONG");
         verify(phieuSuaChuaRepository).save(order1);
         verify(phanCongRepository).save(any(PhanCong.class));
@@ -129,7 +129,7 @@ class TechnicianAssignmentServiceTest {
 
     @Test
     void createAssignment_crossBranch_throws403() {
-        tech1.setChiNhanh(branch2); // Technician belongs to CN002, order is CN001
+        tech1.setChiNhanh(branch2);
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
@@ -160,7 +160,7 @@ class TechnicianAssignmentServiceTest {
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(10)).thenReturn(List.of(userRoleTech));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true); // already assigned
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
 
         CreateAssignmentRequest req = new CreateAssignmentRequest(100);
 
@@ -240,7 +240,7 @@ class TechnicianAssignmentServiceTest {
 
         assertThat(list).hasSize(1);
         assertThat(list.get(0).getMaPhanCong()).isEqualTo(801);
-        assertThat(list.get(0).getTenNhanVien()).isEqualTo("Nguyễn Văn Kỹ Thuật");
+        assertThat(list.get(0).getTenNhanVienDuocPhanCong()).isEqualTo("Nguyễn Văn Kỹ Thuật");
     }
 
     // ==========================================
@@ -254,7 +254,7 @@ class TechnicianAssignmentServiceTest {
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phanCongRepository.findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(801, 601))
                 .thenReturn(Optional.of(assignment1));
-        when(phanCongRepository.countByPhieuSuaChuaMaPhieuSuaChua(601)).thenReturn(0L); // 0 left
+        when(phanCongRepository.countByPhieuSuaChuaMaPhieuSuaChua(601)).thenReturn(0L);
 
         technicianAssignmentService.deleteAssignment(601, 801);
 

@@ -119,7 +119,6 @@ public class InventoryService {
 
         return new InventoryResponse(
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 pt != null ? pt.getMaPhuTung() : null,
                 pt != null ? pt.getMaPhuTungCode() : null,

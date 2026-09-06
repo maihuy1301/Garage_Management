@@ -14,13 +14,16 @@ public interface PhanCongRepository extends JpaRepository<PhanCong, Integer> {
     List<PhanCong> findByPhieuSuaChuaMaPhieuSuaChua(Integer maPhieuSuaChua);
 
     /** Kiểm tra kỹ thuật viên đã được phân công cho phiếu sửa chữa chưa (chống duplicate) */
-    boolean existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(Integer maPhieuSuaChua, Integer maNhanVien);
+    boolean existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(Integer maPhieuSuaChua, Integer maNhanVien);
 
     /** Tìm phân công theo ID và mã phiếu sửa chữa */
     Optional<PhanCong> findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(Integer maPhanCong, Integer maPhieuSuaChua);
 
     /** Lấy danh sách phân công của một kỹ thuật viên */
-    List<PhanCong> findByNhanVienMaNhanVien(Integer maNhanVien);
+    List<PhanCong> findByNhanVienDuocPhanCongMaNhanVien(Integer maNhanVien);
+
+    /** Lấy danh sách phân công do một quản lý tạo */
+    List<PhanCong> findByQuanLyMaNhanVien(Integer maQuanLy);
 
     /** Đếm số lượng phân công của phiếu sửa chữa */
     long countByPhieuSuaChuaMaPhieuSuaChua(Integer maPhieuSuaChua);

@@ -18,6 +18,9 @@ public class NguoiDung {
     @Column(name = "MatKhauHash", nullable = false, length = 255)
     private String matKhauHash;
 
+    @Column(name = "MaPinHash", nullable = false, length = 255)
+    private String maPinHash;
+
     @Column(name = "HoTen", nullable = false, length = 100)
     private String hoTen;
 
@@ -60,6 +63,14 @@ public class NguoiDung {
 
     public void setMatKhauHash(String matKhauHash) {
         this.matKhauHash = matKhauHash;
+    }
+
+    public String getMaPinHash() {
+        return maPinHash;
+    }
+
+    public void setMaPinHash(String maPinHash) {
+        this.maPinHash = maPinHash;
     }
 
     public String getHoTen() {

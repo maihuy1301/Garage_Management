@@ -83,7 +83,6 @@ class ReportServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi nhánh Quận 1");
 
         invoicePaid = new HoaDon();
@@ -238,7 +237,7 @@ class ReportServiceTest {
                 .thenReturn(Optional.of(1));
         when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
 
-        assertThatThrownBy(() -> reportService.getDashboardReport("CN002", null, null))
+        assertThatThrownBy(() -> reportService.getDashboardReport(2, null, null))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("chi nhánh khác");
     }

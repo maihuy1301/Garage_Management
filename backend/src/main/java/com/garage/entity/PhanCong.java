@@ -17,11 +17,12 @@ public class PhanCong {
     private PhieuSuaChua phieuSuaChua;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MaNhanVien", nullable = false)
-    private NhanVien nhanVien;
+    @JoinColumn(name = "MaQuanLy", nullable = false)
+    private NhanVien quanLy;
 
-    @Column(name = "VaiTroTrongCongViec", length = 100)
-    private String vaiTroTrongCongViec;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaNhanVienDuocPhanCong", nullable = false)
+    private NhanVien nhanVienDuocPhanCong;
 
     @Column(name = "ThoiGianPhanCong", insertable = false, updatable = false)
     private LocalDateTime thoiGianPhanCong;
@@ -47,20 +48,20 @@ public class PhanCong {
         this.phieuSuaChua = phieuSuaChua;
     }
 
-    public NhanVien getNhanVien() {
-        return nhanVien;
+    public NhanVien getQuanLy() {
+        return quanLy;
     }
 
-    public void setNhanVien(NhanVien nhanVien) {
-        this.nhanVien = nhanVien;
+    public void setQuanLy(NhanVien quanLy) {
+        this.quanLy = quanLy;
     }
 
-    public String getVaiTroTrongCongViec() {
-        return vaiTroTrongCongViec;
+    public NhanVien getNhanVienDuocPhanCong() {
+        return nhanVienDuocPhanCong;
     }
 
-    public void setVaiTroTrongCongViec(String vaiTroTrongCongViec) {
-        this.vaiTroTrongCongViec = vaiTroTrongCongViec;
+    public void setNhanVienDuocPhanCong(NhanVien nhanVienDuocPhanCong) {
+        this.nhanVienDuocPhanCong = nhanVienDuocPhanCong;
     }
 
     public LocalDateTime getThoiGianPhanCong() {

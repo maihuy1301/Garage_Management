@@ -55,10 +55,10 @@ public class TechnicianExecutionController {
 
     /** PATCH /api/technician/repair-orders/{repairOrderId}/progress — Cập nhật tiến độ thực hiện */
     @PatchMapping("/{repairOrderId}/progress")
-    public ResponseEntity<ApiResponse<RepairProgressResponse>> updateProgress(
+    public ResponseEntity<ApiResponse<RepairOrderResponse>> updateProgress(
             @PathVariable Integer repairOrderId,
-            @Valid @RequestBody UpdateRepairProgressRequest request) {
-        RepairProgressResponse response = technicianExecutionService.updateProgress(repairOrderId, request);
+            @Valid @RequestBody UpdateProgressRequest request) {
+        RepairOrderResponse response = technicianExecutionService.updateProgress(repairOrderId, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật tiến độ sửa chữa thành công", response));
     }
 
@@ -70,13 +70,5 @@ public class TechnicianExecutionController {
             @Valid @RequestBody UpdateServiceItemStatusRequest request) {
         RepairItemResponse response = technicianExecutionService.updateItemStatus(repairOrderId, itemId, request);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái dịch vụ thành công", response));
-    }
-
-    /** GET /api/technician/repair-orders/{repairOrderId}/progress-history — Lịch sử tiến độ sửa chữa */
-    @GetMapping("/{repairOrderId}/progress-history")
-    public ResponseEntity<ApiResponse<List<RepairProgressResponse>>> getProgressHistory(
-            @PathVariable Integer repairOrderId) {
-        List<RepairProgressResponse> history = technicianExecutionService.getProgressHistory(repairOrderId);
-        return ResponseEntity.ok(ApiResponse.success("Lấy lịch sử tiến độ thành công", history));
     }
 }

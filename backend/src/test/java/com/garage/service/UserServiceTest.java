@@ -101,13 +101,14 @@ class UserServiceTest {
 
     @Test
     void testCreateUser_Success() {
-        CreateUserRequest req = new CreateUserRequest("newuser", "Password123@", "New User", "new@test.com", "0900000099", null, List.of("ROLE_MANAGER"));
+        CreateUserRequest req = new CreateUserRequest("newuser", "Password123@", "123456", "New User", "new@test.com", "0900000099", null, List.of("ROLE_MANAGER"));
         VaiTro role = createMockRole(2, "ROLE_MANAGER");
 
         when(nguoiDungRepository.existsByTenDangNhap("newuser")).thenReturn(false);
         when(nguoiDungRepository.existsByEmail("new@test.com")).thenReturn(false);
         when(vaiTroRepository.findByTenVaiTro("ROLE_MANAGER")).thenReturn(Optional.of(role));
         when(passwordEncoder.encode("Password123@")).thenReturn("$2a$10$encodedPassword");
+        when(passwordEncoder.encode("123456")).thenReturn("$2a$10$encodedPin");
         
         NguoiDung savedUser = createMockUser(10, "newuser", "new@test.com");
         when(nguoiDungRepository.save(any(NguoiDung.class))).thenReturn(savedUser);
@@ -117,12 +118,13 @@ class UserServiceTest {
         assertNotNull(response);
         assertEquals("newuser", response.getTenDangNhap());
         verify(passwordEncoder).encode("Password123@");
+        verify(passwordEncoder).encode("123456");
         verify(nguoiDungVaiTroRepository).save(any(NguoiDungVaiTro.class));
     }
 
     @Test
     void testCreateUser_DuplicateUsername_ThrowsConflict() {
-        CreateUserRequest req = new CreateUserRequest("existinguser", "Password123@", "User", "user@test.com", null, null, null);
+        CreateUserRequest req = new CreateUserRequest("existinguser", "Password123@", "123456", "User", "user@test.com", null, null, null);
         when(nguoiDungRepository.existsByTenDangNhap("existinguser")).thenReturn(true);
 
         assertThrows(DuplicateResourceException.class, () -> userService.createUser(req));
@@ -130,7 +132,7 @@ class UserServiceTest {
 
     @Test
     void testCreateUser_InvalidRole_ThrowsBadRequest() {
-        CreateUserRequest req = new CreateUserRequest("newuser", "Password123@", "User", "user@test.com", null, null, List.of("NON_EXISTENT_ROLE"));
+        CreateUserRequest req = new CreateUserRequest("newuser", "Password123@", "123456", "User", "user@test.com", null, null, List.of("NON_EXISTENT_ROLE"));
         when(nguoiDungRepository.existsByTenDangNhap("newuser")).thenReturn(false);
         when(nguoiDungRepository.existsByEmail("user@test.com")).thenReturn(false);
         when(vaiTroRepository.findByTenVaiTro("NON_EXISTENT_ROLE")).thenReturn(Optional.empty());

@@ -62,6 +62,7 @@ class VehicleControllerTest {
         u.setHoTen(username + " FullName");
         u.setEmail(username + "@garage.com");
         u.setMatKhauHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
+        u.setMaPinHash("$2a$10$ClEFdX0R7SanUp/08zNDYOFUdflLGCXChrTo25Hwo2OZAD80z/NjO");
         u.setTrangThai(true);
         return u;
     }
@@ -77,7 +78,7 @@ class VehicleControllerTest {
     }
 
     private VehicleResponse sampleVehicle(Integer maXe, Integer maKhachHang, String bienSo) {
-        return new VehicleResponse(maXe, maKhachHang, "KH00" + maKhachHang,
+        return new VehicleResponse(maXe, maKhachHang,
                 "Chủ Xe " + maKhachHang, bienSo, "Toyota", "Camry",
                 2022, "Black", null, 0, true, LocalDateTime.now());
     }

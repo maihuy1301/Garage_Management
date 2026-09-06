@@ -12,6 +12,10 @@ public class PhuTung {
     @Column(name = "MaPhuTung")
     private Integer maPhuTung;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaChiNhanh", nullable = false)
+    private ChiNhanh chiNhanh;
+
     @Column(name = "MaPhuTungCode", nullable = false, unique = true, length = 30)
     private String maPhuTungCode;
 
@@ -38,6 +42,14 @@ public class PhuTung {
 
     public void setMaPhuTung(Integer maPhuTung) {
         this.maPhuTung = maPhuTung;
+    }
+
+    public ChiNhanh getChiNhanh() {
+        return chiNhanh;
+    }
+
+    public void setChiNhanh(ChiNhanh chiNhanh) {
+        this.chiNhanh = chiNhanh;
     }
 
     public String getMaPhuTungCode() {

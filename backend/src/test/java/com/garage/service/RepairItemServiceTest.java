@@ -8,7 +8,6 @@ import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.DichVuRepository;
-import com.garage.repository.GiaDichVuChiNhanhRepository;
 import com.garage.repository.PhieuSuaChuaDichVuRepository;
 import com.garage.repository.PhieuSuaChuaRepository;
 import com.garage.security.BranchAuthorizationService;
@@ -42,9 +41,6 @@ class RepairItemServiceTest {
     private DichVuRepository dichVuRepository;
 
     @Mock
-    private GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository;
-
-    @Mock
     private BranchAuthorizationService branchAuthorizationService;
 
     @InjectMocks
@@ -56,19 +52,16 @@ class RepairItemServiceTest {
     private PhieuSuaChua order1;
     private LoaiDichVu category;
     private DichVu service1;
-    private GiaDichVuChiNhanh branchPrice;
     private PhieuSuaChuaDichVu item1;
 
     @BeforeEach
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
 
         order1 = new PhieuSuaChua();
@@ -84,20 +77,15 @@ class RepairItemServiceTest {
         service1.setMaDichVu(10);
         service1.setTenDichVu("Thay dầu động cơ");
         service1.setLoaiDichVu(category);
+        service1.setDonGia(new BigDecimal("150000.00"));
         service1.setTrangThai(true);
-
-        branchPrice = new GiaDichVuChiNhanh();
-        branchPrice.setChiNhanh(branch1);
-        branchPrice.setDichVu(service1);
-        branchPrice.setDonGia(new BigDecimal("150000.00"));
-        branchPrice.setTrangThai(true);
 
         item1 = new PhieuSuaChuaDichVu();
         item1.setMaChiTiet(701);
         item1.setPhieuSuaChua(order1);
         item1.setDichVu(service1);
-        item1.setSoLuong(2);
         item1.setDonGia(new BigDecimal("150000.00"));
+        item1.setThanhTien(new BigDecimal("150000.00"));
         item1.setTrangThai("CHO_XU_LY");
     }
 
@@ -111,38 +99,34 @@ class RepairItemServiceTest {
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
         when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(false);
-        when(giaDichVuChiNhanhRepository.findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(1, 10))
-                .thenReturn(List.of(branchPrice));
         when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(item1);
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 2);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
         RepairItemResponse res = repairItemService.addRepairItem(601, req);
 
         assertThat(res).isNotNull();
         assertThat(res.getMaChiTiet()).isEqualTo(701);
         assertThat(res.getDonGia()).isEqualByComparingTo(new BigDecimal("150000.00"));
-        assertThat(res.getThanhTien()).isEqualByComparingTo(new BigDecimal("300000.00")); // 150000 * 2
+        assertThat(res.getThanhTien()).isEqualByComparingTo(new BigDecimal("150000.00"));
         verify(phieuSuaChuaDichVuRepository).save(any(PhieuSuaChuaDichVu.class));
     }
 
     @Test
-    void addRepairItem_customPrice_whenNoCatalog_success() {
+    void addRepairItem_customPrice_whenProvided_success() {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
         when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(false);
-        when(giaDichVuChiNhanhRepository.findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(1, 10))
-                .thenReturn(List.of()); // No catalog price
 
         PhieuSuaChuaDichVu customItem = new PhieuSuaChuaDichVu();
         customItem.setMaChiTiet(702);
         customItem.setPhieuSuaChua(order1);
         customItem.setDichVu(service1);
-        customItem.setSoLuong(1);
         customItem.setDonGia(new BigDecimal("200000.00"));
+        customItem.setThanhTien(new BigDecimal("200000.00"));
         when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(customItem);
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1, new BigDecimal("200000.00"));
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10, new BigDecimal("200000.00"), "Ghi chu");
         RepairItemResponse res = repairItemService.addRepairItem(601, req);
 
         assertThat(res.getDonGia()).isEqualByComparingTo(new BigDecimal("200000.00"));
@@ -154,7 +138,7 @@ class RepairItemServiceTest {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(false);
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
 
         assertThatThrownBy(() -> repairItemService.addRepairItem(601, req))
                 .isInstanceOf(AccessDeniedException.class)
@@ -168,7 +152,7 @@ class RepairItemServiceTest {
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
         when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(true); // already exists
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
 
         assertThatThrownBy(() -> repairItemService.addRepairItem(601, req))
                 .isInstanceOf(DuplicateResourceException.class)
@@ -181,7 +165,7 @@ class RepairItemServiceTest {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
 
         assertThatThrownBy(() -> repairItemService.addRepairItem(601, req))
                 .isInstanceOf(BadRequestException.class)
@@ -194,7 +178,7 @@ class RepairItemServiceTest {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(10);
 
         assertThatThrownBy(() -> repairItemService.addRepairItem(601, req))
                 .isInstanceOf(BadRequestException.class)
@@ -207,7 +191,7 @@ class RepairItemServiceTest {
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(dichVuRepository.findById(999)).thenReturn(Optional.empty());
 
-        CreateRepairItemRequest req = new CreateRepairItemRequest(999, 1);
+        CreateRepairItemRequest req = new CreateRepairItemRequest(999);
 
         assertThatThrownBy(() -> repairItemService.addRepairItem(601, req))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -242,12 +226,12 @@ class RepairItemServiceTest {
                 .thenReturn(Optional.of(item1));
         when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(item1);
 
-        UpdateRepairItemRequest req = new UpdateRepairItemRequest(3, new BigDecimal("160000.00"));
+        UpdateRepairItemRequest req = new UpdateRepairItemRequest(new BigDecimal("160000.00"), "Ghi chu moi");
         RepairItemResponse res = repairItemService.updateRepairItem(601, 701, req);
 
         assertThat(res).isNotNull();
-        assertThat(item1.getSoLuong()).isEqualTo(3);
         assertThat(item1.getDonGia()).isEqualByComparingTo(new BigDecimal("160000.00"));
+        assertThat(item1.getThanhTien()).isEqualByComparingTo(new BigDecimal("160000.00"));
     }
 
     @Test

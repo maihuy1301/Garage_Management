@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface DichVuRepository extends JpaRepository<DichVu, Integer> {
     List<DichVu> findByTrangThaiTrue();
+    List<DichVu> findByChiNhanhMaChiNhanhAndTrangThaiTrue(Integer maChiNhanh);
+    List<DichVu> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
 }

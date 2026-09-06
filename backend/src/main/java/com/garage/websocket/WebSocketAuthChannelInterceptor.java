@@ -21,7 +21,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
-import java.util.List;
 
 @Component
 public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
@@ -106,15 +105,15 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             return;
         }
 
-        // Branch-specific topic subscription authorization (/topic/branches/{branchCode})
+        // Branch-specific topic subscription authorization (/topic/branches/{branchId})
         if (destination.startsWith("/topic/branches/")) {
-            String branchCode = destination.substring("/topic/branches/".length());
+            String branchIdStr = destination.substring("/topic/branches/".length());
             // Set SecurityContext temporarily so branchAuthorizationService can inspect the user
             SecurityContextHolder.getContext().setAuthentication(auth);
             try {
-                if (!branchAuthorizationService.isAllowedBranchByCode(branchCode)) {
-                    log.warn("WebSocket SUBSCRIBE rejected: User {} not authorized for branch {}", user.getName(), branchCode);
-                    throw new AccessDeniedException("Bạn không có quyền subscribe channel của chi nhánh " + branchCode);
+                if (!branchAuthorizationService.isAllowedBranchByCode(branchIdStr)) {
+                    log.warn("WebSocket SUBSCRIBE rejected: User {} not authorized for branch {}", user.getName(), branchIdStr);
+                    throw new AccessDeniedException("Bạn không có quyền subscribe channel của chi nhánh " + branchIdStr);
                 }
             } finally {
                 SecurityContextHolder.clearContext();

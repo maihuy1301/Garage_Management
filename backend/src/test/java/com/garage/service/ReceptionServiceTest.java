@@ -71,12 +71,10 @@ class ReceptionServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
 
         receptionistUser = new NguoiDung();
@@ -86,7 +84,6 @@ class ReceptionServiceTest {
 
         receptionist = new NhanVien();
         receptionist.setMaNhanVien(10);
-        receptionist.setMaNhanVienCode("NV_REC01");
         receptionist.setNguoiDung(receptionistUser);
         receptionist.setChiNhanh(branch1);
 
@@ -98,7 +95,6 @@ class ReceptionServiceTest {
 
         customer = new KhachHang();
         customer.setMaKhachHang(1);
-        customer.setMaKhachHangCode("KH001");
         customer.setNguoiDung(customerUser);
 
         vehicle = new Xe();

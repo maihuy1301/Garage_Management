@@ -297,9 +297,9 @@ public class ChatService {
 
             // Gửi đến topic chi nhánh nếu có gắn tiếp nhận
             if (cht.getPhieuTiepNhan() != null && cht.getPhieuTiepNhan().getChiNhanh() != null) {
-                String branchCode = cht.getPhieuTiepNhan().getChiNhanh().getMaChiNhanhCode();
-                if (branchCode != null) {
-                    webSocketEventPublisher.sendToBranch(branchCode, event);
+                Integer branchId = cht.getPhieuTiepNhan().getChiNhanh().getMaChiNhanh();
+                if (branchId != null) {
+                    webSocketEventPublisher.sendToBranch(branchId, event);
                 }
             }
         } catch (Exception ignored) {

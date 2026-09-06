@@ -1,6 +1,7 @@
 package com.garage.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "DichVu")
@@ -15,11 +16,18 @@ public class DichVu {
     @JoinColumn(name = "MaLoaiDichVu", nullable = false)
     private LoaiDichVu loaiDichVu;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaChiNhanh", nullable = false)
+    private ChiNhanh chiNhanh;
+
     @Column(name = "TenDichVu", nullable = false, length = 150)
     private String tenDichVu;
 
     @Column(name = "MoTa", length = 500)
     private String moTa;
+
+    @Column(name = "DonGia", nullable = false, precision = 18, scale = 2)
+    private BigDecimal donGia;
 
     @Column(name = "ThoiGianDuKien")
     private Integer thoiGianDuKien;
@@ -45,6 +53,14 @@ public class DichVu {
         this.loaiDichVu = loaiDichVu;
     }
 
+    public ChiNhanh getChiNhanh() {
+        return chiNhanh;
+    }
+
+    public void setChiNhanh(ChiNhanh chiNhanh) {
+        this.chiNhanh = chiNhanh;
+    }
+
     public String getTenDichVu() {
         return tenDichVu;
     }
@@ -59,6 +75,14 @@ public class DichVu {
 
     public void setMoTa(String moTa) {
         this.moTa = moTa;
+    }
+
+    public BigDecimal getDonGia() {
+        return donGia;
+    }
+
+    public void setDonGia(BigDecimal donGia) {
+        this.donGia = donGia;
     }
 
     public Integer getThoiGianDuKien() {

@@ -6,6 +6,7 @@ import com.garage.entity.ChiNhanh;
 import com.garage.entity.DatLich;
 import com.garage.entity.KhachHang;
 import com.garage.entity.NguoiDung;
+import com.garage.entity.NhanVien;
 import com.garage.entity.Xe;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
@@ -290,6 +291,7 @@ public class AppointmentService {
         KhachHang kh = dl.getKhachHang();
         Xe xe = dl.getXe();
         ChiNhanh cn = dl.getChiNhanh();
+        NhanVien nvXn = dl.getNhanVienXacNhan();
 
         String tenKhachHang = null;
         String soDienThoaiKhachHang = null;
@@ -298,18 +300,21 @@ public class AppointmentService {
             soDienThoaiKhachHang = kh.getNguoiDung().getSoDienThoai();
         }
 
+        Integer maNvXn = nvXn != null ? nvXn.getMaNhanVien() : null;
+        String tenNvXn = (nvXn != null && nvXn.getNguoiDung() != null) ? nvXn.getNguoiDung().getHoTen() : null;
+
         return new AppointmentResponse(
                 dl.getMaDatLich(),
                 kh != null ? kh.getMaKhachHang() : null,
-                kh != null ? kh.getMaKhachHangCode() : null,
                 tenKhachHang,
                 soDienThoaiKhachHang,
+                maNvXn,
+                tenNvXn,
                 xe != null ? xe.getMaXe() : null,
                 xe != null ? xe.getBienSo() : null,
                 xe != null ? xe.getHangXe() : null,
                 xe != null ? xe.getModel() : null,
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 dl.getThoiGianHen(),
                 dl.getTrangThai(),
