@@ -1,6 +1,5 @@
 export interface EmployeeResponse {
   maNhanVien: number;
-  maNhanVienCode: string;
   chucVu?: string | null;
   ngayVaoLam?: string | null;
   trangThai: boolean;
@@ -15,12 +14,10 @@ export interface EmployeeResponse {
 
   // Branch details
   maChiNhanh?: number | null;
-  maChiNhanhCode?: string | null;
   tenChiNhanh?: string | null;
 }
 
 export interface CreateEmployeeRequest {
-  maNhanVienCode: string;
   maNguoiDung: number;
   maChiNhanh: number;
   chucVu?: string;

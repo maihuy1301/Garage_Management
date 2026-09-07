@@ -77,7 +77,7 @@ class AppointmentControllerTest {
         return new AppointmentResponse(
                 id, customerId, "Khách Hàng " + customerId, "090000000" + customerId,
                 100, "51A-11111", "Toyota", "Camry",
-                branchId, "CN00" + branchId, "Chi Nhánh " + branchId,
+                branchId, "Chi Nhánh " + branchId,
                 LocalDateTime.now().plusDays(1), status, "Ghi chú test", LocalDateTime.now()
         );
     }

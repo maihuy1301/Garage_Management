@@ -23,12 +23,12 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
       const term = searchTerm.toLowerCase().trim();
       const matchSearch =
         !term ||
-        cust.maKhachHangCode?.toLowerCase().includes(term) ||
         cust.hoTen?.toLowerCase().includes(term) ||
         cust.tenDangNhap?.toLowerCase().includes(term) ||
         cust.email?.toLowerCase().includes(term) ||
         cust.soDienThoai?.includes(term) ||
-        cust.diaChi?.toLowerCase().includes(term);
+        cust.diaChi?.toLowerCase().includes(term) ||
+        String(cust.maKhachHang).includes(term);
 
       const isCustActive = cust.trangThai !== false;
       const matchStatus =
@@ -120,7 +120,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                               {cust.hoTen || 'Khách hàng'}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--color-outline)', marginTop: '2px' }}>
-                              Mã: <span style={{ fontWeight: 600, color: 'var(--color-secondary-container)' }}>{cust.maKhachHangCode}</span>
+                              ID: <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>#{cust.maKhachHang}</span>
                             </div>
                           </div>
                         </div>

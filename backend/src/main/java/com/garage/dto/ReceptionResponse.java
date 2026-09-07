@@ -20,11 +20,9 @@ public class ReceptionResponse {
     private String soDienThoaiKhachHang;
 
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
 
     private Integer maNhanVienTiepNhan;
-    private String maNhanVienCode;
     private String tenNhanVienTiepNhan;
 
     private LocalDateTime thoiGianTiepNhan;
@@ -38,8 +36,8 @@ public class ReceptionResponse {
     public ReceptionResponse(Integer maTiepNhan, Integer maDatLich,
                              Integer maXe, String bienSoXe, String hangXe, String modelXe,
                              Integer maKhachHang, String tenKhachHang, String soDienThoaiKhachHang,
-                             Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
-                             Integer maNhanVienTiepNhan, String maNhanVienCode, String tenNhanVienTiepNhan,
+                             Integer maChiNhanh, String tenChiNhanh,
+                             Integer maNhanVienTiepNhan, String tenNhanVienTiepNhan,
                              LocalDateTime thoiGianTiepNhan, Integer soKm,
                              String tinhTrangNgoaiThat, String yeuCauKhachHang, String trangThai) {
         this.maTiepNhan = maTiepNhan;
@@ -52,10 +50,8 @@ public class ReceptionResponse {
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.maNhanVienTiepNhan = maNhanVienTiepNhan;
-        this.maNhanVienCode = maNhanVienCode;
         this.tenNhanVienTiepNhan = tenNhanVienTiepNhan;
         this.thoiGianTiepNhan = thoiGianTiepNhan;
         this.soKm = soKm;
@@ -94,17 +90,11 @@ public class ReceptionResponse {
     public Integer getMaChiNhanh() { return maChiNhanh; }
     public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
 
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
-
     public String getTenChiNhanh() { return tenChiNhanh; }
     public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }
 
     public Integer getMaNhanVienTiepNhan() { return maNhanVienTiepNhan; }
     public void setMaNhanVienTiepNhan(Integer maNhanVienTiepNhan) { this.maNhanVienTiepNhan = maNhanVienTiepNhan; }
-
-    public String getMaNhanVienCode() { return maNhanVienCode; }
-    public void setMaNhanVienCode(String maNhanVienCode) { this.maNhanVienCode = maNhanVienCode; }
 
     public String getTenNhanVienTiepNhan() { return tenNhanVienTiepNhan; }
     public void setTenNhanVienTiepNhan(String tenNhanVienTiepNhan) { this.tenNhanVienTiepNhan = tenNhanVienTiepNhan; }

@@ -59,12 +59,10 @@ class RepairOrderServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
 
         managerUser = new NguoiDung();

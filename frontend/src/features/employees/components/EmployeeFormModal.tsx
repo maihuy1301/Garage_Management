@@ -25,7 +25,6 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   const isEdit = !!employee;
 
   // Form State
-  const [maNhanVienCode, setMaNhanVienCode] = useState<string>('');
   const [maNguoiDung, setMaNguoiDung] = useState<number | ''>('');
   const [maChiNhanh, setMaChiNhanh] = useState<number | ''>('');
   const [chucVu, setChucVu] = useState<string>('');
@@ -47,14 +46,12 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 
     if (employee) {
       // Edit mode
-      setMaNhanVienCode(employee.maNhanVienCode || '');
       setMaNguoiDung(employee.maNguoiDung || '');
       setMaChiNhanh(employee.maChiNhanh || '');
       setChucVu(employee.chucVu || '');
       setNgayVaoLam(employee.ngayVaoLam || '');
     } else {
       // Create mode
-      setMaNhanVienCode('');
       setMaNguoiDung('');
       setMaChiNhanh('');
       setChucVu('');
@@ -91,12 +88,6 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
     const errors: Record<string, string> = {};
 
     if (!isEdit) {
-      if (!maNhanVienCode.trim()) {
-        errors.maNhanVienCode = 'Vui lòng nhập mã nhân viên';
-      } else if (maNhanVienCode.length > 20) {
-        errors.maNhanVienCode = 'Mã nhân viên tối đa 20 ký tự';
-      }
-
       if (!maNguoiDung) {
         errors.maNguoiDung = 'Vui lòng chọn hoặc nhập mã người dùng liên kết';
       }
@@ -131,7 +122,6 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         await onSubmit(updatePayload, true);
       } else {
         const createPayload: CreateEmployeeRequest = {
-          maNhanVienCode: maNhanVienCode.trim().toUpperCase(),
           maNguoiDung: Number(maNguoiDung),
           maChiNhanh: Number(maChiNhanh),
           chucVu: chucVu.trim() || undefined,
@@ -159,7 +149,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>
               {isEdit ? 'edit' : 'person_add'}
             </span>
-            <span>{isEdit ? `Cập nhật nhân viên: ${employee?.maNhanVienCode}` : 'Thêm nhân viên mới'}</span>
+            <span>{isEdit ? `Cập nhật nhân viên: ${employee?.hoTen || `#${employee?.maNhanVien}`}` : 'Thêm nhân viên mới'}</span>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Đóng">
             <span className="material-symbols-outlined">close</span>
@@ -177,61 +167,39 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
 
             {/* Create mode fields */}
             {!isEdit && (
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="emp-code">
-                    Mã nhân viên <span style={{ color: 'var(--color-danger)' }}>*</span>
-                  </label>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="form-label" htmlFor="emp-user">
+                  Tài khoản người dùng <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </label>
+                {usersList.length > 0 ? (
+                  <select
+                    id="emp-user"
+                    className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
+                    value={maNguoiDung}
+                    onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
+                  >
+                    <option value="">-- Chọn tài khoản người dùng --</option>
+                    {usersList.map((u) => (
+                      <option key={u.maNguoiDung} value={u.maNguoiDung}>
+                        {u.hoTen} ({u.tenDangNhap}) - ID: {u.maNguoiDung}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
                   <input
-                    id="emp-code"
-                    type="text"
-                    className={`form-input ${fieldErrors.maNhanVienCode ? 'border-error' : ''}`}
-                    placeholder="VD: NV001, KTV002..."
-                    value={maNhanVienCode}
-                    onChange={(e) => setMaNhanVienCode(e.target.value.toUpperCase())}
-                    maxLength={20}
+                    id="emp-user"
+                    type="number"
+                    className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
+                    placeholder="Nhập ID Người Dùng (MaNguoiDung)"
+                    value={maNguoiDung}
+                    onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
                   />
-                  {fieldErrors.maNhanVienCode && (
-                    <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>
-                      {fieldErrors.maNhanVienCode}
-                    </span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="emp-user">
-                    Tài khoản người dùng <span style={{ color: 'var(--color-danger)' }}>*</span>
-                  </label>
-                  {usersList.length > 0 ? (
-                    <select
-                      id="emp-user"
-                      className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
-                      value={maNguoiDung}
-                      onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
-                    >
-                      <option value="">-- Chọn tài khoản người dùng --</option>
-                      {usersList.map((u) => (
-                        <option key={u.maNguoiDung} value={u.maNguoiDung}>
-                          {u.hoTen} ({u.tenDangNhap}) - ID: {u.maNguoiDung}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id="emp-user"
-                      type="number"
-                      className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
-                      placeholder="Nhập ID Người Dùng (MaNguoiDung)"
-                      value={maNguoiDung}
-                      onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
-                    />
-                  )}
-                  {fieldErrors.maNguoiDung && (
-                    <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>
-                      {fieldErrors.maNguoiDung}
-                    </span>
-                  )}
-                </div>
+                )}
+                {fieldErrors.maNguoiDung && (
+                  <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>
+                    {fieldErrors.maNguoiDung}
+                  </span>
+                )}
               </div>
             )}
 
@@ -251,7 +219,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                   <option value="">-- Chọn chi nhánh --</option>
                   {branchesList.map((b) => (
                     <option key={b.maChiNhanh} value={b.maChiNhanh}>
-                      {b.maChiNhanhCode} — {b.tenChiNhanh}
+                      {b.tenChiNhanh}
                     </option>
                   ))}
                 </select>

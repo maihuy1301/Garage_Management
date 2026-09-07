@@ -186,9 +186,9 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
             </div>
 
             <div className="detail-item">
-              <div className="detail-label">Mã khách hàng</div>
+              <div className="detail-label">ID Khách hàng</div>
               <div className="detail-value" style={{ color: 'var(--color-secondary-container)', fontWeight: 600 }}>
-                {vehicle.maKhachHangCode || (vehicle.maKhachHang ? `ID: ${vehicle.maKhachHang}` : '—')}
+                {vehicle.maKhachHang ? `#${vehicle.maKhachHang}` : '—'}
               </div>
             </div>
           </div>

@@ -82,7 +82,7 @@ class EmployeeControllerTest {
         stubAuthenticatedUser(admin, adminRole);
 
         EmployeeResponse emp = new EmployeeResponse(
-                1, "NV01", "Quản lý", LocalDate.now(), true, 2, "manager", "Manager FullName", "manager@garage.com", "0900000002", List.of("ROLE_MANAGER"), 1, "CN001", "Chi Nhánh 1"
+                1, "Quản lý", LocalDate.now(), true, 2, "manager", "Manager FullName", "manager@garage.com", "0900000002", List.of("ROLE_MANAGER"), 1, "Chi Nhánh 1"
         );
         when(employeeService.getAllEmployees()).thenReturn(List.of(emp));
 
@@ -92,7 +92,7 @@ class EmployeeControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].maNhanVienCode").value("NV01"));
+                .andExpect(jsonPath("$.data[0].maNhanVien").value(1));
     }
 
     @Test
@@ -102,7 +102,7 @@ class EmployeeControllerTest {
         stubAuthenticatedUser(manager, mgrRole);
 
         EmployeeResponse emp = new EmployeeResponse(
-                1, "NV01", "Quản lý", LocalDate.now(), true, 2, "manager", "Manager FullName", "manager@garage.com", "0900000002", List.of("ROLE_MANAGER"), 1, "CN001", "Chi Nhánh 1"
+                1, "Quản lý", LocalDate.now(), true, 2, "manager", "Manager FullName", "manager@garage.com", "0900000002", List.of("ROLE_MANAGER"), 1, "Chi Nhánh 1"
         );
         when(employeeService.getAllEmployees()).thenReturn(List.of(emp));
 
@@ -112,7 +112,7 @@ class EmployeeControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].maNhanVienCode").value("NV01"));
+                .andExpect(jsonPath("$.data[0].maNhanVien").value(1));
     }
 
     @Test
@@ -166,9 +166,9 @@ class EmployeeControllerTest {
         VaiTro adminRole = createMockRole(1, "ROLE_ADMIN");
         stubAuthenticatedUser(admin, adminRole);
 
-        CreateEmployeeRequest req = new CreateEmployeeRequest("NV02", 4, 1, "Thợ máy", LocalDate.now());
+        CreateEmployeeRequest req = new CreateEmployeeRequest(4, 1, "Thợ máy", LocalDate.now());
         EmployeeResponse created = new EmployeeResponse(
-                2, "NV02", "Thợ máy", LocalDate.now(), true, 4, "technician", "Tech Name", "tech@garage.com", "0900000004", List.of("ROLE_TECHNICIAN"), 1, "CN001", "Chi Nhánh 1"
+                2, "Thợ máy", LocalDate.now(), true, 4, "technician", "Tech Name", "tech@garage.com", "0900000004", List.of("ROLE_TECHNICIAN"), 1, "Chi Nhánh 1"
         );
         when(employeeService.createEmployee(any(CreateEmployeeRequest.class))).thenReturn(created);
 
@@ -180,7 +180,7 @@ class EmployeeControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.maNhanVienCode").value("NV02"));
+                .andExpect(jsonPath("$.data.maNhanVien").value(2));
     }
 
     @Test
@@ -191,7 +191,7 @@ class EmployeeControllerTest {
 
         UpdateEmployeeRequest req = new UpdateEmployeeRequest("Thợ máy chính", LocalDate.now(), 1);
         EmployeeResponse updated = new EmployeeResponse(
-                2, "NV02", "Thợ máy chính", LocalDate.now(), true, 4, "technician", "Tech Name", "tech@garage.com", "0900000004", List.of("ROLE_TECHNICIAN"), 1, "CN001", "Chi Nhánh 1"
+                2, "Thợ máy chính", LocalDate.now(), true, 4, "technician", "Tech Name", "tech@garage.com", "0900000004", List.of("ROLE_TECHNICIAN"), 1, "Chi Nhánh 1"
         );
         when(employeeService.updateEmployee(eq(2), any(UpdateEmployeeRequest.class))).thenReturn(updated);
 
@@ -214,7 +214,7 @@ class EmployeeControllerTest {
 
         UpdateEmployeeStatusRequest req = new UpdateEmployeeStatusRequest(false);
         EmployeeResponse updated = new EmployeeResponse(
-                2, "NV02", "Thợ máy", LocalDate.now(), false, 4, "technician", "Tech Name", "tech@garage.com", "0900000004", List.of("ROLE_TECHNICIAN"), 1, "CN001", "Chi Nhánh 1"
+                2, "Thợ máy", LocalDate.now(), false, 4, "technician", "Tech Name", "tech@garage.com", "0900000004", List.of("ROLE_TECHNICIAN"), 1, "Chi Nhánh 1"
         );
         when(employeeService.updateEmployeeStatus(eq(2), any(UpdateEmployeeStatusRequest.class))).thenReturn(updated);
 

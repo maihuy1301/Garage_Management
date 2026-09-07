@@ -12,9 +12,6 @@ public class ChiNhanh {
     @Column(name = "MaChiNhanh")
     private Integer maChiNhanh;
 
-    @Column(name = "MaChiNhanhCode", nullable = false, unique = true, length = 20)
-    private String maChiNhanhCode;
-
     @Column(name = "TenChiNhanh", nullable = false, length = 150)
     private String tenChiNhanh;
 
@@ -41,14 +38,6 @@ public class ChiNhanh {
 
     public void setMaChiNhanh(Integer maChiNhanh) {
         this.maChiNhanh = maChiNhanh;
-    }
-
-    public String getMaChiNhanhCode() {
-        return maChiNhanhCode;
-    }
-
-    public void setMaChiNhanhCode(String maChiNhanhCode) {
-        this.maChiNhanhCode = maChiNhanhCode;
     }
 
     public String getTenChiNhanh() {

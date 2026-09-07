@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 public class BranchResponse {
 
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
     private String diaChi;
     private String soDienThoai;
@@ -15,11 +14,10 @@ public class BranchResponse {
 
     public BranchResponse() {}
 
-    public BranchResponse(Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
+    public BranchResponse(Integer maChiNhanh, String tenChiNhanh,
                           String diaChi, String soDienThoai, String email,
                           Boolean trangThai, LocalDateTime ngayTao) {
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.diaChi = diaChi;
         this.soDienThoai = soDienThoai;
@@ -30,9 +28,6 @@ public class BranchResponse {
 
     public Integer getMaChiNhanh() { return maChiNhanh; }
     public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
-
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
 
     public String getTenChiNhanh() { return tenChiNhanh; }
     public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }

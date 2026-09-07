@@ -1,6 +1,5 @@
 export interface BranchResponse {
   maChiNhanh: number;
-  maChiNhanhCode: string;
   tenChiNhanh: string;
   diaChi?: string;
   soDienThoai?: string;

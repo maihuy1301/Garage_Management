@@ -183,18 +183,6 @@ CREATE TABLE PhanCong (
 	FOREIGN KEY (MaNhanVienDuocPhanCong) REFERENCES NhanVien(MaNhanVien)
 );
 
-CREATE TABLE TienDoSuaChua (
-    MaTienDo INT IDENTITY(1,1) PRIMARY KEY,
-	MaPhieuSuaChua INT NOT NULL,
-    MaNhanVien INT NOT NULL,
-    TrangThai VARCHAR(30) NOT NULL,
-	PhanTramHoanThanh INT,
-    MoTa NVARCHAR(1000),
-    ThoiGian DATETIME2 DEFAULT SYSDATETIME(),
-    FOREIGN KEY (MaPhieuSuaChua) REFERENCES PhieuSuaChua(MaPhieuSuaChua),
-    FOREIGN KEY (MaNhanVien) REFERENCES NhanVien(MaNhanVien)
-);
-
 CREATE TABLE HinhAnhSuaChua (
     MaHinhAnh INT IDENTITY(1,1) PRIMARY KEY,
 	MaPhieuSuaChua INT NOT NULL,

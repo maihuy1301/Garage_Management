@@ -13,9 +13,9 @@ import java.util.Optional;
  * BranchAuthorizationService — centralized branch access check.
  *
  * Rules:
- *   SYSTEM_ADMIN → access any branch (global).
- *   BRANCH_MANAGER / RECEPTIONIST / TECHNICIAN → own branch only.
- *   CUSTOMER / others → denied for branch-employee endpoints.
+ *   ROLE_ADMIN → access any branch (global).
+ *   ROLE_MANAGER / ROLE_FRONT_DESK / ROLE_TECHNICIAN → own branch only.
+ *   ROLE_CUSTOMER / others → denied for branch-employee endpoints.
  *
  * Branch is resolved from:
  *   JWT → SecurityContext → CustomUserDetails (NguoiDung)
@@ -60,30 +60,6 @@ public class BranchAuthorizationService {
     }
 
     /**
-     * Returns true if the currently authenticated user is allowed to access the given branch (by code string, e.g. "CN001").
-     */
-    public boolean isAllowedBranchByCode(String requestedBranchCode) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            return false;
-        }
-
-        if (hasRole(auth, "ROLE_ADMIN")) {
-            return true;
-        }
-
-        if (hasRole(auth, "ROLE_MANAGER")
-                || hasRole(auth, "ROLE_FRONT_DESK")
-                || hasRole(auth, "ROLE_TECHNICIAN")) {
-            return resolveUserBranchCode(auth)
-                    .map(code -> code.equalsIgnoreCase(requestedBranchCode))
-                    .orElse(false);
-        }
-
-        return false;
-    }
-
-    /**
      * Resolves the branch PK (MaChiNhanh) for the currently authenticated user.
      * Returns empty if user is not a branch employee.
      */
@@ -97,23 +73,11 @@ public class BranchAuthorizationService {
     }
 
     /**
-     * Resolves the branch code (MaChiNhanhCode, e.g. "CN001") for the currently authenticated user.
+     * Convenience: resolves branch ID for authenticated user from SecurityContext.
      */
-    public Optional<String> resolveUserBranchCode(Authentication auth) {
-        if (auth == null) return Optional.empty();
-        CustomUserDetails userDetails = extractUserDetails(auth);
-        if (userDetails == null) return Optional.empty();
-        Integer maNguoiDung = userDetails.getNguoiDung().getMaNguoiDung();
-        return nhanVienRepository.findByNguoiDungMaNguoiDung(maNguoiDung)
-                .map(nv -> nv.getChiNhanh().getMaChiNhanhCode());
-    }
-
-    /**
-     * Convenience: resolves branch code for authenticated user from SecurityContext.
-     */
-    public Optional<String> resolveCurrentUserBranchCode() {
+    public Optional<Integer> resolveCurrentUserBranchId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return resolveUserBranchCode(auth);
+        return resolveUserBranchId(auth);
     }
 
     // --- private helpers ---

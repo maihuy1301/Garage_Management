@@ -62,12 +62,10 @@ class TechnicianAssignmentServiceTest {
     void setUp() {
         branch1 = new ChiNhanh();
         branch1.setMaChiNhanh(1);
-        branch1.setMaChiNhanhCode("CN001");
         branch1.setTenChiNhanh("Chi Nhánh 1");
 
         branch2 = new ChiNhanh();
         branch2.setMaChiNhanh(2);
-        branch2.setMaChiNhanhCode("CN002");
         branch2.setTenChiNhanh("Chi Nhánh 2");
 
         order1 = new PhieuSuaChua();
@@ -83,7 +81,6 @@ class TechnicianAssignmentServiceTest {
 
         tech1 = new NhanVien();
         tech1.setMaNhanVien(100);
-        tech1.setMaNhanVienCode("NV001");
         tech1.setChiNhanh(branch1);
         tech1.setNguoiDung(userTech1);
         tech1.setTrangThai(true);

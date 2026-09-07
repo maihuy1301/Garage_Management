@@ -69,7 +69,7 @@ export const CustomerStatusModal: React.FC<CustomerStatusModalProps> = ({
 
           <p style={{ color: 'var(--color-on-surface)', fontSize: '0.925rem', lineHeight: '1.5' }}>
             Bạn có chắc chắn muốn <strong>{actionText}</strong> khách hàng{' '}
-            <strong>{customer.hoTen || customer.maKhachHangCode}</strong> (Mã: {customer.maKhachHangCode})?
+            <strong>{customer.hoTen || `ID: #${customer.maKhachHang}`}</strong>?
           </p>
 
           {!nextStatus && (

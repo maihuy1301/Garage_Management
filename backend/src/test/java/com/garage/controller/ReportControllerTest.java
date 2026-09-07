@@ -186,13 +186,13 @@ class ReportControllerTest {
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
         BranchReportResponse mockRes = new BranchReportResponse(
-                1, "CN001", "Chi nhánh 1", new BigDecimal("2000000"), 5, 4, 3
+                1, "Chi nhánh 1", new BigDecimal("2000000"), 5, 4, 3
         );
         when(reportService.getBranchReport(any(), any())).thenReturn(List.of(mockRes));
 
         mockMvc.perform(get("/api/reports/branches")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].maChiNhanhCode").value("CN001"));
+                .andExpect(jsonPath("$.data[0].maChiNhanh").value(1));
     }
 }

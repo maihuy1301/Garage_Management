@@ -83,30 +83,29 @@ AUTO_GARAGE/
   - Thiết bị Android thật qua USB: chạy `adb reverse tcp:8080 tcp:8080`, sau đó `flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8080/api`.
   - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`.
 
-## 4.2 Docker Development Environment
+## 4.2 Infrastructure & Development Workflow
 Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).
 
 ```bash
-# 1. Tạo file môi trường từ file mẫu
-cp .env.example .env
+# 1. Khởi động SQL Server 2022 qua Docker Compose (Terminal 1)
+docker compose up -d --build
 
-# 2. Khởi động toàn bộ stack (SQL Server 2022 + Spring Boot + React Vite)
-docker compose up --build
+# 2. Khởi động Backend Spring Boot (Terminal 2)
+cd backend
+mvn spring-boot:run
+
+# 3. Khởi động Frontend React / Vite (Terminal 3)
+cd frontend
+npm run dev
 ```
 
-### Containers & Ports
-| Container | Service | Host Port | Technology |
+### Services & Ports
+| Thành phần | Môi trường | Port | Công nghệ / Ghi chú |
 |---|---|---|---|
-| `garage-sqlserver` | SQL Server Database | `1433` | MS SQL Server 2022 (Persistent Volume `garage-sqlserver-data`) |
-| `garage-backend` | Spring Boot API | `8080` | Java 17 / Spring Boot 3.2.5 (`http://localhost:8080/api` & `http://<HOST_IP>:8080/api`) |
-| `garage-frontend` | React SPA | `3001` | Node 20 / React 18 / Vite 5 (`http://localhost:3001/` & `http://<HOST_IP>:3001/`) |
-
-### Multi-Machine LAN Access
-Hỗ trợ truy cập đồng thời từ các máy tính / thiết bị di động khác trong cùng mạng LAN:
-- **Frontend**: `http://<DOCKER_HOST_IP>:3001`
-- **Backend API**: `http://<DOCKER_HOST_IP>:8080/api`
-- **WebSocket**: `ws://<DOCKER_HOST_IP>:8080/ws`
-- Frontend tự động nhận diện hostname/IP của máy Docker Host khi chạy trên browser mà không cần sửa code.
+| `garage-sqlserver` | Docker Compose | `1433` | MS SQL Server 2022 (Persistent Volume `garage-sqlserver-data`) |
+| Backend | Native Host | `8080` | Java 17 / Spring Boot 3.2.5 (`http://localhost:8080/api`) |
+| Frontend | Native Host | `3001` | React 18 / Vite 5 (`http://localhost:3001/`) |
+| Mobile App | Flutter CLI | — | Flutter / Android / iOS |
 
 ## 5. Development Test Accounts (Password: `Password123@`)
 | Username | Role | Branch | Records |

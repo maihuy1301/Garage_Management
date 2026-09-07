@@ -243,7 +243,6 @@ public class RepairOrderService {
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 order.getThoiGianBatDau(),
                 order.getThoiGianHoanTat(),

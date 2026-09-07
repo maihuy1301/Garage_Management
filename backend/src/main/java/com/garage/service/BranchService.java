@@ -36,7 +36,6 @@ public class BranchService {
     private BranchResponse mapToResponse(ChiNhanh b) {
         return new BranchResponse(
                 b.getMaChiNhanh(),
-                b.getMaChiNhanhCode(),
                 b.getTenChiNhanh(),
                 b.getDiaChi(),
                 b.getSoDienThoai(),

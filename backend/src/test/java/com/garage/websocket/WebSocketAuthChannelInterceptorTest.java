@@ -110,11 +110,11 @@ class WebSocketAuthChannelInterceptorTest {
     @Test
     void subscribe_branchTopic_allowedBranch_success() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
-        accessor.setDestination("/topic/branches/CN001");
+        accessor.setDestination("/topic/branches/1");
         accessor.setUser(new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
-        when(branchAuthorizationService.isAllowedBranchByCode("CN001")).thenReturn(true);
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
 
         Message<?> result = interceptor.preSend(message, messageChannel);
         assertThat(result).isNotNull();
@@ -123,11 +123,11 @@ class WebSocketAuthChannelInterceptorTest {
     @Test
     void subscribe_branchTopic_disallowedBranch_throwsAccessDenied() {
         StompHeaderAccessor accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
-        accessor.setDestination("/topic/branches/CN002");
+        accessor.setDestination("/topic/branches/2");
         accessor.setUser(new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
 
-        when(branchAuthorizationService.isAllowedBranchByCode("CN002")).thenReturn(false);
+        when(branchAuthorizationService.isAllowedBranch(2)).thenReturn(false);
 
         assertThatThrownBy(() -> interceptor.preSend(message, messageChannel))
                 .isInstanceOf(AccessDeniedException.class)

@@ -68,7 +68,7 @@ export const EmployeeStatusModal: React.FC<EmployeeStatusModalProps> = ({
 
           <p style={{ color: 'var(--color-on-surface)', fontSize: '0.925rem', lineHeight: '1.5' }}>
             Bạn có chắc chắn muốn <strong>{actionText}</strong> nhân viên{' '}
-            <strong>{employee.hoTen || employee.maNhanVienCode}</strong> (Mã: {employee.maNhanVienCode})?
+            <strong>{employee.hoTen || `ID: #${employee.maNhanVien}`}</strong>?
           </p>
 
           {!nextStatus && (

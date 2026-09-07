@@ -43,7 +43,7 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
         v.mauXe?.toLowerCase().includes(term) ||
         v.soVIN?.toLowerCase().includes(term) ||
         v.tenChuXe?.toLowerCase().includes(term) ||
-        v.maKhachHangCode?.toLowerCase().includes(term);
+        (v.maKhachHang ? String(v.maKhachHang).includes(term) : false);
 
       const matchBrand = selectedBrand === 'ALL' || v.hangXe === selectedBrand;
 
@@ -213,13 +213,13 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
                       {/* Chủ sở hữu (Admin view) */}
                       {isAdmin && (
                         <td>
-                          {vehicle.tenChuXe || vehicle.maKhachHangCode ? (
+                          {vehicle.tenChuXe || vehicle.maKhachHang ? (
                             <div>
                               <div style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>
                                 {vehicle.tenChuXe || 'Khách hàng'}
                               </div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary-container)', fontWeight: 600, marginTop: '2px' }}>
-                                Mã KH: {vehicle.maKhachHangCode || `ID: ${vehicle.maKhachHang}`}
+                                ID KH: #{vehicle.maKhachHang}
                               </div>
                             </div>
                           ) : (

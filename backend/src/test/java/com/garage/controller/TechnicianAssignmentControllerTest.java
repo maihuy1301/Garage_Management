@@ -74,8 +74,8 @@ class TechnicianAssignmentControllerTest {
 
     private AssignmentResponse sampleAssignment(Integer id, Integer orderId, Integer techId) {
         return new AssignmentResponse(
-                id, orderId, techId, "NV001", "Nguyễn Văn Kỹ Thuật",
-                1, "CN001", "Chi Nhánh 1",
+                id, orderId, techId, "Nguyễn Văn Kỹ Thuật",
+                1, "Chi Nhánh 1",
                 "Kỹ thuật viên chính", LocalDateTime.now(), "DA_GIAO"
         );
     }

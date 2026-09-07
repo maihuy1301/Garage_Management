@@ -21,7 +21,6 @@ public class RepairOrderResponse {
     private String soDienThoaiKhachHang;
 
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
 
     private LocalDateTime thoiGianBatDau;
@@ -34,7 +33,7 @@ public class RepairOrderResponse {
     public RepairOrderResponse(Integer maPhieuSuaChua, Integer maTiepNhan, Integer maDatLich,
                                Integer maXe, String bienSoXe, String hangXe, String modelXe,
                                Integer maKhachHang, String tenKhachHang, String soDienThoaiKhachHang,
-                               Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
+                               Integer maChiNhanh, String tenChiNhanh,
                                LocalDateTime thoiGianBatDau, LocalDateTime thoiGianHoanTat,
                                String trangThai, String ghiChu) {
         this.maPhieuSuaChua = maPhieuSuaChua;
@@ -48,7 +47,6 @@ public class RepairOrderResponse {
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.thoiGianBatDau = thoiGianBatDau;
         this.thoiGianHoanTat = thoiGianHoanTat;
@@ -88,9 +86,6 @@ public class RepairOrderResponse {
 
     public Integer getMaChiNhanh() { return maChiNhanh; }
     public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
-
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
 
     public String getTenChiNhanh() { return tenChiNhanh; }
     public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }

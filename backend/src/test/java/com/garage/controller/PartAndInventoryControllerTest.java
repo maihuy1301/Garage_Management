@@ -78,7 +78,7 @@ class PartAndInventoryControllerTest {
 
     private InventoryResponse sampleInventory(Integer branchId, Integer partId) {
         return new InventoryResponse(
-                branchId, "CN00" + branchId, "Chi Nhánh " + branchId,
+                branchId, "Chi Nhánh " + branchId,
                 partId, "PT00" + partId, "Lọc dầu", "Cái",
                 new BigDecimal("150000.00"), 10, 2
         );

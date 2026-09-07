@@ -71,7 +71,7 @@ public class TechnicianAssignmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân viên với ID: " + request.getTechnicianId()));
 
         if (Boolean.FALSE.equals(nhanVien.getTrangThai())) {
-            String name = (nhanVien.getNguoiDung() != null) ? nhanVien.getNguoiDung().getHoTen() : nhanVien.getMaNhanVienCode();
+            String name = (nhanVien.getNguoiDung() != null) ? nhanVien.getNguoiDung().getHoTen() : ("ID " + nhanVien.getMaNhanVien());
             throw new BadRequestException("Nhân viên '" + name + "' hiện đang ngưng hoạt động");
         }
 
@@ -89,7 +89,7 @@ public class TechnicianAssignmentService {
                 });
 
         if (!isTechnician) {
-            String name = user.getHoTen() != null ? user.getHoTen() : nhanVien.getMaNhanVienCode();
+            String name = user.getHoTen() != null ? user.getHoTen() : ("ID " + nhanVien.getMaNhanVien());
             throw new BadRequestException("Nhân viên '" + name + "' không có vai trò Kỹ thuật viên (ROLE_TECHNICIAN)");
         }
 
@@ -103,7 +103,7 @@ public class TechnicianAssignmentService {
 
         // 4. Chống phân công trùng lặp
         if (phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(repairOrderId, request.getTechnicianId())) {
-            String name = user.getHoTen() != null ? user.getHoTen() : nhanVien.getMaNhanVienCode();
+            String name = user.getHoTen() != null ? user.getHoTen() : ("ID " + nhanVien.getMaNhanVien());
             throw new DuplicateResourceException("Kỹ thuật viên '" + name + "' đã được phân công cho phiếu sửa chữa này");
         }
 
@@ -176,10 +176,8 @@ public class TechnicianAssignmentService {
                 pc.getMaPhanCong(),
                 pc.getPhieuSuaChua() != null ? pc.getPhieuSuaChua().getMaPhieuSuaChua() : null,
                 nv != null ? nv.getMaNhanVien() : null,
-                nv != null ? nv.getMaNhanVienCode() : null,
                 user != null ? user.getHoTen() : null,
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 pc.getVaiTroTrongCongViec(),
                 pc.getThoiGianPhanCong(),

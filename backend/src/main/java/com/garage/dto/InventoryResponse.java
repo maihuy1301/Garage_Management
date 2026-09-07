@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 public class InventoryResponse {
 
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
 
     private Integer maPhuTung;
@@ -22,12 +21,11 @@ public class InventoryResponse {
 
     public InventoryResponse() {}
 
-    public InventoryResponse(Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
+    public InventoryResponse(Integer maChiNhanh, String tenChiNhanh,
                              Integer maPhuTung, String maPhuTungCode, String tenPhuTung,
                              String donViTinh, BigDecimal giaBan,
                              Integer soLuongTon, Integer soLuongToiThieu) {
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.maPhuTung = maPhuTung;
         this.maPhuTungCode = maPhuTungCode;
@@ -40,9 +38,6 @@ public class InventoryResponse {
 
     public Integer getMaChiNhanh() { return maChiNhanh; }
     public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
-
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
 
     public String getTenChiNhanh() { return tenChiNhanh; }
     public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }

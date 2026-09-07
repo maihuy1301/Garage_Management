@@ -171,7 +171,6 @@ export const AdminDashboard: React.FC = () => {
                     <tr key={b.maChiNhanh} style={{ borderBottom: '1px solid var(--color-border)' }}>
                       <td style={{ padding: '12px', fontWeight: 600, color: 'var(--color-on-surface)' }}>
                         <div>{b.tenChiNhanh}</div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--color-outline)' }}>{b.maChiNhanhCode}</span>
                       </td>
                       <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>{b.soLichHen}</td>
                       <td style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>{b.soPhieuSuaChua}</td>

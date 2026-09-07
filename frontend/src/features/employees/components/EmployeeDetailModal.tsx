@@ -30,7 +30,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>
               badge
             </span>
-            <span>Hồ Sơ Nhân Viên: {employee.maNhanVienCode}</span>
+            <span>Hồ Sơ Nhân Viên: {employee.hoTen || `#${employee.maNhanVien}`}</span>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Đóng">
             <span className="material-symbols-outlined">close</span>
@@ -89,8 +89,8 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
 
           <div className="detail-grid">
             <div className="detail-item">
-              <div className="detail-label">Mã nhân viên</div>
-              <div className="detail-value">{employee.maNhanVienCode}</div>
+              <div className="detail-label">ID Nhân viên</div>
+              <div className="detail-value">#{employee.maNhanVien}</div>
             </div>
 
             <div className="detail-item">
@@ -101,7 +101,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
             <div className="detail-item">
               <div className="detail-label">Chi nhánh</div>
               <div className="detail-value">
-                {employee.tenChiNhanh ? `${employee.tenChiNhanh} (${employee.maChiNhanhCode || ''})` : 'Toàn hệ thống'}
+                {employee.tenChiNhanh || 'Toàn hệ thống'}
               </div>
             </div>
 

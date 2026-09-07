@@ -45,7 +45,6 @@ export interface RepairOrderReportResponseData {
 
 export interface BranchReportResponseData {
   maChiNhanh: number;
-  maChiNhanhCode: string;
   tenChiNhanh: string;
   doanhThu: number;
   soLichHen: number;
@@ -55,7 +54,6 @@ export interface BranchReportResponseData {
 
 export interface TechnicianReportResponseData {
   technicianId: number;
-  technicianCode: string;
   technicianName: string;
   branchName: string;
   totalAssigned: number;

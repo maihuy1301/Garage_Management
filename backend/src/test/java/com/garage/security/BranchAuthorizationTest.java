@@ -63,12 +63,11 @@ class BranchAuthorizationTest {
         return r;
     }
 
-    private ChiNhanh mockBranch(Integer id, String code) {
+    private ChiNhanh mockBranch(Integer id, String name) {
         ChiNhanh b = new ChiNhanh();
         b.setMaChiNhanh(id);
-        b.setMaChiNhanhCode(code);
-        b.setTenChiNhanh("Chi Nhánh " + code);
-        b.setDiaChi("Địa chỉ " + code);
+        b.setTenChiNhanh("Chi Nhánh " + name);
+        b.setDiaChi("Địa chỉ " + name);
         b.setTrangThai(true);
         return b;
     }
@@ -77,7 +76,6 @@ class BranchAuthorizationTest {
         NhanVien nv = new NhanVien();
         nv.setNguoiDung(user);
         nv.setChiNhanh(branch);
-        nv.setMaNhanVienCode("NV_TEST_" + user.getTenDangNhap());
         nv.setTrangThai(true);
         return nv;
     }
@@ -109,11 +107,11 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
-        mockMvc.perform(get("/api/test/branches/CN001")
+        mockMvc.perform(get("/api/test/branches/1")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").value("CN001"));
+                .andExpect(jsonPath("$.data").value("1"));
     }
 
     @Test
@@ -124,10 +122,10 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
 
-        mockMvc.perform(get("/api/test/branches/CN002")
+        mockMvc.perform(get("/api/test/branches/2")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("CN002"));
+                .andExpect(jsonPath("$.data").value("2"));
     }
 
     // ---------------------------------------------------------------
@@ -144,10 +142,10 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        mockMvc.perform(get("/api/test/branches/CN001")
+        mockMvc.perform(get("/api/test/branches/1")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("CN001"));
+                .andExpect(jsonPath("$.data").value("1"));
     }
 
     @Test
@@ -160,7 +158,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        mockMvc.perform(get("/api/test/branches/CN002")
+        mockMvc.perform(get("/api/test/branches/2")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -179,7 +177,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("frontdesk", List.of("ROLE_FRONT_DESK"));
 
-        mockMvc.perform(get("/api/test/branches/CN001")
+        mockMvc.perform(get("/api/test/branches/1")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
@@ -194,7 +192,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("frontdesk", List.of("ROLE_FRONT_DESK"));
 
-        mockMvc.perform(get("/api/test/branches/CN002")
+        mockMvc.perform(get("/api/test/branches/2")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -213,7 +211,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("technician", List.of("ROLE_TECHNICIAN"));
 
-        mockMvc.perform(get("/api/test/branches/CN001")
+        mockMvc.perform(get("/api/test/branches/1")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
     }
@@ -228,7 +226,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("technician", List.of("ROLE_TECHNICIAN"));
 
-        mockMvc.perform(get("/api/test/branches/CN002")
+        mockMvc.perform(get("/api/test/branches/2")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -247,7 +245,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("manager2", List.of("ROLE_MANAGER"));
 
-        mockMvc.perform(get("/api/test/branches/CN001")
+        mockMvc.perform(get("/api/test/branches/1")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -262,10 +260,10 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("manager2", List.of("ROLE_MANAGER"));
 
-        mockMvc.perform(get("/api/test/branches/CN002")
+        mockMvc.perform(get("/api/test/branches/2")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("CN002"));
+                .andExpect(jsonPath("$.data").value("2"));
     }
 
     // ---------------------------------------------------------------
@@ -280,7 +278,7 @@ class BranchAuthorizationTest {
 
         String token = jwtService.generateToken("customer", List.of("ROLE_CUSTOMER"));
 
-        mockMvc.perform(get("/api/test/branches/CN001")
+        mockMvc.perform(get("/api/test/branches/1")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
@@ -291,7 +289,7 @@ class BranchAuthorizationTest {
 
     @Test
     void noJwt_Returns401() throws Exception {
-        mockMvc.perform(get("/api/test/branches/CN001"))
+        mockMvc.perform(get("/api/test/branches/1"))
                 .andExpect(status().isUnauthorized());
     }
 }

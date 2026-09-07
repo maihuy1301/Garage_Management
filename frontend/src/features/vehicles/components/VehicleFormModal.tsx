@@ -255,7 +255,7 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                     <option value="">-- Chọn khách hàng chủ xe --</option>
                     {customers.map((c) => (
                       <option key={c.maKhachHang} value={c.maKhachHang}>
-                        {c.maKhachHangCode} — {c.hoTen} ({c.soDienThoai || 'Chưa có SĐT'})
+                        {c.hoTen} ({c.soDienThoai || 'Chưa có SĐT'}) - ID: #{c.maKhachHang}
                       </option>
                     ))}
                   </select>

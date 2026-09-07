@@ -7,7 +7,6 @@ export type AppointmentStatus =
 export interface AppointmentItem {
   maDatLich: number;
   maKhachHang: number;
-  maKhachHangCode?: string;
   tenKhachHang?: string;
   soDienThoaiKhachHang?: string;
   maXe: number;
@@ -15,7 +14,6 @@ export interface AppointmentItem {
   hangXe?: string;
   modelXe?: string;
   maChiNhanh: number;
-  maChiNhanhCode?: string;
   tenChiNhanh?: string;
   thoiGianHen: string;
   trangThai: AppointmentStatus | string;

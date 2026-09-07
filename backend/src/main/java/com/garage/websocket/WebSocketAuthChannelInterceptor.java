@@ -106,18 +106,24 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             return;
         }
 
-        // Branch-specific topic subscription authorization (/topic/branches/{branchCode})
+        // Branch-specific topic subscription authorization (/topic/branches/{branchId})
         if (destination.startsWith("/topic/branches/")) {
-            String branchCode = destination.substring("/topic/branches/".length());
-            // Set SecurityContext temporarily so branchAuthorizationService can inspect the user
-            SecurityContextHolder.getContext().setAuthentication(auth);
+            String branchIdStr = destination.substring("/topic/branches/".length());
             try {
-                if (!branchAuthorizationService.isAllowedBranchByCode(branchCode)) {
-                    log.warn("WebSocket SUBSCRIBE rejected: User {} not authorized for branch {}", user.getName(), branchCode);
-                    throw new AccessDeniedException("Bạn không có quyền subscribe channel của chi nhánh " + branchCode);
+                Integer branchId = Integer.valueOf(branchIdStr);
+                // Set SecurityContext temporarily so branchAuthorizationService can inspect the user
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                try {
+                    if (!branchAuthorizationService.isAllowedBranch(branchId)) {
+                        log.warn("WebSocket SUBSCRIBE rejected: User {} not authorized for branch {}", user.getName(), branchId);
+                        throw new AccessDeniedException("Bạn không có quyền subscribe channel của chi nhánh " + branchId);
+                    }
+                } finally {
+                    SecurityContextHolder.clearContext();
                 }
-            } finally {
-                SecurityContextHolder.clearContext();
+            } catch (NumberFormatException e) {
+                log.warn("WebSocket SUBSCRIBE rejected: Invalid branchId in destination {}", destination);
+                throw new AccessDeniedException("Mã chi nhánh không hợp lệ: " + branchIdStr);
             }
         }
     }

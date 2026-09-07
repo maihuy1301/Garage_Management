@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 public class BranchReportResponse {
 
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
     private BigDecimal doanhThu;
     private long soLichHen;
@@ -14,10 +13,9 @@ public class BranchReportResponse {
 
     public BranchReportResponse() {}
 
-    public BranchReportResponse(Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
+    public BranchReportResponse(Integer maChiNhanh, String tenChiNhanh,
                                 BigDecimal doanhThu, long soLichHen, long soPhieuSuaChua, long soPhieuHoanTat) {
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.doanhThu = doanhThu != null ? doanhThu : BigDecimal.ZERO;
         this.soLichHen = soLichHen;
@@ -27,9 +25,6 @@ public class BranchReportResponse {
 
     public Integer getMaChiNhanh() { return maChiNhanh; }
     public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
-
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
 
     public String getTenChiNhanh() { return tenChiNhanh; }
     public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }

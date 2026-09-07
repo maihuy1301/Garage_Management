@@ -21,7 +21,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
   // Filter vehicles belonging to this customer
   const customerVehicles = vehicles.filter(
-    (v) => v.maKhachHang === customer.maKhachHang || v.maKhachHangCode === customer.maKhachHangCode
+    (v) => v.maKhachHang === customer.maKhachHang
   );
 
   return (
@@ -33,7 +33,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>
               person
             </span>
-            <span>Hồ Sơ Khách Hàng: {customer.maKhachHangCode}</span>
+            <span>Hồ Sơ Khách Hàng: {customer.hoTen || `#${customer.maKhachHang}`}</span>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Đóng">
             <span className="material-symbols-outlined">close</span>
@@ -71,7 +71,7 @@ export const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
                 </span>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
-                Mã KH: <strong>{customer.maKhachHangCode}</strong> • Tài khoản: {customer.tenDangNhap || 'Chưa liên kết'}
+                ID KH: <strong>#{customer.maKhachHang}</strong> • Tài khoản: {customer.tenDangNhap || 'Chưa liên kết'}
               </p>
             </div>
           </div>

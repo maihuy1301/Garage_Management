@@ -23,10 +23,10 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
 
   // Extract unique branches from employees
   const availableBranches = useMemo(() => {
-    const branches = new Map<string, string>();
+    const branches = new Map<number, string>();
     employees.forEach((emp) => {
-      if (emp.maChiNhanhCode && emp.tenChiNhanh) {
-        branches.set(emp.maChiNhanhCode, emp.tenChiNhanh);
+      if (emp.maChiNhanh && emp.tenChiNhanh) {
+        branches.set(emp.maChiNhanh, emp.tenChiNhanh);
       }
     });
     return Array.from(branches.entries());
@@ -39,16 +39,16 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       const term = searchTerm.toLowerCase().trim();
       const matchSearch =
         !term ||
-        emp.maNhanVienCode?.toLowerCase().includes(term) ||
         emp.hoTen?.toLowerCase().includes(term) ||
         emp.tenDangNhap?.toLowerCase().includes(term) ||
         emp.email?.toLowerCase().includes(term) ||
         emp.chucVu?.toLowerCase().includes(term) ||
-        emp.soDienThoai?.includes(term);
+        emp.soDienThoai?.includes(term) ||
+        String(emp.maNhanVien).includes(term);
 
       // Branch filter
       const matchBranch =
-        selectedBranch === 'ALL' || emp.maChiNhanhCode === selectedBranch;
+        selectedBranch === 'ALL' || String(emp.maChiNhanh) === selectedBranch;
 
       // Role filter
       const matchRole =
@@ -177,7 +177,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                               {emp.hoTen || 'Chưa cập nhật'}
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--color-outline)', marginTop: '2px' }}>
-                              Mã: <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>{emp.maNhanVienCode}</span>
+                              ID: <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>#{emp.maNhanVien}</span>
                             </div>
                           </div>
                         </div>

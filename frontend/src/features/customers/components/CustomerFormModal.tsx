@@ -20,7 +20,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const isEdit = !!customer;
 
   // Form State
-  const [maKhachHangCode, setMaKhachHangCode] = useState<string>('');
   const [maNguoiDung, setMaNguoiDung] = useState<number | ''>('');
   const [hoTen, setHoTen] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -42,7 +41,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
     if (customer) {
       // Edit mode
-      setMaKhachHangCode(customer.maKhachHangCode || '');
       setMaNguoiDung(customer.maNguoiDung || '');
       setHoTen(customer.hoTen || '');
       setEmail(customer.email || '');
@@ -51,7 +49,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setNgaySinh(customer.ngaySinh || '');
     } else {
       // Create mode
-      setMaKhachHangCode('');
       setMaNguoiDung('');
       setHoTen('');
       setEmail('');
@@ -74,12 +71,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
     const errors: Record<string, string> = {};
 
     if (!isEdit) {
-      if (!maKhachHangCode.trim()) {
-        errors.maKhachHangCode = 'Vui lòng nhập mã khách hàng';
-      } else if (maKhachHangCode.length > 20) {
-        errors.maKhachHangCode = 'Mã khách hàng tối đa 20 ký tự';
-      }
-
       if (!maNguoiDung) {
         errors.maNguoiDung = 'Vui lòng chọn tài khoản người dùng';
       }
@@ -122,7 +113,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
         await onSubmit(updatePayload, true);
       } else {
         const createPayload: CreateCustomerRequest = {
-          maKhachHangCode: maKhachHangCode.trim().toUpperCase(),
           maNguoiDung: Number(maNguoiDung),
           diaChi: diaChi.trim() || undefined,
           ngaySinh: ngaySinh || undefined,
@@ -149,7 +139,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             <span className="material-symbols-outlined" style={{ color: 'var(--color-primary)' }}>
               {isEdit ? 'edit' : 'person_add'}
             </span>
-            <span>{isEdit ? `Cập nhật khách hàng: ${customer?.maKhachHangCode}` : 'Thêm khách hàng mới'}</span>
+            <span>{isEdit ? `Cập nhật khách hàng: ${customer?.hoTen || `#${customer?.maKhachHang}`}` : 'Thêm khách hàng mới'}</span>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Đóng">
             <span className="material-symbols-outlined">close</span>
@@ -165,63 +155,41 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
               </div>
             )}
 
-            {/* Create mode: maKhachHangCode & maNguoiDung */}
+            {/* Create mode: maNguoiDung */}
             {!isEdit ? (
-              <div className="form-grid-2">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="cust-code">
-                    Mã khách hàng <span style={{ color: 'var(--color-danger)' }}>*</span>
-                  </label>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="form-label" htmlFor="cust-user">
+                  Tài khoản người dùng <span style={{ color: 'var(--color-danger)' }}>*</span>
+                </label>
+                {usersList.length > 0 ? (
+                  <select
+                    id="cust-user"
+                    className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
+                    value={maNguoiDung}
+                    onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
+                  >
+                    <option value="">-- Chọn người dùng liên kết --</option>
+                    {usersList.map((u) => (
+                      <option key={u.maNguoiDung} value={u.maNguoiDung}>
+                        {u.hoTen} ({u.tenDangNhap}) - ID: {u.maNguoiDung}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
                   <input
-                    id="cust-code"
-                    type="text"
-                    className={`form-input ${fieldErrors.maKhachHangCode ? 'border-error' : ''}`}
-                    placeholder="VD: KH001, KH002..."
-                    value={maKhachHangCode}
-                    onChange={(e) => setMaKhachHangCode(e.target.value.toUpperCase())}
-                    maxLength={20}
+                    id="cust-user"
+                    type="number"
+                    className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
+                    placeholder="Nhập ID Người Dùng (MaNguoiDung)"
+                    value={maNguoiDung}
+                    onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
                   />
-                  {fieldErrors.maKhachHangCode && (
-                    <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>
-                      {fieldErrors.maKhachHangCode}
-                    </span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" htmlFor="cust-user">
-                    Tài khoản người dùng <span style={{ color: 'var(--color-danger)' }}>*</span>
-                  </label>
-                  {usersList.length > 0 ? (
-                    <select
-                      id="cust-user"
-                      className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
-                      value={maNguoiDung}
-                      onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
-                    >
-                      <option value="">-- Chọn người dùng liên kết --</option>
-                      {usersList.map((u) => (
-                        <option key={u.maNguoiDung} value={u.maNguoiDung}>
-                          {u.hoTen} ({u.tenDangNhap}) - ID: {u.maNguoiDung}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id="cust-user"
-                      type="number"
-                      className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
-                      placeholder="Nhập ID Người Dùng (MaNguoiDung)"
-                      value={maNguoiDung}
-                      onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
-                    />
-                  )}
-                  {fieldErrors.maNguoiDung && (
-                    <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>
-                      {fieldErrors.maNguoiDung}
-                    </span>
-                  )}
-                </div>
+                )}
+                {fieldErrors.maNguoiDung && (
+                  <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>
+                    {fieldErrors.maNguoiDung}
+                  </span>
+                )}
               </div>
             ) : (
               /* Edit mode: Editable user fields (hoTen, email, soDienThoai) */

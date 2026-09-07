@@ -10,10 +10,8 @@ public class AssignmentResponse {
     private Integer maPhanCong;
     private Integer maPhieuSuaChua;
     private Integer maNhanVien;
-    private String maNhanVienCode;
     private String tenNhanVien;
     private Integer maChiNhanh;
-    private String maChiNhanhCode;
     private String tenChiNhanh;
     private String vaiTroTrongCongViec;
     private LocalDateTime thoiGianPhanCong;
@@ -22,17 +20,15 @@ public class AssignmentResponse {
     public AssignmentResponse() {}
 
     public AssignmentResponse(Integer maPhanCong, Integer maPhieuSuaChua,
-                              Integer maNhanVien, String maNhanVienCode, String tenNhanVien,
-                              Integer maChiNhanh, String maChiNhanhCode, String tenChiNhanh,
+                              Integer maNhanVien, String tenNhanVien,
+                              Integer maChiNhanh, String tenChiNhanh,
                               String vaiTroTrongCongViec, LocalDateTime thoiGianPhanCong,
                               String trangThai) {
         this.maPhanCong = maPhanCong;
         this.maPhieuSuaChua = maPhieuSuaChua;
         this.maNhanVien = maNhanVien;
-        this.maNhanVienCode = maNhanVienCode;
         this.tenNhanVien = tenNhanVien;
         this.maChiNhanh = maChiNhanh;
-        this.maChiNhanhCode = maChiNhanhCode;
         this.tenChiNhanh = tenChiNhanh;
         this.vaiTroTrongCongViec = vaiTroTrongCongViec;
         this.thoiGianPhanCong = thoiGianPhanCong;
@@ -48,17 +44,11 @@ public class AssignmentResponse {
     public Integer getMaNhanVien() { return maNhanVien; }
     public void setMaNhanVien(Integer maNhanVien) { this.maNhanVien = maNhanVien; }
 
-    public String getMaNhanVienCode() { return maNhanVienCode; }
-    public void setMaNhanVienCode(String maNhanVienCode) { this.maNhanVienCode = maNhanVienCode; }
-
     public String getTenNhanVien() { return tenNhanVien; }
     public void setTenNhanVien(String tenNhanVien) { this.tenNhanVien = tenNhanVien; }
 
     public Integer getMaChiNhanh() { return maChiNhanh; }
     public void setMaChiNhanh(Integer maChiNhanh) { this.maChiNhanh = maChiNhanh; }
-
-    public String getMaChiNhanhCode() { return maChiNhanhCode; }
-    public void setMaChiNhanhCode(String maChiNhanhCode) { this.maChiNhanhCode = maChiNhanhCode; }
 
     public String getTenChiNhanh() { return tenChiNhanh; }
     public void setTenChiNhanh(String tenChiNhanh) { this.tenChiNhanh = tenChiNhanh; }

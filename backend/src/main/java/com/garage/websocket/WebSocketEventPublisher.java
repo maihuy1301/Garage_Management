@@ -50,17 +50,17 @@ public class WebSocketEventPublisher {
 
     /**
      * Gửi event realtime đến channel của một chi nhánh (nếu có)
-     * Client subscribe: /topic/branches/{branchCode}
+     * Client subscribe: /topic/branches/{branchId}
      */
-    public void sendToBranch(String branchCode, RealtimeEvent event) {
-        if (branchCode == null || event == null) {
+    public void sendToBranch(Integer branchId, RealtimeEvent event) {
+        if (branchId == null || event == null) {
             return;
         }
         try {
-            log.info("Pushing WebSocket event to branch {}: {}", branchCode, event.getEventType());
-            messagingTemplate.convertAndSend("/topic/branches/" + branchCode, event);
+            log.info("Pushing WebSocket event to branch {}: {}", branchId, event.getEventType());
+            messagingTemplate.convertAndSend("/topic/branches/" + branchId, event);
         } catch (Exception e) {
-            log.warn("Failed to push WebSocket event to branch {}: {}", branchCode, e.getMessage());
+            log.warn("Failed to push WebSocket event to branch {}: {}", branchId, e.getMessage());
         }
     }
 }

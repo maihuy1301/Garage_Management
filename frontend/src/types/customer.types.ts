@@ -1,6 +1,5 @@
 export interface CustomerResponse {
   maKhachHang: number;
-  maKhachHangCode: string;
   diaChi?: string | null;
   ngaySinh?: string | null;
 
@@ -17,7 +16,6 @@ export interface CustomerResponse {
 }
 
 export interface CreateCustomerRequest {
-  maKhachHangCode: string;
   maNguoiDung: number;
   diaChi?: string;
   ngaySinh?: string;

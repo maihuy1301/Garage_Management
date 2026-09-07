@@ -123,7 +123,9 @@ public class TechnicianExecutionService {
 
         TienDoSuaChua saved = tienDoSuaChuaRepository.save(tienDo);
 
-        String techName = (tech.getNguoiDung() != null) ? tech.getNguoiDung().getHoTen() : tech.getMaNhanVienCode();
+        String techName = (tech.getNguoiDung() != null && tech.getNguoiDung().getHoTen() != null)
+                ? tech.getNguoiDung().getHoTen()
+                : "NV #" + tech.getMaNhanVien();
         return new RepairProgressResponse(
                 saved.getMaTienDo(),
                 order.getMaPhieuSuaChua(),
@@ -296,7 +298,6 @@ public class TechnicianExecutionService {
                 tenKhachHang,
                 soDienThoaiKhachHang,
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 order.getThoiGianBatDau(),
                 order.getThoiGianHoanTat(),

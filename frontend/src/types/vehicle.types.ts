@@ -1,7 +1,6 @@
 export interface VehicleItem {
   maXe: number;
   maKhachHang?: number;
-  maKhachHangCode?: string;
   tenChuXe?: string;
   bienSo: string;
   hangXe?: string;

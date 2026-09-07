@@ -1,6 +1,6 @@
 services:
   # ==========================================================
-  # SQL Server 2022 Database Container
+  # SQL Server 2022 Database Container (Infrastructure)
   # ==========================================================
   sqlserver:
     container_name: garage-sqlserver
@@ -21,59 +21,9 @@ services:
       timeout: 5s
       retries: 20
       start_period: 15s
-    networks:
-      - garage-network
-    restart: unless-stopped
-
-  # ==========================================================
-  # Spring Boot Backend Container (Java 17)
-  # ==========================================================
-  backend:
-    container_name: garage-backend
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:sqlserver://garage-sqlserver:1433;databaseName=${SQLSERVER_DB:-GarageManagementSystem};encrypt=true;trustServerCertificate=true;"
-      SPRING_DATASOURCE_USERNAME: "${SQLSERVER_USER:-sa}"
-      SPRING_DATASOURCE_PASSWORD: "${SQLSERVER_PASSWORD:-YourPassword123}"
-      JWT_SECRET: "${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}"
-      JWT_EXPIRATION: "${JWT_EXPIRATION:-86400000}"
-      SERVER_PORT: "${BACKEND_PORT:-8080}"
-      CORS_ALLOWED_ORIGIN_PATTERNS: "${CORS_ALLOWED_ORIGIN_PATTERNS:-*}"
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
-    depends_on:
-      sqlserver:
-        condition: service_healthy
-    networks:
-      - garage-network
-    restart: unless-stopped
-
-  # ==========================================================
-  # React / Vite Frontend Container (Node 20)
-  # ==========================================================
-  frontend:
-    container_name: garage-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    environment:
-      VITE_API_BASE_URL: "${VITE_API_BASE_URL:-http://localhost:8080/api}"
-      VITE_WS_BASE_URL: "${VITE_WS_BASE_URL:-http://localhost:8080/ws}"
-    ports:
-      - "${FRONTEND_PORT:-3001}:3001"
-    depends_on:
-      - backend
-    networks:
-      - garage-network
     restart: unless-stopped
 
 volumes:
   garage-sqlserver-data:
     name: garage-sqlserver-data
 
-networks:
-  garage-network:
-    name: garage-network
-    driver: bridge

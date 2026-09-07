@@ -308,7 +308,6 @@ public class AppointmentService {
                 xe != null ? xe.getHangXe() : null,
                 xe != null ? xe.getModel() : null,
                 cn != null ? cn.getMaChiNhanh() : null,
-                cn != null ? cn.getMaChiNhanhCode() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 dl.getThoiGianHen(),
                 dl.getTrangThai(),

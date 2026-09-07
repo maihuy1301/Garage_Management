@@ -41,9 +41,9 @@ class WebSocketEventPublisherTest {
     void sendToBranch_convertsAndSendsToBranchTopic() {
         RealtimeEvent event = RealtimeEvent.of("VEHICLE_CHECKED_IN", "TIEP_NHAN", 10, "Xe đã tiếp nhận tại xưởng", null);
 
-        publisher.sendToBranch("CN001", event);
+        publisher.sendToBranch(1, event);
 
-        verify(messagingTemplate).convertAndSend("/topic/branches/CN001", event);
+        verify(messagingTemplate).convertAndSend("/topic/branches/1", event);
     }
 
     @Test

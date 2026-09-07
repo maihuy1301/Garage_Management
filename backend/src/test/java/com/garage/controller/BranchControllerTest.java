@@ -75,8 +75,8 @@ class BranchControllerTest {
         VaiTro adminRole = createMockRole(1, "ROLE_ADMIN");
         stubAuthenticatedUser(admin, adminRole);
 
-        BranchResponse b1 = new BranchResponse(1, "CN001", "Chi Nhánh 1", "Địa chỉ 1", "0900000001", "cn1@garage.com", true, LocalDateTime.now());
-        BranchResponse b2 = new BranchResponse(2, "CN002", "Chi Nhánh 2", "Địa chỉ 2", "0900000002", "cn2@garage.com", true, LocalDateTime.now());
+        BranchResponse b1 = new BranchResponse(1, "Chi Nhánh 1", "Địa chỉ 1", "0900000001", "cn1@garage.com", true, LocalDateTime.now());
+        BranchResponse b2 = new BranchResponse(2, "Chi Nhánh 2", "Địa chỉ 2", "0900000002", "cn2@garage.com", true, LocalDateTime.now());
         when(branchService.getAllBranches()).thenReturn(List.of(b1, b2));
 
         String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
@@ -85,8 +85,8 @@ class BranchControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].maChiNhanhCode").value("CN001"))
-                .andExpect(jsonPath("$.data[1].maChiNhanhCode").value("CN002"));
+                .andExpect(jsonPath("$.data[0].maChiNhanh").value(1))
+                .andExpect(jsonPath("$.data[1].maChiNhanh").value(2));
     }
 
     @Test
@@ -95,7 +95,7 @@ class BranchControllerTest {
         VaiTro mgrRole = createMockRole(2, "ROLE_MANAGER");
         stubAuthenticatedUser(manager, mgrRole);
 
-        BranchResponse b1 = new BranchResponse(1, "CN001", "Chi Nhánh 1", "Địa chỉ 1", "0900000001", "cn1@garage.com", true, LocalDateTime.now());
+        BranchResponse b1 = new BranchResponse(1, "Chi Nhánh 1", "Địa chỉ 1", "0900000001", "cn1@garage.com", true, LocalDateTime.now());
         when(branchService.getAllBranches()).thenReturn(List.of(b1));
 
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
@@ -104,7 +104,7 @@ class BranchControllerTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].maChiNhanhCode").value("CN001"));
+                .andExpect(jsonPath("$.data[0].maChiNhanh").value(1));
     }
 
     @Test
@@ -113,7 +113,7 @@ class BranchControllerTest {
         VaiTro cusRole = createMockRole(5, "ROLE_CUSTOMER");
         stubAuthenticatedUser(customer, cusRole);
 
-        BranchResponse b1 = new BranchResponse(1, "CN001", "Chi Nhánh 1", "Địa chỉ 1", "0900000001", "cn1@garage.com", true, LocalDateTime.now());
+        BranchResponse b1 = new BranchResponse(1, "Chi Nhánh 1", "Địa chỉ 1", "0900000001", "cn1@garage.com", true, LocalDateTime.now());
         when(branchService.getBranchById(1)).thenReturn(b1);
 
         String token = jwtService.generateToken("customer", List.of("ROLE_CUSTOMER"));

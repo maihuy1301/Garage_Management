@@ -184,7 +184,7 @@ export const LoginForm: React.FC = () => {
           {[
             { label: 'Admin', u: 'admin' },
             { label: 'Manager (CN001)', u: 'manager' },
-            { label: 'Receptionist', u: 'receptionist' },
+            { label: 'Frontdesk', u: 'frontdesk' },
             { label: 'Technician', u: 'technician' },
             { label: 'Customer', u: 'customer' },
           ].map((acc) => (

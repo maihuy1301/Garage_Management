@@ -326,11 +326,12 @@ public class ReportService {
                             .filter(a -> a.getPhieuSuaChua() != null && "DANG_SUA".equalsIgnoreCase(a.getPhieuSuaChua().getTrangThai()))
                             .count();
 
-                    String hoTen = tech.getNguoiDung() != null ? tech.getNguoiDung().getHoTen() : tech.getMaNhanVienCode();
+                    String hoTen = (tech.getNguoiDung() != null && tech.getNguoiDung().getHoTen() != null)
+                            ? tech.getNguoiDung().getHoTen()
+                            : "NV #" + tech.getMaNhanVien();
 
                     return new TechnicianReportResponse(
                             tech.getMaNhanVien(),
-                            tech.getMaNhanVienCode(),
                             hoTen,
                             totalAssign,
                             completed,
@@ -382,7 +383,6 @@ public class ReportService {
 
                     return new BranchReportResponse(
                             cn.getMaChiNhanh(),
-                            cn.getMaChiNhanhCode(),
                             cn.getTenChiNhanh(),
                             rev,
                             appts,
@@ -395,7 +395,7 @@ public class ReportService {
 
     // --- Helpers & Security ---
 
-    private Optional<ChiNhanh> resolveBranchAndValidateDates(String branchCode, LocalDate from, LocalDate to) {
+    private Optional<ChiNhanh> resolveBranchAndValidateDates(String branchFilter, LocalDate from, LocalDate to) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             throw new AccessDeniedException("Forbidden: Yêu cầu đăng nhập");
@@ -414,10 +414,15 @@ public class ReportService {
         boolean isSystemAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isSystemAdmin) {
-            if (branchCode != null && !branchCode.isBlank()) {
-                ChiNhanh cn = chiNhanhRepository.findByMaChiNhanhCode(branchCode.trim().toUpperCase())
-                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chi nhánh với mã: " + branchCode));
-                return Optional.of(cn);
+            if (branchFilter != null && !branchFilter.isBlank()) {
+                try {
+                    Integer branchId = Integer.valueOf(branchFilter.trim());
+                    ChiNhanh cn = chiNhanhRepository.findById(branchId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chi nhánh với ID: " + branchId));
+                    return Optional.of(cn);
+                } catch (NumberFormatException e) {
+                    throw new BadRequestException("Mã chi nhánh không hợp lệ: " + branchFilter);
+                }
             }
             return Optional.empty(); // Toàn hệ thống
         }
@@ -431,8 +436,15 @@ public class ReportService {
         ChiNhanh userBranch = chiNhanhRepository.findById(branchIdOpt.get())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin chi nhánh của tài khoản"));
 
-        if (branchCode != null && !branchCode.isBlank() && !userBranch.getMaChiNhanhCode().equalsIgnoreCase(branchCode.trim())) {
-            throw new AccessDeniedException("Forbidden: Bạn không có quyền xem báo cáo của chi nhánh khác");
+        if (branchFilter != null && !branchFilter.isBlank()) {
+            try {
+                Integer requestedBranchId = Integer.valueOf(branchFilter.trim());
+                if (!userBranch.getMaChiNhanh().equals(requestedBranchId)) {
+                    throw new AccessDeniedException("Forbidden: Bạn không có quyền xem báo cáo của chi nhánh khác");
+                }
+            } catch (NumberFormatException e) {
+                throw new BadRequestException("Mã chi nhánh không hợp lệ: " + branchFilter);
+            }
         }
 
         return Optional.of(userBranch);
