@@ -79,6 +79,7 @@ public class UserService {
         newUser.setEmail(request.getEmail());
         newUser.setSoDienThoai(request.getSoDienThoai());
         newUser.setAnhDaiDien(request.getAnhDaiDien());
+        newUser.setMaPinHash("");
         newUser.setTrangThai(true);
 
         NguoiDung savedUser = nguoiDungRepository.save(newUser);

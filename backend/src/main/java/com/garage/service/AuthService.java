@@ -98,6 +98,7 @@ public class AuthService {
         user.setHoTen(request.getHoTen().trim());
         user.setEmail(email);
         user.setSoDienThoai(phone);
+        user.setMaPinHash("");
         user.setTrangThai(true);
         NguoiDung savedUser = nguoiDungRepository.save(user);
 
