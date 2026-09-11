@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/auth/auth_controller.dart';
+import '../features/appointments/presentation/appointment_booking_page.dart';
+import '../features/appointments/presentation/appointment_detail_page.dart';
+import '../features/appointments/presentation/appointment_tracking_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/customer/presentation/account_page.dart';
@@ -10,6 +13,7 @@ import '../features/customer/presentation/feature_placeholder_page.dart';
 import '../features/public/presentation/home_page.dart';
 import '../features/public/presentation/splash_page.dart';
 import '../features/technician/presentation/technician_home_page.dart';
+import '../features/vehicles/presentation/vehicles_page.dart';
 
 class AppRouter {
   AppRouter(AuthController authController)
@@ -42,21 +46,27 @@ class AppRouter {
               GoRoute(path: '/', builder: (context, state) => const HomePage()),
               GoRoute(
                 path: '/appointments',
-                builder: (context, state) => const FeaturePlaceholderPage(
-                  icon: Icons.calendar_month_rounded,
-                  title: 'Đặt lịch dịch vụ',
-                  description:
-                      'Luồng đặt lịch và lịch hẹn của bạn sẽ được triển khai ở phase kế tiếp.',
+                builder: (context, state) => AppointmentBookingPage(
+                  initialVehicleId: int.tryParse(
+                    state.uri.queryParameters['vehicleId'] ?? '',
+                  ),
                 ),
               ),
               GoRoute(
                 path: '/tracking',
-                builder: (context, state) => const FeaturePlaceholderPage(
-                  icon: Icons.car_repair_rounded,
-                  title: 'Theo dõi sửa chữa',
-                  description:
-                      'Theo dõi tiến độ, hạng mục và báo giá phát sinh tại đây.',
-                ),
+                builder: (context, state) => const AppointmentTrackingPage(),
+                routes: [
+                  GoRoute(
+                    path: ':appointmentId',
+                    builder: (context, state) => AppointmentDetailPage(
+                      appointmentId:
+                          int.tryParse(
+                            state.pathParameters['appointmentId'] ?? '',
+                          ) ??
+                          -1,
+                    ),
+                  ),
+                ],
               ),
               GoRoute(
                 path: '/notifications',
@@ -70,6 +80,10 @@ class AppRouter {
               GoRoute(
                 path: '/account',
                 builder: (context, state) => const AccountPage(),
+              ),
+              GoRoute(
+                path: '/vehicles',
+                builder: (context, state) => const VehiclesPage(),
               ),
             ],
           ),
@@ -87,6 +101,7 @@ class AppRouter {
     '/tracking',
     '/notifications',
     '/account',
+    '/vehicles',
   };
 
   static String? _redirect(AuthController auth, GoRouterState state) {
@@ -99,7 +114,7 @@ class AppRouter {
       return auth.session?.isTechnician == true ? '/technician' : '/';
     }
 
-    if (!auth.isAuthenticated && _protectedCustomerPaths.contains(location)) {
+    if (!auth.isAuthenticated && _isProtectedCustomerPath(location)) {
       return Uri(
         path: '/login',
         queryParameters: {'returnTo': state.uri.toString()},
@@ -127,6 +142,12 @@ class AppRouter {
       return '/';
     }
     return null;
+  }
+
+  static bool _isProtectedCustomerPath(String location) {
+    return _protectedCustomerPaths.any(
+      (path) => location == path || location.startsWith('$path/'),
+    );
   }
 
   static String? _safeReturnTo(String? value) {

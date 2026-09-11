@@ -13,6 +13,7 @@ Khi bắt đầu phiên hoặc giải quyết các task liên quan đến dự �
 - `d:\KLCN\Garage_Management_Agent_Pack\PROJECT_STATUS_SNAPSHOT.md` (Snapshot tiến độ)
 - `d:\KLCN\Garage_Management_Agent_Pack\DO_NOT_BREAK_CHECKLIST.md` (Checklist an toàn)
 - `d:\KLCN\Garage_Management_Agent_Pack\garage-management\references\business-workflow.md` (Luồng nghiệp vụ)
+- Khi thêm hoặc thiết kế lại form/chức năng giao diện, đọc thư mục màn hình tương ứng trong `D:\KLCN\stitch_stitch_garage_design_system\` (`DESIGN.md`, `code.html`, `screen.png` nếu có) trước khi sửa source.
 
 ## 2. Bất Biến Cốt Lõi (Tuyệt đối tuân thủ)
 - **Không tự ý sửa Database**: `database/GarageSystemDB.sql` là single source of truth, chỉ sửa khi người dùng duyệt rõ ràng.
@@ -21,6 +22,8 @@ Khi bắt đầu phiên hoặc giải quyết các task liên quan đến dự �
   - Backend: `Controller -> Service -> Repository -> Entity/DTO` (dùng `ApiResponse`).
   - Frontend: `src/features/<domain>`, gọi API qua service tập trung (`apiClient`, `API_ENDPOINTS`), bảo vệ route qua `ProtectedRoute` / `RoleGuard`.
 - **An toàn Git & Hệ thống**: Không tự ý `git reset --hard`, không xóa file, không xóa Docker volume, không tự động deploy/push nếu chưa có yêu cầu.
+- **Flutter do người dùng khởi chạy**: Không tự chạy `flutter run` hoặc `flutter build`; chỉ chạy khi người dùng yêu cầu rõ trong tác vụ hiện tại. Vẫn được chạy `flutter analyze` và `flutter test` để kiểm tra thay đổi.
+- **Stitch là tài liệu tham khảo UI**: triển khai vào source production, tái sử dụng design token/pattern hiện hành và giữ nguyên navbar, route, role cùng API contract của ứng dụng khi mockup Stitch khác source đang chạy.
 
 ## 3. Tự Động Cập Nhật Tiến Độ
 - Khi hoàn thành hoặc thay đổi tính năng mới, chủ động đối chiếu và cập nhật `PROJECT_STATUS_SNAPSHOT.md` trong Agent Pack.

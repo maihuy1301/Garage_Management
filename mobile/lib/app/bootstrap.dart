@@ -8,6 +8,8 @@ import '../core/auth/auth_controller.dart';
 import '../core/auth/auth_repository.dart';
 import '../core/config/app_config.dart';
 import '../core/storage/secure_session_storage.dart';
+import '../features/appointments/data/appointment_service.dart';
+import '../features/vehicles/data/vehicle_service.dart';
 import 'app.dart';
 
 Future<void> bootstrap() async {
@@ -29,8 +31,14 @@ Future<void> bootstrap() async {
   );
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: authController,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: authController),
+        Provider<AppointmentGateway>(
+          create: (_) => AppointmentService(apiClient),
+        ),
+        Provider<VehicleGateway>(create: (_) => VehicleService(apiClient)),
+      ],
       child: const GarageApp(),
     ),
   );

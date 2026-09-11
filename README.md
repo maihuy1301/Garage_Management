@@ -79,9 +79,10 @@ AUTO_GARAGE/
 - **Mobile (Flutter)**:
   - Khi mở app, splash screen AutoCare dùng ảnh `mobile/asset/screen.png` được hiển thị trong lúc khôi phục session, tối thiểu 1,6 giây.
   - Android emulator: `flutter run` (in `mobile/`, mặc định gọi `http://10.0.2.2:8080/api`).
+  - Nếu AVD Android 17/API 37 16 KB chỉ hiện màn hình đen dù app vẫn chạy, Android debug manifest đã tắt Impeller để dùng Skia fallback. Dừng phiên cũ rồi chạy lại `flutter run`; nếu vẫn đen, đổi `Emulated Performance > Graphics` sang `Software`, cold boot AVD và thử lại.
   - Thiết bị thật/iOS/Desktop: `flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api`.
   - Thiết bị Android thật qua USB: chạy `adb reverse tcp:8080 tcp:8080`, sau đó `flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8080/api`.
-  - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`.
+  - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`; CUSTOMER có màn `/vehicles` để xem/thêm xe và chuyển thẳng sang `/appointments?vehicleId=...` để đặt lịch với xe đã chọn, xem lịch của mình, hủy lịch khi backend cho phép. Form thêm xe tải hãng qua `GET /api/brands`, tải model phụ thuộc qua `GET /api/brands/{brandId}/models` và gửi `maHangXe`/`maModel` theo schema mới; không gửi owner từ mobile. Tab `/tracking` tải lịch hẹn thuộc customer và mở `/tracking/{appointmentId}` qua `GET /api/appointments/{id}` để hiển thị chi tiết cùng tiến trình `CHO_XAC_NHAN -> DA_XAC_NHAN -> DA_TIEP_NHAN -> HOAN_TAT`; hỗ trợ pull-to-refresh, loading/error/empty state và không cho mobile tự đổi trạng thái. Các màn dùng header/banner AutoCare theo tham khảo Stitch; thanh điều hướng vẫn đồng bộ 5 mục hiện hành.
 
 ## 4.2 Infrastructure & Development Workflow
 Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).
@@ -262,9 +263,11 @@ npm run dev
 ### Vehicle Management Endpoints (`VehicleController`)
 | Method | Endpoint | Description | Permission |
 |---|---|---|---|
+| `GET` | `/api/brands` | Danh sách hãng xe hoạt động cho dropdown | Public |
+| `GET` | `/api/brands/{brandId}/models` | Danh sách model hoạt động thuộc hãng đã chọn | Public |
 | `GET` | `/api/vehicles` | Danh sách xe (SYSTEM_ADMIN: toàn bộ, CUSTOMER: chỉ xe của mình) | `SYSTEM_ADMIN`, `CUSTOMER` |
 | `GET` | `/api/vehicles/{id}` | Chi tiết xe (ownership check) | `SYSTEM_ADMIN`, `CUSTOMER` |
-| `POST` | `/api/vehicles` | Tạo xe mới (owner tự động từ JWT) | `SYSTEM_ADMIN`, `CUSTOMER` |
+| `POST` | `/api/vehicles` | Tạo xe mới bằng `maHangXe`/`maModel` (owner tự động từ JWT đối với CUSTOMER) | `SYSTEM_ADMIN`, `CUSTOMER` |
 | `PUT` | `/api/vehicles/{id}` | Cập nhật xe (ownership check) | `SYSTEM_ADMIN`, `CUSTOMER` |
 | `DELETE` | `/api/vehicles/{id}` | Xóa xe (ownership check + business constraint) | `SYSTEM_ADMIN`, `CUSTOMER` |
 
@@ -339,7 +342,7 @@ npm run dev
 - **FRONTEND TASK 03**: Dashboard & Real Data Integration (Role-Specific Dashboards for Admin, Manager, Receptionist, Technician, Customer; Live Backend Reports API `/api/reports/*`, Vehicles `/api/vehicles`, Appointments `/api/appointments`) — PASS
 - **FRONTEND TASK 05**: User / Employee / Customer Management (Employee List/Detail/Form/Status, Customer List/Detail/Form/Status/Vehicles, User List/Detail/Form/Status, RoleGuards for `/app/employees`, `/app/customers`, `/app/users`) — PASS
 - **FRONTEND TASK 06**: Vehicle Management (Vehicle List/Detail/Form/Delete, Customer Ownership Protection, License Plate/VIN validation, RoleGuards for `/app/vehicles` for `ROLE_ADMIN` & `ROLE_CUSTOMER`) — PASS
-- **FRONTEND TASK 07**: Appointment Management (Appointment List/Detail/Form/Cancel/Confirm/Receive, Bento KPI Cards, Real Data API `/api/appointments` & `/api/branches`, Customer/Branch Isolation, RoleGuards for `/app/appointments` for `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_CUSTOMER`) — PASS
+- **FRONTEND TASK 07**: Appointment Management (role-scoped list, KPI/filter/search/date views, detail, create for `ROLE_ADMIN`/`ROLE_CUSTOMER`, cancel/confirm/receive theo quyền backend, loading/error/empty states, Real Data API `/api/appointments` & `/api/branches`, Customer/Branch Isolation, RoleGuards for `/app/appointments` cho `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_CUSTOMER`) — PASS (frontend production build)
 - **MOBILE CUSTOMER REGISTRATION & LOGIN PIN STATE**: Public registration UI, phone-as-username contract, transactional customer account creation without `MaKhachHangCode`, fixed `ROLE_CUSTOMER`, BCrypt password hashing, login/session exposes `hasPin` from `NguoiDung.MaPinHash` — PASS (87 targeted backend tests, backend compile, 6 Flutter tests, Flutter analyze clean)
 - **FRONTEND TASK 08**: Reception / Check-in Management (Vehicle Check-in Modal with ODO & exterior condition tracking, Reception Slips List/Detail, Direct Appointment-to-Reception Check-in, One-click Repair Order Creation, RoleGuards for `/app/reception` for `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`) — PASS
 - **INFRASTRUCTURE TASK 01**: Docker Development Environment (Docker Compose, Multi-stage Backend Dockerfile, React/Vite Frontend Dockerfile, MSSQL Container with Auto-Init & Named Volume Persistence, Zero Source Code Regressions) — PASS (381/381 backend tests, 0 build errors)

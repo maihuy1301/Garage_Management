@@ -28,6 +28,7 @@
 - Nghiệp vụ/luồng chức năng: `references/business-workflow.md`, đặc biệt khi làm lịch hẹn, tiếp nhận, sửa chữa, báo giá, thanh toán, bàn giao, đánh giá, chatbot hoặc mobile.
 - Tài liệu phục vụ báo cáo khóa luận: `references/thesis-documentation.md`; dùng khi code/sửa/hoàn thiện chức năng mới để tạo ghi chú module ngoài source code.
 - Website/UI: `AUTO-GARAGE-UI-SUGGESTION/autocare_multi_branch/DESIGN.md`, `frontend/src/index.css`, router, types và feature liên quan.
+- UI Stitch: trước khi thêm hoặc thiết kế lại form/chức năng giao diện, đọc thư mục màn hình tương ứng trong `D:\KLCN\stitch_stitch_garage_design_system\`; coi `DESIGN.md`, `code.html`, `screen.png` là tham khảo và ưu tiên navbar, route, API contract cùng component/token đang chạy khi có khác biệt.
 - Backend/API: endpoint/security/module tương ứng trong `README.md` và `docs/PROJECT_CONTEXT.md`.
 - Database: `database/GarageSystemDB.sql`, entity/repository liên quan và seed tương ứng; chỉ đọc phạm vi cần thiết.
 - Docker/môi trường: `docs/DOCKER.md`, `.env.example`, `docker-compose.yml` và Dockerfile liên quan.
@@ -52,7 +53,7 @@
 
 - Trước khi sửa: xác nhận workspace; đọc tài liệu bắt buộc; xem `git status`; tìm pattern tương tự; xác định contract và tác động xuyên lớp; phân biệt mockup với source chạy.
 - Khi sửa: chỉ thay đổi trong phạm vi; giữ backward compatibility nếu không có yêu cầu đổi contract; bảo toàn RBAC/branch/ownership; không ghi đè thay đổi của người dùng; thêm test phù hợp.
-- Sau khi sửa: xem diff; chạy targeted test/lint/analyze/build phù hợp; kiểm tra encoding; cập nhật tài liệu có ý nghĩa; tạo/cập nhật ghi chú khóa luận cho chức năng mới theo `references/thesis-documentation.md`; báo rõ phần chưa chạy.
+- Sau khi sửa: xem diff; chạy targeted test/lint/analyze/build phù hợp, ngoại trừ không tự chạy/build app Flutter; kiểm tra encoding; cập nhật tài liệu có ý nghĩa; tạo/cập nhật ghi chú khóa luận cho chức năng mới theo `references/thesis-documentation.md`; báo rõ phần chưa chạy.
 - Phải giữ nguyên nếu không thuộc yêu cầu: schema, seed, role/status contract, API response shape, port, credentials/config production, mockup tham khảo và thay đổi đang có của người dùng.
 - Không tự ý: deploy/upload, commit, push, sửa schema hoặc dữ liệu, reset Docker volume, xóa file, đổi production config, cài/nâng dependency diện rộng. Build/test cục bộ được phép vì không phá hủy; khởi động stack/service chỉ khi cần và không làm mất dữ liệu.
 
@@ -60,11 +61,11 @@
 
 - Java/backend: trong `backend/`, ưu tiên `mvn -Dtest=<TestClass> test` cho phạm vi hẹp; chạy `mvn test` khi thay đổi dùng chung, bảo mật, persistence hoặc cần regression đầy đủ. `mvn package` chỉ khi cần xác nhận artifact/build.
 - TypeScript/React/CSS: trong `frontend/`, chạy `npm run lint` cho source và `npm run build` để kiểm tra strict TypeScript + Vite. Không có test runner frontend trong `package.json`, nên không tuyên bố đã chạy unit test frontend.
-- Dart/Flutter: trong `mobile/`, chạy `flutter analyze` và `flutter test`; chỉ build platform khi yêu cầu hoặc thay đổi cần kiểm chứng tích hợp platform.
+- Dart/Flutter: trong `mobile/`, chạy `flutter analyze` và `flutter test`; không tự chạy `flutter run` hoặc `flutter build`. Người dùng tự khởi chạy app; chỉ chạy hai lệnh này khi họ yêu cầu rõ trong tác vụ hiện tại.
 - Database: kiểm tra diff SQL, mapping entity/repository và test backend liên quan; không apply schema/seed vào DB thật nếu chưa được phép.
 - Docker: dùng `docker compose config` để kiểm tra cấu hình không phá hủy; `docker compose up --build`, `down` hay thao tác volume chỉ khi người dùng yêu cầu hoặc cho phép rõ. Không chạy `down -v` nếu chưa có xác nhận riêng.
 - Encoding: giữ UTF-8 không BOM cho file text mới/sửa; rà ký tự thay thế `�` và các mẫu mojibake phổ biến nếu có dấu tiếng Việt.
-- Có thể tự động chạy build/test cục bộ phù hợp sau khi sửa. Không tự build image/khởi động Docker hoặc release artifact nếu chưa cần.
+- Có thể tự động chạy build/test cục bộ phù hợp sau khi sửa, nhưng không tự chạy `flutter run` hoặc `flutter build`. Không tự build image/khởi động Docker hoặc tạo release artifact nếu chưa cần.
 - Hoàn thành khi hành vi yêu cầu đã được triển khai, diff đúng phạm vi, checks phù hợp pass, không làm yếu bảo mật/phân quyền, tài liệu cần thiết đồng bộ và mọi phần chưa kiểm tra được nêu rõ.
 
 ## 7. Git

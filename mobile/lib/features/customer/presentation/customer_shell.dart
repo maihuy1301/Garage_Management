@@ -31,8 +31,15 @@ class CustomerShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final navigationLocation = currentLocation == '/vehicles'
+        ? '/account'
+        : currentLocation.startsWith('/tracking/')
+        ? '/tracking'
+        : currentLocation.startsWith('/appointments/')
+        ? '/appointments'
+        : currentLocation;
     final index = _destinations.indexWhere(
-      (destination) => destination.$1 == currentLocation,
+      (destination) => destination.$1 == navigationLocation,
     );
     return Scaffold(
       body: child,

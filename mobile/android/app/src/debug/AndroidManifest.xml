@@ -1,5 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:usesCleartextTraffic="true" />
+    <application android:usesCleartextTraffic="true">
+        <!--
+          Android 17/API 37 16 KB emulator images can start the Dart VM while
+          Impeller/OpenGLES never submits a first frame. Use Skia for debug
+          runs so the app remains usable on those AVDs; release keeps the
+          Flutter default renderer.
+        -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
+    </application>
 
     <!-- The INTERNET permission is required for development. Specifically,
          the Flutter tool needs it to communicate with the running application

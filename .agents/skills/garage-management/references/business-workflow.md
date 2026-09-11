@@ -27,6 +27,7 @@ Tài liệu này tóm tắt định hướng nghiệp vụ từ `01_DeCuong_Nghi
 
 - Trực chat realtime để tư vấn tình trạng xe và giải đáp thắc mắc cho khách hàng.
 - Quản lý lịch hẹn mới từ app hoặc chatbot nháp; trao đổi lại nếu cần đổi giờ; xác nhận hoặc từ chối lịch hẹn, kèm lý do khi từ chối.
+- Nếu khách không muốn tạo tài khoản hoặc đến trực tiếp không có lịch hẹn, nhân viên tiếp nhận được tạo hồ sơ khách vãng lai từ giao diện nội bộ. Hệ thống ưu tiên tra cứu theo biển số xe; nếu chưa có xe thì tạo hồ sơ kỹ thuật riêng với tên hiển thị `Khách vãng lai - <biển số>`, không tạo một tài khoản `Khách lẻ` dùng chung cho nhiều người.
 - Tiếp nhận xe thực tế khi khách đến: đối chiếu xe, lập phiếu tiếp nhận, ghi biển số, số km, tình trạng vỏ ngoài, lỗi khách phản ánh, dịch vụ yêu cầu và hình ảnh hiện trạng.
 - Sau khi lập phiếu tiếp nhận, nghiệp vụ mong muốn là hệ thống tự tạo phiếu sửa chữa ở trạng thái chờ phân công. Nếu source hiện tại vẫn tách thao tác tạo phiếu sửa chữa, không tự ý đổi flow khi chưa xác nhận.
 - Khi sửa chữa hoàn tất, kiểm tra phiếu sửa chữa, phụ tùng đã thay và báo giá phát sinh đã duyệt để tạo hóa đơn.
@@ -54,7 +55,7 @@ Tài liệu này tóm tắt định hướng nghiệp vụ từ `01_DeCuong_Nghi
 
 ## 3. Luồng nghiệp vụ chuẩn
 
-1. Khách hàng tạo tài khoản, khai báo xe cá nhân.
+1. Khách hàng có thể tạo tài khoản và khai báo xe trên mobile; nếu không muốn tạo tài khoản hoặc đến trực tiếp, nhân viên tiếp nhận tạo hồ sơ khách vãng lai dựa trên biển số xe.
 2. Khách hàng xem chi nhánh/dịch vụ/bảng giá, có thể hỏi chatbot hoặc chat nhân viên tiếp nhận.
 3. Khách hàng gửi yêu cầu đặt lịch gồm xe, chi nhánh, dịch vụ, thời gian và mô tả lỗi.
 4. Nhân viên tiếp nhận kiểm tra lịch hẹn, trao đổi lại nếu cần, sau đó xác nhận hoặc từ chối kèm lý do.
@@ -96,3 +97,15 @@ Tài liệu này tóm tắt định hướng nghiệp vụ từ `01_DeCuong_Nghi
 - Sau khi được cấp tài khoản hợp lệ và đang hoạt động, kỹ thuật viên mới đăng nhập vào ứng dụng/giao diện kỹ thuật để xem công việc được phân công.
 - Mật khẩu tài khoản do quản lý tạo cũng phải được BCrypt hash tại backend trước khi lưu. Cách cấp mật khẩu ban đầu và yêu cầu đổi mật khẩu lần đầu chưa được người dùng chốt; cần xác nhận khi triển khai.
 - Source hiện tại đã có luồng quản trị tạo `NguoiDung` dùng `PasswordEncoder`, nhưng quyền tạo tài khoản người dùng đang được tài liệu ghi nhận ở module quản trị hệ thống. Khi triển khai yêu cầu quản lý chi nhánh cấp tài khoản kỹ thuật viên, phải đối chiếu và mở rộng API/RBAC có kiểm soát thay vì chỉ mở quyền endpoint quản trị hiện hữu.
+
+### 5.3. Khách vãng lai không tạo tài khoản
+
+- Khách có quyền từ chối tạo tài khoản mobile. Trường hợp này do nhân viên tiếp nhận xử lý trên web nội bộ; khách không nhận thông tin đăng nhập và không dùng các chức năng mobile yêu cầu xác thực.
+- Nhân viên nhập tối thiểu biển số xe và chi nhánh tiếp nhận; họ tên thật, số điện thoại, hãng/model, số km và yêu cầu sửa chữa được bổ sung nếu khách đồng ý cung cấp. Không tự tạo email hoặc số điện thoại giả; các trường không bắt buộc để `NULL` hoặc giá trị mặc định đúng schema.
+- Backend chuẩn hóa và tra cứu biển số trước khi tạo. Nếu xe đã tồn tại, nhân viên phải đối chiếu thông tin khách/xe trước khi dùng lại; không tự động gộp hồ sơ hoặc hiển thị dữ liệu cá nhân chỉ vì trùng biển số. Nếu chưa tồn tại, tạo hồ sơ khách vãng lai và xe mới trong cùng transaction.
+- Schema hiện tại bắt buộc `KhachHang.MaNguoiDung`, `Xe.MaKhachHang` và `NguoiDung` có tên đăng nhập/mật khẩu. Khi chưa thay đổi schema, phương án tương thích là backend tạo một `NguoiDung` kỹ thuật riêng cho từng hồ sơ vãng lai: tên đăng nhập duy nhất do server sinh (ví dụ từ biển số kèm hậu tố), mật khẩu ngẫu nhiên được BCrypt hash, `ROLE_CUSTOMER` để giữ quan hệ dữ liệu, và `TrangThai = false` để không thể đăng nhập. Tên hiển thị mặc định là `Khách vãng lai - <biển số>`.
+- Tuyệt đối không dùng một bản ghi/tài khoản `Khách lẻ` chung cho mọi xe vì sẽ trộn lịch sử sửa chữa, hóa đơn, báo giá và làm sai ownership. Mỗi xe/hồ sơ vãng lai phải truy vết độc lập; biển số là khóa tra cứu nghiệp vụ chứ không phải bằng chứng duy nhất về chủ sở hữu.
+- Lịch hẹn hoặc phiếu tiếp nhận của khách vãng lai do nhân viên tạo trong phạm vi chi nhánh của mình. Backend phải lấy nhân viên và chi nhánh từ phiên đăng nhập, kiểm tra RBAC/branch isolation và không tin `branchId`, owner hoặc role do client tự khai báo ngoài phạm vi cho phép.
+- Vì khách vãng lai không đăng nhập mobile, thông báo, duyệt báo giá và xác nhận thanh toán/bàn giao phải có luồng hỗ trợ tại quầy hoặc qua kênh liên hệ khách đã cung cấp, đồng thời lưu người thao tác, thời điểm và nội dung xác nhận để audit.
+- Nếu khách muốn đăng ký sau này, cần luồng chuyển đổi hồ sơ vãng lai thành tài khoản hoạt động sau khi xác minh quyền sở hữu/số điện thoại; phải giữ nguyên xe, lịch sử sửa chữa và hóa đơn, không tạo hồ sơ trùng.
+- Trạng thái source ngày 2026-09-09: nghiệp vụ này mới được chốt ở mức yêu cầu. Backend hiện chỉ cho `ADMIN`/`CUSTOMER` tạo lịch hẹn, check-in hiện cần `appointmentId`, và chưa có orchestration API tạo khách vãng lai + xe + lịch/phiếu tiếp nhận. Không triển khai chỉ bằng cách mở quyền controller hiện hữu; cần thiết kế DTO/service transaction và test RBAC, branch isolation, trùng biển số, rollback và ownership trước.

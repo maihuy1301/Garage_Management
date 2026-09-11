@@ -29,7 +29,8 @@ Làm việc trong repository `Garage_Management` và trả lời bằng tiếng 
 
 - Truy vết tác động xuyên lớp trước khi sửa: schema/entity/repository/service/controller/DTO/test và types/service/page/router ở frontend khi có liên quan.
 - Ưu tiên thay đổi nhỏ, phù hợp pattern hiện hữu. Giữ tương thích API, trạng thái nghiệp vụ và ma trận phân quyền trừ khi yêu cầu nói rõ khác đi.
-- Thêm hoặc cập nhật test gần hành vi bị thay đổi. Chạy kiểm tra phù hợp theo ma trận trong project profile; được phép chạy lint, test và build cục bộ không phá hủy dữ liệu.
+- Thêm hoặc cập nhật test gần hành vi bị thay đổi. Chạy kiểm tra phù hợp theo ma trận trong project profile; được phép tự chạy lint, test và build cục bộ không phá hủy dữ liệu, ngoại trừ việc chạy/build app Flutter theo quy tắc bên dưới.
+- Không tự chạy `flutter run` hoặc `flutter build`; người dùng tự khởi chạy app Flutter. Chỉ thực hiện hai lệnh này khi người dùng yêu cầu rõ trong tác vụ hiện tại.
 - Không tự khởi động Docker stack, reset volume, sửa dữ liệu thật, deploy, commit, push, xóa file hay thay đổi production config nếu người dùng chưa yêu cầu rõ.
 - Chỉ cập nhật `README.md` và `docs/PROJECT_CONTEXT.md` khi thay đổi thực sự ảnh hưởng hành vi, kiến trúc, API, cách chạy hoặc trạng thái tính năng.
 - Sau khi hoàn tất, báo ngắn gọn: kết quả, file đã sửa, kiểm tra đã chạy, phần chưa kiểm tra và rủi ro/cách dùng nếu có.

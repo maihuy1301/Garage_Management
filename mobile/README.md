@@ -28,6 +28,18 @@ flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api
 
 HTTP cleartext chỉ được bật trong Android debug manifest. Bản phát hành cần dùng backend HTTPS.
 
+### Xử lý màn hình đen trên Android emulator
+
+Với image Android 17/API 37 16 KB, emulator có thể mở app nhưng không render frame nào khi Flutter dùng Impeller/OpenGLES. Cấu hình debug của dự án đã tắt Impeller để `flutter run` tự dùng Skia; bản release vẫn giữ renderer mặc định của Flutter.
+
+Nếu AVD vẫn đen sau khi cập nhật source:
+
+1. Dừng phiên `flutter run` hiện tại.
+2. Trong Device Manager, đặt `Emulated Performance > Graphics` thành `Software`.
+3. Chọn `Cold Boot Now` cho AVD rồi chạy lại `flutter run`.
+
+Có thể kiểm tra nhanh mà không đổi source bằng `flutter run --no-enable-impeller`.
+
 ## Kiểm tra
 
 ```powershell

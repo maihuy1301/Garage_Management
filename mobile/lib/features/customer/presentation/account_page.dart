@@ -60,10 +60,11 @@ class AccountPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          const _AccountTile(
+          _AccountTile(
             icon: Icons.directions_car_outlined,
             title: 'Xe của tôi',
             subtitle: 'Quản lý thông tin xe cá nhân',
+            onTap: () => context.push('/vehicles'),
           ),
           const _AccountTile(
             icon: Icons.history_rounded,
@@ -100,17 +101,20 @@ class _AccountTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
+        onTap: onTap,
         minTileHeight: 68,
         leading: Icon(icon, color: AppColors.primary),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
