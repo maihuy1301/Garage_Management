@@ -25,8 +25,9 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
   const availableBrands = useMemo(() => {
     const brands = new Set<string>();
     vehicles.forEach((v) => {
-      if (v.hangXe && v.hangXe.trim()) {
-        brands.add(v.hangXe.trim());
+      const brandName = v.tenHangXe || v.hangXe;
+      if (brandName && brandName.trim()) {
+        brands.add(brandName.trim());
       }
     });
     return Array.from(brands).sort();
@@ -34,18 +35,20 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
+      const brandName = v.tenHangXe || v.hangXe || '';
+      const modelName = v.tenModel || v.model || '';
       const term = searchTerm.toLowerCase().trim();
       const matchSearch =
         !term ||
         v.bienSo?.toLowerCase().includes(term) ||
-        v.hangXe?.toLowerCase().includes(term) ||
-        v.model?.toLowerCase().includes(term) ||
+        brandName.toLowerCase().includes(term) ||
+        modelName.toLowerCase().includes(term) ||
         v.mauXe?.toLowerCase().includes(term) ||
         v.soVIN?.toLowerCase().includes(term) ||
         v.tenChuXe?.toLowerCase().includes(term) ||
         (v.maKhachHang ? String(v.maKhachHang).includes(term) : false);
 
-      const matchBrand = selectedBrand === 'ALL' || v.hangXe === selectedBrand;
+      const matchBrand = selectedBrand === 'ALL' || brandName === selectedBrand;
 
       const isVehicleActive = v.trangThai !== false;
       const matchStatus =
@@ -184,10 +187,10 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
                       {/* Hãng & Model */}
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>
-                          {vehicle.hangXe || '—'} {vehicle.model || ''}
+                          {vehicle.tenHangXe || vehicle.hangXe || '—'} {vehicle.tenModel || vehicle.model || ''}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--color-outline)', marginTop: '2px' }}>
-                          Phân khúc: Du lịch / Cá nhân
+                          {vehicle.maModel ? `Mã Model: #${vehicle.maModel}` : 'Phân khúc: Du lịch / Cá nhân'}
                         </div>
                       </td>
 

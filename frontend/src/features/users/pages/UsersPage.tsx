@@ -12,8 +12,12 @@ import { UserStatusModal } from '@/features/users/components/UserStatusModal';
 import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton';
 import { Button } from '@/components/common/Button';
+import { useAuth } from '@/hooks/useAuth';
 
 export const UsersPage: React.FC = () => {
+  const { user: currentUser } = useAuth();
+  const isSystemAdmin = (currentUser?.roles || []).includes('ROLE_ADMIN');
+
   const [users, setUsers] = useState<UserResponse[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,21 +81,21 @@ export const UsersPage: React.FC = () => {
     );
   };
 
-  // Metric summaries
+  // Metric summaries (filtered by actor view)
   const metrics = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((u) => u.trangThai).length;
+    const visibleUsers = isSystemAdmin
+      ? users
+      : users.filter((u) => !u.roles?.includes('ROLE_ADMIN'));
+
+    const total = visibleUsers.length;
+    const active = visibleUsers.filter((u) => u.trangThai).length;
     const admins = users.filter((u) => u.roles?.includes('ROLE_ADMIN')).length;
     const managers = users.filter((u) => u.roles?.includes('ROLE_MANAGER')).length;
-    const others = users.filter(
-      (u) =>
-        u.roles?.includes('ROLE_TECHNICIAN') ||
-        u.roles?.includes('ROLE_FRONT_DESK') ||
-        u.roles?.includes('ROLE_CUSTOMER')
-    ).length;
+    const technicians = visibleUsers.filter((u) => u.roles?.includes('ROLE_TECHNICIAN')).length;
+    const customers = visibleUsers.filter((u) => u.roles?.includes('ROLE_CUSTOMER')).length;
 
-    return { total, active, admins, managers, others };
-  }, [users]);
+    return { total, active, admins, managers, technicians, customers };
+  }, [users, isSystemAdmin]);
 
   if (isLoading && users.length === 0) {
     return <DashboardSkeleton />;
@@ -166,7 +170,7 @@ export const UsersPage: React.FC = () => {
           value={metrics.total}
           icon="group"
           colorTheme="default"
-          trend="Toàn hệ thống"
+          trend={isSystemAdmin ? 'Toàn hệ thống' : 'Phạm vi quản lý'}
           trendUp={true}
         />
         <KpiCard
@@ -177,22 +181,44 @@ export const UsersPage: React.FC = () => {
           trend={`Tỉ lệ ${metrics.total > 0 ? Math.round((metrics.active / metrics.total) * 100) : 0}%`}
           trendUp={true}
         />
-        <KpiCard
-          label="Quản Trị Viên (Admin)"
-          value={metrics.admins}
-          icon="shield_person"
-          colorTheme="orange"
-          trend="ROLE_ADMIN"
-          trendUp={true}
-        />
-        <KpiCard
-          label="Quản Lý Chi Nhánh"
-          value={metrics.managers}
-          icon="store_mall_directory"
-          colorTheme="slate"
-          trend="ROLE_MANAGER"
-          trendUp={true}
-        />
+        {isSystemAdmin ? (
+          <KpiCard
+            label="Quản Trị Viên (Admin)"
+            value={metrics.admins}
+            icon="shield_person"
+            colorTheme="orange"
+            trend="ROLE_ADMIN"
+            trendUp={true}
+          />
+        ) : (
+          <KpiCard
+            label="Kỹ Thuật Viên"
+            value={metrics.technicians}
+            icon="engineering"
+            colorTheme="orange"
+            trend="ROLE_TECHNICIAN"
+            trendUp={true}
+          />
+        )}
+        {isSystemAdmin ? (
+          <KpiCard
+            label="Quản Lý Chi Nhánh"
+            value={metrics.managers}
+            icon="store_mall_directory"
+            colorTheme="slate"
+            trend="ROLE_MANAGER"
+            trendUp={true}
+          />
+        ) : (
+          <KpiCard
+            label="Khách Hàng"
+            value={metrics.customers}
+            icon="groups"
+            colorTheme="slate"
+            trend="ROLE_CUSTOMER"
+            trendUp={true}
+          />
+        )}
       </div>
 
       {/* Main Table */}

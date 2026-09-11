@@ -20,6 +20,10 @@ public class PhieuSuaChuaPhuTung {
     @JoinColumn(name = "MaPhuTung", nullable = false)
     private PhuTung phuTung;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaDichVuChiTiet")
+    private PhieuSuaChuaDichVu dichVuChiTiet;
+
     @Column(name = "SoLuong", nullable = false)
     private Integer soLuong;
 
@@ -53,6 +57,14 @@ public class PhieuSuaChuaPhuTung {
 
     public void setPhuTung(PhuTung phuTung) {
         this.phuTung = phuTung;
+    }
+
+    public PhieuSuaChuaDichVu getDichVuChiTiet() {
+        return dichVuChiTiet;
+    }
+
+    public void setDichVuChiTiet(PhieuSuaChuaDichVu dichVuChiTiet) {
+        this.dichVuChiTiet = dichVuChiTiet;
     }
 
     public Integer getSoLuong() {

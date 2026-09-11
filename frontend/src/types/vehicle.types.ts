@@ -3,8 +3,12 @@ export interface VehicleItem {
   maKhachHang?: number;
   tenChuXe?: string;
   bienSo: string;
-  hangXe?: string;
-  model?: string;
+  maHangXe?: number;
+  tenHangXe?: string;
+  maModel?: number;
+  tenModel?: string;
+  hangXe?: string; // Tương thích ngược nếu có
+  model?: string;  // Tương thích ngược nếu có
   namSanXuat?: number;
   mauXe?: string;
   soVIN?: string;
@@ -18,8 +22,8 @@ export type VehicleResponse = VehicleItem;
 export interface CreateVehicleRequest {
   maKhachHang?: number;
   bienSo: string;
-  hangXe?: string;
-  model?: string;
+  maHangXe: number;
+  maModel: number;
   namSanXuat?: number;
   mauXe?: string;
   soVIN?: string;
@@ -27,8 +31,8 @@ export interface CreateVehicleRequest {
 }
 
 export interface UpdateVehicleRequest {
-  hangXe?: string;
-  model?: string;
+  maHangXe?: number;
+  maModel?: number;
   namSanXuat?: number;
   mauXe?: string;
   soVIN?: string;

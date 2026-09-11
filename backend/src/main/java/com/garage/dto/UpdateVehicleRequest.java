@@ -4,16 +4,12 @@ import jakarta.validation.constraints.Size;
 
 /**
  * DTO cập nhật thông tin xe.
- * Không cho phép client thay đổi owner (maKhachHang/bienSo unique là controlled).
+ * Hỗ trợ cập nhật maHangXe và maModel (Backend validate model thuộc hãng).
  */
 public class UpdateVehicleRequest {
 
-    @Size(max = 50, message = "Hãng xe không được vượt quá 50 ký tự")
-    private String hangXe;
-
-    @Size(max = 100, message = "Model xe không được vượt quá 100 ký tự")
-    private String model;
-
+    private Integer maHangXe;
+    private Integer maModel;
     private Integer namSanXuat;
 
     @Size(max = 50, message = "Màu xe không được vượt quá 50 ký tự")
@@ -26,11 +22,13 @@ public class UpdateVehicleRequest {
 
     public UpdateVehicleRequest() {}
 
-    public String getHangXe() { return hangXe; }
-    public void setHangXe(String hangXe) { this.hangXe = hangXe; }
+    public Integer getMaHangXe() { return maHangXe; }
+    public void setMaHangXe(Integer maHangXe) { this.maHangXe = maHangXe; }
 
-    public String getModel() { return model; }
-    public void setModel(String model) { this.model = model; }
+    public void setHangXe(String hangXe) { /* fallback */ }
+
+    public Integer getMaModel() { return maModel; }
+    public void setMaModel(Integer maModel) { this.maModel = maModel; }
 
     public Integer getNamSanXuat() { return namSanXuat; }
     public void setNamSanXuat(Integer namSanXuat) { this.namSanXuat = namSanXuat; }

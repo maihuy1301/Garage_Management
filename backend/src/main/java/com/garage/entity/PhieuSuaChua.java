@@ -20,6 +20,10 @@ public class PhieuSuaChua {
     @JoinColumn(name = "MaChiNhanh", nullable = false)
     private ChiNhanh chiNhanh;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaPhieuCha")
+    private PhieuSuaChua phieuCha;
+
     @Column(name = "ThoiGianBatDau")
     private LocalDateTime thoiGianBatDau;
 
@@ -56,6 +60,14 @@ public class PhieuSuaChua {
 
     public void setChiNhanh(ChiNhanh chiNhanh) {
         this.chiNhanh = chiNhanh;
+    }
+
+    public PhieuSuaChua getPhieuCha() {
+        return phieuCha;
+    }
+
+    public void setPhieuCha(PhieuSuaChua phieuCha) {
+        this.phieuCha = phieuCha;
     }
 
     public LocalDateTime getThoiGianBatDau() {

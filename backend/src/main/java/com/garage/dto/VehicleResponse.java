@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 /**
  * Response DTO cho Xe — không expose JPA entity trực tiếp.
- * Không chứa: khóa ngoại nội bộ (MaKhachHang raw) cũng không chứa thông tin nhạy cảm.
+ * Trả về đầy đủ thông tin Brand & Model dạng ID và Name.
  */
 public class VehicleResponse {
 
@@ -12,8 +12,12 @@ public class VehicleResponse {
     private Integer maKhachHang;
     private String tenChuXe;
     private String bienSo;
-    private String hangXe;
-    private String model;
+    private Integer maHangXe;
+    private String tenHangXe;
+    private Integer maModel;
+    private String tenModel;
+    private String hangXe; // Giữ để tương thích backward client cũ
+    private String model;  // Giữ để tương thích backward client cũ
     private Integer namSanXuat;
     private String mauXe;
     private String soVIN;
@@ -24,15 +28,29 @@ public class VehicleResponse {
     public VehicleResponse() {}
 
     public VehicleResponse(Integer maXe, Integer maKhachHang,
-                           String tenChuXe, String bienSo, String hangXe, String model,
+                           String tenChuXe, String bienSo,
+                           String hangXe, String model,
+                           Integer namSanXuat, String mauXe, String soVIN,
+                           Integer soKmHienTai, Boolean trangThai, LocalDateTime ngayTao) {
+        this(maXe, maKhachHang, tenChuXe, bienSo, null, hangXe, null, model, namSanXuat, mauXe, soVIN, soKmHienTai, trangThai, ngayTao);
+    }
+
+    public VehicleResponse(Integer maXe, Integer maKhachHang,
+                           String tenChuXe, String bienSo,
+                           Integer maHangXe, String tenHangXe,
+                           Integer maModel, String tenModel,
                            Integer namSanXuat, String mauXe, String soVIN,
                            Integer soKmHienTai, Boolean trangThai, LocalDateTime ngayTao) {
         this.maXe = maXe;
         this.maKhachHang = maKhachHang;
         this.tenChuXe = tenChuXe;
         this.bienSo = bienSo;
-        this.hangXe = hangXe;
-        this.model = model;
+        this.maHangXe = maHangXe;
+        this.tenHangXe = tenHangXe;
+        this.maModel = maModel;
+        this.tenModel = tenModel;
+        this.hangXe = tenHangXe;
+        this.model = tenModel;
         this.namSanXuat = namSanXuat;
         this.mauXe = mauXe;
         this.soVIN = soVIN;
@@ -53,10 +71,22 @@ public class VehicleResponse {
     public String getBienSo() { return bienSo; }
     public void setBienSo(String bienSo) { this.bienSo = bienSo; }
 
-    public String getHangXe() { return hangXe; }
+    public Integer getMaHangXe() { return maHangXe; }
+    public void setMaHangXe(Integer maHangXe) { this.maHangXe = maHangXe; }
+
+    public String getTenHangXe() { return tenHangXe; }
+    public void setTenHangXe(String tenHangXe) { this.tenHangXe = tenHangXe; }
+
+    public Integer getMaModel() { return maModel; }
+    public void setMaModel(Integer maModel) { this.maModel = maModel; }
+
+    public String getTenModel() { return tenModel; }
+    public void setTenModel(String tenModel) { this.tenModel = tenModel; }
+
+    public String getHangXe() { return hangXe != null ? hangXe : tenHangXe; }
     public void setHangXe(String hangXe) { this.hangXe = hangXe; }
 
-    public String getModel() { return model; }
+    public String getModel() { return model != null ? model : tenModel; }
     public void setModel(String model) { this.model = model; }
 
     public Integer getNamSanXuat() { return namSanXuat; }

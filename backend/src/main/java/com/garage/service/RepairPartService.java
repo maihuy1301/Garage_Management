@@ -26,6 +26,7 @@ public class RepairPartService {
     private final PhuTungRepository phuTungRepository;
     private final TonKhoRepository tonKhoRepository;
     private final PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository;
+    private final PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
     private final GiaoDichKhoRepository giaoDichKhoRepository;
     private final PhanCongRepository phanCongRepository;
     private final NhanVienRepository nhanVienRepository;
@@ -36,6 +37,7 @@ public class RepairPartService {
                              PhuTungRepository phuTungRepository,
                              TonKhoRepository tonKhoRepository,
                              PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository,
+                             PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
                              GiaoDichKhoRepository giaoDichKhoRepository,
                              PhanCongRepository phanCongRepository,
                              NhanVienRepository nhanVienRepository,
@@ -45,6 +47,7 @@ public class RepairPartService {
         this.phuTungRepository = phuTungRepository;
         this.tonKhoRepository = tonKhoRepository;
         this.phieuSuaChuaPhuTungRepository = phieuSuaChuaPhuTungRepository;
+        this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
         this.giaoDichKhoRepository = giaoDichKhoRepository;
         this.phanCongRepository = phanCongRepository;
         this.nhanVienRepository = nhanVienRepository;
@@ -74,6 +77,7 @@ public class RepairPartService {
      * - Chặn khi phiếu đã HOAN_TAT hoặc HUY (400)
      * - Phụ tùng phải tồn tại và đang hoạt động (404/400)
      * - Tránh thêm trùng phụ tùng (409)
+     * - Kiểm tra và validate MaDichVuChiTiet thuộc cùng Phiếu sửa chữa
      * - Kiểm tra tồn kho tại chi nhánh của phiếu sửa chữa (400)
      * - Trừ tồn kho và ghi nhật ký GiaoDichKho (Transactional)
      * - Lấy giá bán chính thức từ catalog, không tin giá từ client
@@ -95,6 +99,12 @@ public class RepairPartService {
 
         if (phieuSuaChuaPhuTungRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTung(repairOrderId, part.getMaPhuTung())) {
             throw new DuplicateResourceException("Phụ tùng '" + part.getTenPhuTung() + "' đã có trong phiếu sửa chữa. Vui lòng cập nhật số lượng thay vì thêm mới");
+        }
+
+        // Validate MaDichVuChiTiet nếu có truyền
+        PhieuSuaChuaDichVu dichVuChiTiet = null;
+        if (request.getMaDichVuChiTiet() != null) {
+            dichVuChiTiet = validateRepairServiceBelongsToOrder(repairOrderId, request.getMaDichVuChiTiet());
         }
 
         Integer branchId = order.getChiNhanh().getMaChiNhanh();
@@ -119,10 +129,11 @@ public class RepairPartService {
         gd.setGhiChu("Xuất phụ tùng cho phiếu sửa chữa #" + repairOrderId);
         giaoDichKhoRepository.save(gd);
 
-        // Tạo chi tiết phụ tùng sửa chữa (đơn giá lấy từ catalog part.getGiaBan())
+        // Tạo chi tiết phụ tùng sửa chữa
         PhieuSuaChuaPhuTung item = new PhieuSuaChuaPhuTung();
         item.setPhieuSuaChua(order);
         item.setPhuTung(part);
+        item.setDichVuChiTiet(dichVuChiTiet);
         item.setSoLuong(request.getSoLuong());
         item.setDonGia(part.getGiaBan() != null ? part.getGiaBan() : BigDecimal.ZERO);
 
@@ -131,7 +142,7 @@ public class RepairPartService {
     }
 
     /**
-     * Cập nhật số lượng phụ tùng sử dụng:
+     * Cập nhật số lượng hoặc dịch vụ liên kết của phụ tùng sử dụng:
      * - Nếu tăng số lượng: Kiểm tra tồn kho và trừ thêm
      * - Nếu giảm số lượng: Hoàn trả phần chênh lệch vào tồn kho
      * - Ghi nhật ký GiaoDichKho tương ứng
@@ -148,6 +159,11 @@ public class RepairPartService {
                 .findByMaChiTietAndPhieuSuaChuaMaPhieuSuaChua(partDetailId, repairOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phụ tùng chi tiết ID " + partDetailId + " trong phiếu sửa chữa này"));
 
+        if (request.getMaDichVuChiTiet() != null) {
+            PhieuSuaChuaDichVu dichVuChiTiet = validateRepairServiceBelongsToOrder(repairOrderId, request.getMaDichVuChiTiet());
+            item.setDichVuChiTiet(dichVuChiTiet);
+        }
+
         int oldQuantity = item.getSoLuong();
         int newQuantity = request.getSoLuong();
         int diff = newQuantity - oldQuantity;
@@ -158,7 +174,6 @@ public class RepairPartService {
                     .orElseThrow(() -> new BadRequestException("Không tìm thấy thông tin tồn kho phụ tùng"));
 
             if (diff > 0) {
-                // Cần lấy thêm từ kho
                 if (tonKho.getSoLuongTon() < diff) {
                     throw new BadRequestException("Số lượng tồn kho không đủ để tăng thêm (Hiện còn: " + tonKho.getSoLuongTon() + ", cần thêm: " + diff + ")");
                 }
@@ -174,7 +189,6 @@ public class RepairPartService {
                 gd.setGhiChu("Xuất thêm " + diff + " phụ tùng cho phiếu sửa chữa #" + repairOrderId);
                 giaoDichKhoRepository.save(gd);
             } else {
-                // Hoàn trả bớt vào kho (diff < 0)
                 int returnQty = -diff;
                 tonKho.setSoLuongTon(tonKho.getSoLuongTon() + returnQty);
                 tonKhoRepository.save(tonKho);
@@ -190,9 +204,9 @@ public class RepairPartService {
             }
 
             item.setSoLuong(newQuantity);
-            item = phieuSuaChuaPhuTungRepository.save(item);
         }
 
+        item = phieuSuaChuaPhuTungRepository.save(item);
         return mapToRepairPartResponse(item);
     }
 
@@ -234,6 +248,16 @@ public class RepairPartService {
 
     // --- Helpers ---
 
+    private PhieuSuaChuaDichVu validateRepairServiceBelongsToOrder(Integer repairOrderId, Integer maDichVuChiTiet) {
+        PhieuSuaChuaDichVu dichVuChiTiet = phieuSuaChuaDichVuRepository.findById(maDichVuChiTiet)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hạng mục dịch vụ sửa chữa với ID: " + maDichVuChiTiet));
+
+        if (!dichVuChiTiet.getPhieuSuaChua().getMaPhieuSuaChua().equals(repairOrderId)) {
+            throw new BadRequestException("Hạng mục dịch vụ ID " + maDichVuChiTiet + " không thuộc phiếu sửa chữa ID " + repairOrderId);
+        }
+        return dichVuChiTiet;
+    }
+
     private void validateAccessAuthorization(PhieuSuaChua order, boolean isModify) {
         Integer branchId = order.getChiNhanh().getMaChiNhanh();
 
@@ -241,7 +265,6 @@ public class RepairPartService {
             throw new AccessDeniedException("Forbidden: Bạn không có quyền thao tác trên phiếu sửa chữa của chi nhánh khác");
         }
 
-        // Nếu người gọi là TECHNICIAN, kiểm tra xem có được phân công phụ trách phiếu này không
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TECHNICIAN"))) {
             NguoiDung user = nguoiDungRepository.findByTenDangNhapOrEmail(auth.getName(), auth.getName()).orElse(null);
@@ -273,10 +296,21 @@ public class RepairPartService {
             thanhTien = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
         }
 
+        Integer maDichVuChiTiet = null;
+        String tenDichVuChiTiet = null;
+        if (item.getDichVuChiTiet() != null) {
+            maDichVuChiTiet = item.getDichVuChiTiet().getMaChiTiet();
+            if (item.getDichVuChiTiet().getDichVu() != null) {
+                tenDichVuChiTiet = item.getDichVuChiTiet().getDichVu().getTenDichVu();
+            }
+        }
+
         return new RepairPartResponse(
                 item.getMaChiTiet(),
                 item.getPhieuSuaChua() != null ? item.getPhieuSuaChua().getMaPhieuSuaChua() : null,
                 pt != null ? pt.getMaPhuTung() : null,
+                maDichVuChiTiet,
+                tenDichVuChiTiet,
                 pt != null ? pt.getMaPhuTungCode() : null,
                 pt != null ? pt.getTenPhuTung() : null,
                 pt != null ? pt.getDonViTinh() : null,

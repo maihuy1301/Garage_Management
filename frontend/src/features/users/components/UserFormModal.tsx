@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserResponse, CreateUserRequest, UpdateUserRequest } from '@/types/user.types';
 import { RoleResponse, RoleLabels, RoleType } from '@/types/role.types';
 import { roleService } from '@/features/roles/services/role.service';
 import { Button } from '@/components/common/Button';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserFormModalProps {
   user: UserResponse | null;
@@ -17,6 +18,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const { user: currentUser } = useAuth();
+  const isSystemAdmin = (currentUser?.roles || []).includes('ROLE_ADMIN');
   const isEdit = !!user;
 
   // Form State
@@ -34,6 +37,19 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Filter roles based on current logged-in user hierarchy
+  // ADMIN: can assign any role
+  // MANAGER: can only assign roles lower than Manager (ROLE_FRONT_DESK, ROLE_TECHNICIAN, ROLE_CUSTOMER)
+  const permittedRoles = useMemo(() => {
+    if (isSystemAdmin) {
+      return availableRoles;
+    }
+    // Manager cannot see or create ROLE_ADMIN or ROLE_MANAGER
+    return availableRoles.filter(
+      (r) => r.tenVaiTro !== 'ROLE_ADMIN' && r.tenVaiTro !== 'ROLE_MANAGER'
+    );
+  }, [availableRoles, isSystemAdmin]);
 
   // Fetch Roles Master Data via GET /api/roles
   useEffect(() => {
@@ -329,7 +345,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {availableRoles.map((r) => {
+                  {permittedRoles.map((r) => {
                     const roleKey = r.tenVaiTro;
                     const isChecked = selectedRoles.includes(roleKey);
                     const roleLabel = RoleLabels[roleKey as RoleType] || r.moTa || roleKey;

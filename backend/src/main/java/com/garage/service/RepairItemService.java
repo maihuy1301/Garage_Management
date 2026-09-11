@@ -8,7 +8,6 @@ import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.DichVuRepository;
-import com.garage.repository.GiaDichVuChiNhanhRepository;
 import com.garage.repository.PhieuSuaChuaDichVuRepository;
 import com.garage.repository.PhieuSuaChuaRepository;
 import com.garage.security.BranchAuthorizationService;
@@ -26,18 +25,15 @@ public class RepairItemService {
     private final PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
     private final PhieuSuaChuaRepository phieuSuaChuaRepository;
     private final DichVuRepository dichVuRepository;
-    private final GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository;
     private final BranchAuthorizationService branchAuthorizationService;
 
     public RepairItemService(PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
                              PhieuSuaChuaRepository phieuSuaChuaRepository,
                              DichVuRepository dichVuRepository,
-                             GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository,
                              BranchAuthorizationService branchAuthorizationService) {
         this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.dichVuRepository = dichVuRepository;
-        this.giaDichVuChiNhanhRepository = giaDichVuChiNhanhRepository;
         this.branchAuthorizationService = branchAuthorizationService;
     }
 
@@ -58,7 +54,7 @@ public class RepairItemService {
      * - Kiểm tra trạng thái phiếu sửa chữa (không được ở trạng thái HOAN_TAT hoặc HUY)
      * - Kiểm tra dịch vụ tồn tại & đang hoạt động
      * - Chống trùng lặp: Mỗi dịch vụ chỉ xuất hiện 1 lần trong 1 phiếu sửa chữa
-     * - Tự động lấy đơn giá từ catalog GiaDichVuChiNhanh nếu có, hoặc dùng đơn giá hợp lệ từ request
+     * - Tự động lấy đơn giá từ catalog DichVu (hoặc dùng đơn giá override từ request nếu có)
      * - Tính thành tiền = số lượng * đơn giá
      */
     @Transactional
@@ -79,8 +75,8 @@ public class RepairItemService {
             throw new DuplicateResourceException("Dịch vụ '" + dichVu.getTenDichVu() + "' đã tồn tại trong phiếu sửa chữa này");
         }
 
-        // 3. Xác định đơn giá dịch vụ
-        BigDecimal donGia = resolveServicePrice(order.getChiNhanh().getMaChiNhanh(), dichVu.getMaDichVu(), request.getDonGia());
+        // 3. Xác định đơn giá dịch vụ từ Catalog toàn hệ thống (DichVu.donGia)
+        BigDecimal donGia = resolveServicePrice(dichVu, request.getDonGia());
 
         // 4. Số lượng
         int soLuong = (request.getSoLuong() != null && request.getSoLuong() >= 1) ? request.getSoLuong() : 1;
@@ -165,19 +161,16 @@ public class RepairItemService {
         }
     }
 
-    private BigDecimal resolveServicePrice(Integer branchId, Integer serviceId, BigDecimal requestPrice) {
-        List<GiaDichVuChiNhanh> prices = giaDichVuChiNhanhRepository
-                .findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(branchId, serviceId);
-
-        if (!prices.isEmpty() && prices.get(0).getDonGia() != null) {
-            return prices.get(0).getDonGia();
-        }
-
+    private BigDecimal resolveServicePrice(DichVu dichVu, BigDecimal requestPrice) {
         if (requestPrice != null && requestPrice.compareTo(BigDecimal.ZERO) >= 0) {
             return requestPrice;
         }
 
-        throw new BadRequestException("Chưa có đơn giá cho dịch vụ này tại chi nhánh. Vui lòng cung cấp đơn giá.");
+        if (dichVu.getDonGia() != null && dichVu.getDonGia().compareTo(BigDecimal.ZERO) >= 0) {
+            return dichVu.getDonGia();
+        }
+
+        throw new BadRequestException("Dịch vụ '" + dichVu.getTenDichVu() + "' chưa có đơn giá hợp lệ trong hệ thống");
     }
 
     private RepairItemResponse mapToRepairItemResponse(PhieuSuaChuaDichVu item) {

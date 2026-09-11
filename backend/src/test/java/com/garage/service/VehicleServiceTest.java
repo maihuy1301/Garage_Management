@@ -3,14 +3,11 @@ package com.garage.service;
 import com.garage.dto.CreateVehicleRequest;
 import com.garage.dto.UpdateVehicleRequest;
 import com.garage.dto.VehicleResponse;
-import com.garage.entity.KhachHang;
-import com.garage.entity.NguoiDung;
-import com.garage.entity.Xe;
+import com.garage.entity.*;
+import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
-import com.garage.repository.KhachHangRepository;
-import com.garage.repository.NguoiDungRepository;
-import com.garage.repository.XeRepository;
+import com.garage.repository.*;
 import com.garage.security.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +22,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +42,12 @@ class VehicleServiceTest {
     @Mock
     private NguoiDungRepository nguoiDungRepository;
 
+    @Mock
+    private HangXeRepository hangXeRepository;
+
+    @Mock
+    private ModelXeRepository modelXeRepository;
+
     @InjectMocks
     private VehicleService vehicleService;
 
@@ -55,6 +57,10 @@ class VehicleServiceTest {
     private NguoiDung user2;
     private KhachHang customer1;
     private KhachHang customer2;
+    private HangXe brandToyota;
+    private HangXe brandHonda;
+    private ModelXe modelCamry;
+    private ModelXe modelCivic;
     private Xe vehicle1;
     private Xe vehicle2;
 
@@ -78,11 +84,22 @@ class VehicleServiceTest {
         customer2.setMaKhachHang(2);
         customer2.setNguoiDung(user2);
 
+        brandToyota = new HangXe("Toyota");
+        brandToyota.setMaHangXe(1);
+
+        brandHonda = new HangXe("Honda");
+        brandHonda.setMaHangXe(2);
+
+        modelCamry = new ModelXe(brandToyota, "Camry");
+        modelCamry.setMaModel(10);
+
+        modelCivic = new ModelXe(brandHonda, "Civic");
+        modelCivic.setMaModel(20);
+
         vehicle1 = new Xe();
         vehicle1.setMaXe(100);
         vehicle1.setBienSo("51A-11111");
-        vehicle1.setHangXe("Toyota");
-        vehicle1.setModel("Camry");
+        vehicle1.setModelXe(modelCamry);
         vehicle1.setTrangThai(true);
         vehicle1.setSoKmHienTai(0);
         vehicle1.setKhachHang(customer1);
@@ -90,8 +107,7 @@ class VehicleServiceTest {
         vehicle2 = new Xe();
         vehicle2.setMaXe(200);
         vehicle2.setBienSo("51B-22222");
-        vehicle2.setHangXe("Honda");
-        vehicle2.setModel("Civic");
+        vehicle2.setModelXe(modelCivic);
         vehicle2.setTrangThai(true);
         vehicle2.setSoKmHienTai(0);
         vehicle2.setKhachHang(customer2);
@@ -137,6 +153,8 @@ class VehicleServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getBienSo()).isEqualTo("51A-11111");
+        assertThat(result.get(0).getTenHangXe()).isEqualTo("Toyota");
+        assertThat(result.get(0).getTenModel()).isEqualTo("Camry");
         verify(xeRepository, never()).findAll();
     }
 
@@ -167,6 +185,8 @@ class VehicleServiceTest {
 
         assertThat(result.getMaXe()).isEqualTo(100);
         assertThat(result.getBienSo()).isEqualTo("51A-11111");
+        assertThat(result.getMaHangXe()).isEqualTo(1);
+        assertThat(result.getMaModel()).isEqualTo(10);
     }
 
     // ============================
@@ -176,34 +196,34 @@ class VehicleServiceTest {
     @Test
     void customer_getOtherCustomerVehicle_throws403() {
         setCustomerAuth(user1, customer1);
-        // vehicle2 thuộc customer2 — không tìm thấy với customer1's scope
         when(xeRepository.findByMaXeAndKhachHangMaKhachHang(200, 1)).thenReturn(Optional.empty());
-        when(xeRepository.existsById(200)).thenReturn(true);  // xe tồn tại nhưng không phải của customer1
+        when(xeRepository.existsById(200)).thenReturn(true);
 
         assertThatThrownBy(() -> vehicleService.getVehicleById(200))
                 .isInstanceOf(AccessDeniedException.class);
     }
 
     // ============================
-    // CUSTOMER — createVehicle (owner from JWT)
+    // Case A: CUSTOMER — createVehicle (valid brand & model: SUCCESS)
     // ============================
 
     @Test
-    void customer_createVehicle_ownerSetFromJwt() {
+    void customer_createVehicle_caseA_validBrandAndModel_success() {
         setCustomerAuth(user1, customer1);
 
         CreateVehicleRequest req = new CreateVehicleRequest();
         req.setBienSo("51C-33333");
-        req.setHangXe("Toyota");
-        req.setModel("Vios");
+        req.setMaHangXe(1);
+        req.setMaModel(10);
         req.setNamSanXuat(2022);
 
+        when(modelXeRepository.findById(10)).thenReturn(Optional.of(modelCamry));
         when(xeRepository.existsByBienSo("51C-33333")).thenReturn(false);
+
         Xe saved = new Xe();
         saved.setMaXe(300);
         saved.setBienSo("51C-33333");
-        saved.setHangXe("Toyota");
-        saved.setModel("Vios");
+        saved.setModelXe(modelCamry);
         saved.setNamSanXuat(2022);
         saved.setTrangThai(true);
         saved.setSoKmHienTai(0);
@@ -213,22 +233,107 @@ class VehicleServiceTest {
         VehicleResponse result = vehicleService.createVehicle(req);
 
         assertThat(result.getMaXe()).isEqualTo(300);
-        assertThat(result.getMaKhachHang()).isEqualTo(1); // owner = customer1 từ JWT
+        assertThat(result.getMaKhachHang()).isEqualTo(1);
         assertThat(result.getBienSo()).isEqualTo("51C-33333");
+        assertThat(result.getMaHangXe()).isEqualTo(1);
+        assertThat(result.getTenHangXe()).isEqualTo("Toyota");
+        assertThat(result.getMaModel()).isEqualTo(10);
+        assertThat(result.getTenModel()).isEqualTo("Camry");
         verify(xeRepository).save(any(Xe.class));
     }
 
     // ============================
-    // CUSTOMER — createVehicle duplicate bienSo: 409
+    // Case B: CUSTOMER — createVehicle (mismatched Brand and Model: REJECT 400)
     // ============================
 
     @Test
-    void customer_createVehicle_duplicateBienSo_throws409() {
+    void customer_createVehicle_caseB_mismatchedBrandAndModel_throws400() {
         setCustomerAuth(user1, customer1);
 
         CreateVehicleRequest req = new CreateVehicleRequest();
-        req.setBienSo("51A-11111"); // đã tồn tại
+        req.setBienSo("51C-33333");
+        req.setMaHangXe(2); // Honda
+        req.setMaModel(10); // Camry (belongs to Toyota maHangXe=1)
 
+        when(modelXeRepository.findById(10)).thenReturn(Optional.of(modelCamry));
+
+        assertThatThrownBy(() -> vehicleService.createVehicle(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("không thuộc hãng xe ID 2");
+    }
+
+    // ============================
+    // Case C: CUSTOMER — createVehicle (Model not found: REJECT 404)
+    // ============================
+
+    @Test
+    void customer_createVehicle_caseC_modelNotFound_throws404() {
+        setCustomerAuth(user1, customer1);
+
+        CreateVehicleRequest req = new CreateVehicleRequest();
+        req.setBienSo("51C-33333");
+        req.setMaHangXe(1);
+        req.setMaModel(999999);
+
+        when(modelXeRepository.findById(999999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> vehicleService.createVehicle(req))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Không tìm thấy model xe với ID: 999999");
+    }
+
+    // ============================
+    // Case D: CUSTOMER — createVehicle (Brand not matching / invalid: REJECT 400)
+    // ============================
+
+    @Test
+    void customer_createVehicle_caseD_invalidBrandMismatch_throws400() {
+        setCustomerAuth(user1, customer1);
+
+        CreateVehicleRequest req = new CreateVehicleRequest();
+        req.setBienSo("51C-33333");
+        req.setMaHangXe(999999);
+        req.setMaModel(10);
+
+        when(modelXeRepository.findById(10)).thenReturn(Optional.of(modelCamry));
+
+        assertThatThrownBy(() -> vehicleService.createVehicle(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("không thuộc hãng xe ID 999999");
+    }
+
+    // ============================
+    // Case E: CUSTOMER — createVehicle (Null Model: REJECT 400)
+    // ============================
+
+    @Test
+    void customer_createVehicle_caseE_nullModel_throws400() {
+        setCustomerAuth(user1, customer1);
+
+        CreateVehicleRequest req = new CreateVehicleRequest();
+        req.setBienSo("51C-33333");
+        req.setMaHangXe(1);
+        req.setMaModel(null);
+
+        assertThatThrownBy(() -> vehicleService.createVehicle(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Model xe không được để trống");
+    }
+
+    // ============================
+    // Case F: CUSTOMER — createVehicle (duplicate bienSo: REJECT 409)
+    // ============================
+
+    @Test
+    void customer_createVehicle_caseF_duplicateBienSo_throws409() {
+        setCustomerAuth(user1, customer1);
+
+        CreateVehicleRequest req = new CreateVehicleRequest();
+        req.setBienSo("51A-11111");
+        req.setMaHangXe(1);
+        req.setMaModel(10);
+
+        when(modelXeRepository.findById(10)).thenReturn(Optional.of(modelCamry));
         when(xeRepository.existsByBienSo("51A-11111")).thenReturn(true);
 
         assertThatThrownBy(() -> vehicleService.createVehicle(req))

@@ -99,16 +99,22 @@ class AdminUserControllerTest {
     }
 
     @Test
-    void getAllUsers_BranchManager_Returns403() throws Exception {
+    void getAllUsers_BranchManager_Returns200() throws Exception {
         NguoiDung manager = createMockUser(2, "manager");
         VaiTro mgrRole = createMockRole(2, "ROLE_MANAGER");
         stubAuthenticatedUser(manager, mgrRole);
+
+        UserResponse userResponse = new UserResponse(
+                2, "manager", "Manager FullName", "manager@garage.com", "0900000002", null, true, LocalDateTime.now(), List.of("ROLE_MANAGER")
+        );
+        when(userService.getAllUsers()).thenReturn(List.of(userResponse));
 
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
         mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test

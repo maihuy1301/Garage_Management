@@ -73,7 +73,7 @@ public class AuthService {
                 nguoiDung.getMaNguoiDung(),
                 nguoiDung.getTenDangNhap(),
                 nguoiDung.getHoTen(),
-                hasPin(nguoiDung)
+                false
         );
     }
 
@@ -98,7 +98,6 @@ public class AuthService {
         user.setHoTen(request.getHoTen().trim());
         user.setEmail(email);
         user.setSoDienThoai(phone);
-        user.setMaPinHash("");
         user.setTrangThai(true);
         NguoiDung savedUser = nguoiDungRepository.save(user);
 
@@ -123,9 +122,5 @@ public class AuthService {
             return null;
         }
         return email.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private boolean hasPin(NguoiDung user) {
-        return user.getMaPinHash() != null && !user.getMaPinHash().isBlank();
     }
 }

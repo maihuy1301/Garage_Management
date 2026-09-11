@@ -287,4 +287,38 @@ class AppointmentControllerTest {
         mockMvc.perform(get("/api/appointments/999").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound());
     }
+
+    // ==========================================
+    // 6. Confirm & Receive (200 OK)
+    // ==========================================
+
+    @Test
+    void receptionist_confirmAppointment_returns200() throws Exception {
+        NguoiDung rec = mockUser(3, "receptionist");
+        stubUser(rec, "ROLE_FRONT_DESK");
+        String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
+
+        when(appointmentService.confirmAppointment(1))
+                .thenReturn(sampleAppointment(1, 1, 1, "DA_XAC_NHAN"));
+
+        mockMvc.perform(patch("/api/appointments/1/confirm").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.trangThai").value("DA_XAC_NHAN"));
+    }
+
+    @Test
+    void admin_receiveAppointment_returns200() throws Exception {
+        NguoiDung admin = mockUser(1, "admin");
+        stubUser(admin, "ROLE_ADMIN");
+        String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
+
+        when(appointmentService.receiveAppointment(1))
+                .thenReturn(sampleAppointment(1, 1, 1, "DA_TIEP_NHAN"));
+
+        mockMvc.perform(patch("/api/appointments/1/receive").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.trangThai").value("DA_TIEP_NHAN"));
+    }
 }

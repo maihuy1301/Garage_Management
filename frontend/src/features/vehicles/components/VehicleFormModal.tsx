@@ -4,8 +4,10 @@ import {
   CreateVehicleRequest,
   UpdateVehicleRequest,
 } from '@/types/vehicle.types';
+import { BrandResponse, ModelResponse } from '@/types/brand-model.types';
 import { CustomerResponse } from '@/types/customer.types';
 import { customerService } from '@/features/customers/services/customer.service';
+import { brandModelService } from '@/features/vehicles/services/brand-model.service';
 import { normalizeApiError } from '@/lib/api/error-handler';
 
 interface VehicleFormModalProps {
@@ -28,38 +30,44 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
   // Form State
   const [maKhachHang, setMaKhachHang] = useState<number | ''>('');
   const [bienSo, setBienSo] = useState<string>('');
-  const [hangXe, setHangXe] = useState<string>('');
-  const [model, setModel] = useState<string>('');
+  const [maHangXe, setMaHangXe] = useState<number | ''>('');
+  const [maModel, setMaModel] = useState<number | ''>('');
   const [namSanXuat, setNamSanXuat] = useState<number | ''>('');
   const [mauXe, setMauXe] = useState<string>('');
   const [soVIN, setSoVIN] = useState<string>('');
   const [soKmHienTai, setSoKmHienTai] = useState<number | ''>('');
 
-  // UI State
+  // Master Data & Cascading Dropdown State
+  const [brandsList, setBrandsList] = useState<BrandResponse[]>([]);
+  const [modelsList, setModelsList] = useState<ModelResponse[]>([]);
+  const [isLoadingBrands, setIsLoadingBrands] = useState<boolean>(false);
+  const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false);
+
+  // Customers UI State (for Admin mode)
   const [customers, setCustomers] = useState<CustomerResponse[]>([]);
   const [isLoadingCustomers, setIsLoadingCustomers] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // Popular car brands for quick suggestion
-  const commonBrands = [
-    'Toyota',
-    'Honda',
-    'Hyundai',
-    'Mazda',
-    'Kia',
-    'Ford',
-    'Mitsubishi',
-    'VinFast',
-    'Mercedes-Benz',
-    'BMW',
-    'Audi',
-    'Lexus',
-    'Nissan',
-    'Suzuki',
-    'Porsche',
-  ];
+  // Load Active Brands master data
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchBrands = async () => {
+      try {
+        setIsLoadingBrands(true);
+        const data = await brandModelService.getActiveBrands();
+        setBrandsList(data);
+      } catch (err) {
+        console.error('Failed to load vehicle brands:', err);
+      } finally {
+        setIsLoadingBrands(false);
+      }
+    };
+
+    fetchBrands();
+  }, [isOpen]);
 
   // Fetch customers if Admin creates a vehicle
   useEffect(() => {
@@ -89,17 +97,31 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
       if (initialData) {
         setBienSo(initialData.bienSo || '');
-        setHangXe(initialData.hangXe || '');
-        setModel(initialData.model || '');
+        const brandId = initialData.maHangXe || '';
+        const modelId = initialData.maModel || '';
+        setMaHangXe(brandId);
+        setMaModel(modelId);
         setNamSanXuat(initialData.namSanXuat != null ? initialData.namSanXuat : '');
         setMauXe(initialData.mauXe || '');
         setSoVIN(initialData.soVIN || '');
         setSoKmHienTai(initialData.soKmHienTai != null ? initialData.soKmHienTai : '');
         setMaKhachHang(initialData.maKhachHang || '');
+
+        if (brandId) {
+          setIsLoadingModels(true);
+          brandModelService
+            .getModelsByBrand(Number(brandId))
+            .then((models) => setModelsList(models))
+            .catch((err) => console.error('Failed to load models for brand:', err))
+            .finally(() => setIsLoadingModels(false));
+        } else {
+          setModelsList([]);
+        }
       } else {
         setBienSo('');
-        setHangXe('');
-        setModel('');
+        setMaHangXe('');
+        setMaModel('');
+        setModelsList([]);
         setNamSanXuat(new Date().getFullYear());
         setMauXe('');
         setSoVIN('');
@@ -108,6 +130,27 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
       }
     }
   }, [isOpen, initialData]);
+
+  // Handle Brand selection change -> Reset Model & Fetch cascading models
+  const handleBrandChange = async (brandIdStr: string) => {
+    const brandId = brandIdStr ? Number(brandIdStr) : '';
+    setMaHangXe(brandId);
+    // Reset selected model
+    setMaModel('');
+    setModelsList([]);
+
+    if (brandId) {
+      try {
+        setIsLoadingModels(true);
+        const models = await brandModelService.getModelsByBrand(brandId);
+        setModelsList(models);
+      } catch (err) {
+        console.error('Failed to load models for selected brand:', err);
+      } finally {
+        setIsLoadingModels(false);
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -126,6 +169,14 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
       }
     }
 
+    if (!maHangXe) {
+      errors.maHangXe = 'Vui lòng chọn hãng xe';
+    }
+
+    if (!maModel) {
+      errors.maModel = 'Vui lòng chọn model xe';
+    }
+
     if (namSanXuat !== '') {
       const currentYear = new Date().getFullYear();
       if (namSanXuat < 1950 || namSanXuat > currentYear + 1) {
@@ -135,14 +186,6 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
     if (soKmHienTai !== '' && Number(soKmHienTai) < 0) {
       errors.soKmHienTai = 'Số KM hiện tại không thể là số âm';
-    }
-
-    if (hangXe.length > 50) {
-      errors.hangXe = 'Tên hãng xe không được vượt quá 50 ký tự';
-    }
-
-    if (model.length > 100) {
-      errors.model = 'Tên model xe không được vượt quá 100 ký tự';
     }
 
     if (mauXe.length > 50) {
@@ -167,8 +210,8 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
 
       if (isEditMode) {
         const payload: UpdateVehicleRequest = {
-          hangXe: hangXe.trim() || undefined,
-          model: model.trim() || undefined,
+          maHangXe: Number(maHangXe),
+          maModel: Number(maModel),
           namSanXuat: namSanXuat !== '' ? Number(namSanXuat) : undefined,
           mauXe: mauXe.trim() || undefined,
           soVIN: soVIN.trim() || undefined,
@@ -179,8 +222,8 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
         const payload: CreateVehicleRequest = {
           maKhachHang: isAdmin && maKhachHang !== '' ? Number(maKhachHang) : undefined,
           bienSo: bienSo.trim().toUpperCase(),
-          hangXe: hangXe.trim() || undefined,
-          model: model.trim() || undefined,
+          maHangXe: Number(maHangXe),
+          maModel: Number(maModel),
           namSanXuat: namSanXuat !== '' ? Number(namSanXuat) : undefined,
           mauXe: mauXe.trim() || undefined,
           soVIN: soVIN.trim() || undefined,
@@ -312,48 +355,64 @@ export const VehicleFormModal: React.FC<VehicleFormModalProps> = ({
                 )}
               </div>
 
-              {/* Hãng xe */}
+              {/* Hãng xe (Cascading Dropdown Step 1) */}
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: 600 }}>
-                  Hãng xe
+                  Hãng xe <span style={{ color: 'var(--color-danger-red)' }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  list="car-brands-list"
-                  className={`form-input ${validationErrors.hangXe ? 'error' : ''}`}
-                  placeholder="VD: Toyota, Mazda, Honda..."
-                  value={hangXe}
-                  onChange={(e) => setHangXe(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <datalist id="car-brands-list">
-                  {commonBrands.map((b) => (
-                    <option key={b} value={b} />
-                  ))}
-                </datalist>
-                {validationErrors.hangXe && (
+                {isLoadingBrands ? (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--color-outline)' }}>Đang tải danh mục hãng xe...</div>
+                ) : (
+                  <select
+                    className={`form-input ${validationErrors.maHangXe ? 'error' : ''}`}
+                    value={maHangXe}
+                    onChange={(e) => handleBrandChange(e.target.value)}
+                    disabled={isSubmitting}
+                  >
+                    <option value="">-- Chọn hãng xe --</option>
+                    {brandsList.map((brand) => (
+                      <option key={brand.maHangXe} value={brand.maHangXe}>
+                        {brand.tenHangXe}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {validationErrors.maHangXe && (
                   <div style={{ color: 'var(--color-danger-red)', fontSize: '0.75rem', marginTop: '4px' }}>
-                    {validationErrors.hangXe}
+                    {validationErrors.maHangXe}
                   </div>
                 )}
               </div>
 
-              {/* Dòng xe (Model) */}
+              {/* Dòng xe / Model (Cascading Dropdown Step 2) */}
               <div className="form-group">
                 <label className="form-label" style={{ fontWeight: 600 }}>
-                  Dòng xe (Model)
+                  Dòng xe (Model) <span style={{ color: 'var(--color-danger-red)' }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  className={`form-input ${validationErrors.model ? 'error' : ''}`}
-                  placeholder="VD: Vios, CX-5, City..."
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                {validationErrors.model && (
+                <select
+                  className={`form-input ${validationErrors.maModel ? 'error' : ''}`}
+                  value={maModel}
+                  onChange={(e) => setMaModel(e.target.value ? Number(e.target.value) : '')}
+                  disabled={!maHangXe || isLoadingModels || isSubmitting}
+                >
+                  <option value="">
+                    {!maHangXe
+                      ? '-- Vui lòng chọn hãng xe trước --'
+                      : isLoadingModels
+                      ? '-- Đang tải danh sách model... --'
+                      : modelsList.length === 0
+                      ? '-- Không có model nào cho hãng này --'
+                      : '-- Chọn dòng xe (Model) --'}
+                  </option>
+                  {modelsList.map((m) => (
+                    <option key={m.maModel} value={m.maModel}>
+                      {m.tenModel}
+                    </option>
+                  ))}
+                </select>
+                {validationErrors.maModel && (
                   <div style={{ color: 'var(--color-danger-red)', fontSize: '0.75rem', marginTop: '4px' }}>
-                    {validationErrors.model}
+                    {validationErrors.maModel}
                   </div>
                 )}
               </div>

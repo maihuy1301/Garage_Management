@@ -31,9 +31,9 @@ public class VehicleController {
         this.vehicleService = vehicleService;
     }
 
-    /** GET /api/vehicles — Danh sách xe (ADMIN: toàn bộ, CUSTOMER: xe của mình) */
+    /** GET /api/vehicles — Danh sách xe (ADMIN/MANAGER: toàn bộ, CUSTOMER: xe của mình) */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<List<VehicleResponse>>> getVehicles() {
         List<VehicleResponse> vehicles = vehicleService.getVehicles();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách xe thành công", vehicles));
@@ -41,7 +41,7 @@ public class VehicleController {
 
     /** GET /api/vehicles/{id} — Chi tiết xe */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<VehicleResponse>> getVehicleById(@PathVariable Integer id) {
         VehicleResponse vehicle = vehicleService.getVehicleById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin xe thành công", vehicle));
@@ -49,7 +49,7 @@ public class VehicleController {
 
     /** POST /api/vehicles — Tạo xe mới */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<VehicleResponse>> createVehicle(
             @Valid @RequestBody CreateVehicleRequest request) {
         VehicleResponse vehicle = vehicleService.createVehicle(request);
@@ -59,7 +59,7 @@ public class VehicleController {
 
     /** PUT /api/vehicles/{id} — Cập nhật xe */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<VehicleResponse>> updateVehicle(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateVehicleRequest request) {
@@ -69,7 +69,7 @@ public class VehicleController {
 
     /** DELETE /api/vehicles/{id} — Xóa xe (nếu không có business dependency) */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<Void>> deleteVehicle(@PathVariable Integer id) {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa xe thành công", null));

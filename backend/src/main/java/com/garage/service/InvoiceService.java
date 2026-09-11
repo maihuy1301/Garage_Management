@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,7 +62,9 @@ public class InvoiceService {
     /**
      * Tạo hóa đơn từ phiếu sửa chữa:
      * - Chống duplicate hóa đơn cho cùng 1 repair order
-     * - Tập hợp dịch vụ & phụ tùng đã thực hiện
+     * - Tập hợp dịch vụ & phụ tùng đã thực hiện từ PhieuSuaChua
+     * - HoaDon_DichVu ánh xạ trực tiếp PhieuSuaChua_DichVu
+     * - HoaDon_PhuTung ánh xạ trực tiếp PhieuSuaChua_PhuTung
      * - Tính toán tổng tiền, giảm giá, thuế và thành tiền phía server
      * - Ghi nhận nhân viên thu ngân nếu có
      */
@@ -87,7 +91,7 @@ public class InvoiceService {
             throw new BadRequestException("Không xác định được thông tin khách hàng từ phiếu sửa chữa");
         }
 
-        // Lấy nhân viên thu ngân từ tài khoản đang đăng nhập (nếu là nhân viên)
+        // Lấy nhân viên thu ngân từ tài khoản đang đăng nhập
         NhanVien cashier = getCurrentEmployee();
 
         List<PhieuSuaChuaDichVu> repairServices = phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId);
@@ -95,13 +99,13 @@ public class InvoiceService {
 
         BigDecimal totalServiceAmount = BigDecimal.ZERO;
         for (PhieuSuaChuaDichVu s : repairServices) {
-            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(s.getSoLuong()));
+            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(s.getSoLuong() != null ? s.getSoLuong() : 1));
             totalServiceAmount = totalServiceAmount.add(lineTotal);
         }
 
         BigDecimal totalPartAmount = BigDecimal.ZERO;
         for (PhieuSuaChuaPhuTung p : repairParts) {
-            BigDecimal lineTotal = p.getDonGia().multiply(BigDecimal.valueOf(p.getSoLuong()));
+            BigDecimal lineTotal = p.getDonGia().multiply(BigDecimal.valueOf(p.getSoLuong() != null ? p.getSoLuong() : 1));
             totalPartAmount = totalPartAmount.add(lineTotal);
         }
 
@@ -126,22 +130,25 @@ public class InvoiceService {
 
         HoaDon savedInvoice = hoaDonRepository.save(invoice);
 
-        // Lưu chi tiết dịch vụ
+        // Lưu chi tiết dịch vụ và lưu mapping để phục vụ link phụ tùng
+        Map<Integer, HoaDonDichVu> repairServiceToInvoiceServiceMap = new HashMap<>();
         List<InvoiceServiceItemResponse> serviceResponses = new ArrayList<>();
         for (PhieuSuaChuaDichVu s : repairServices) {
             HoaDonDichVu item = new HoaDonDichVu();
             item.setHoaDon(savedInvoice);
-            item.setDichVu(s.getDichVu());
-            item.setSoLuong(s.getSoLuong());
+            item.setPhieuDichVu(s);
             item.setDonGia(s.getDonGia());
             HoaDonDichVu savedItem = hoaDonDichVuRepository.save(item);
+            repairServiceToInvoiceServiceMap.put(s.getMaChiTiet(), savedItem);
 
-            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(s.getSoLuong()));
+            int qty = s.getSoLuong() != null ? s.getSoLuong() : 1;
+            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(qty));
             serviceResponses.add(new InvoiceServiceItemResponse(
                     savedItem.getMaChiTiet(),
-                    s.getDichVu().getMaDichVu(),
-                    s.getDichVu().getTenDichVu(),
-                    savedItem.getSoLuong(),
+                    s.getMaChiTiet(),
+                    s.getDichVu() != null ? s.getDichVu().getMaDichVu() : null,
+                    s.getDichVu() != null ? s.getDichVu().getTenDichVu() : null,
+                    qty,
                     savedItem.getDonGia(),
                     lineTotal
             ));
@@ -152,18 +159,26 @@ public class InvoiceService {
         for (PhieuSuaChuaPhuTung p : repairParts) {
             HoaDonPhuTung item = new HoaDonPhuTung();
             item.setHoaDon(savedInvoice);
-            item.setPhuTung(p.getPhuTung());
-            item.setSoLuong(p.getSoLuong());
+            item.setPhieuPhuTung(p);
+            if (p.getDichVuChiTiet() != null) {
+                item.setHoaDonDichVu(repairServiceToInvoiceServiceMap.get(p.getDichVuChiTiet().getMaChiTiet()));
+            }
+            item.setSoLuong(p.getSoLuong() != null ? p.getSoLuong() : 1);
             item.setDonGia(p.getDonGia());
             HoaDonPhuTung savedItem = hoaDonPhuTungRepository.save(item);
 
-            BigDecimal lineTotal = p.getDonGia().multiply(BigDecimal.valueOf(p.getSoLuong()));
+            BigDecimal lineTotal = p.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+            Integer maDichVuChiTiet = (savedItem.getHoaDonDichVu() != null) ? savedItem.getHoaDonDichVu().getMaChiTiet() : null;
+            PhuTung pt = p.getPhuTung();
+
             partResponses.add(new InvoicePartItemResponse(
                     savedItem.getMaChiTiet(),
-                    p.getPhuTung().getMaPhuTung(),
-                    p.getPhuTung().getMaPhuTungCode(),
-                    p.getPhuTung().getTenPhuTung(),
-                    p.getPhuTung().getDonViTinh(),
+                    p.getMaChiTiet(),
+                    maDichVuChiTiet,
+                    pt != null ? pt.getMaPhuTung() : null,
+                    pt != null ? pt.getMaPhuTungCode() : null,
+                    pt != null ? pt.getTenPhuTung() : null,
+                    pt != null ? pt.getDonViTinh() : null,
                     savedItem.getSoLuong(),
                     savedItem.getDonGia(),
                     lineTotal
@@ -291,12 +306,19 @@ public class InvoiceService {
         List<InvoiceServiceItemResponse> services = hoaDonDichVuRepository.findByHoaDonMaHoaDon(invoice.getMaHoaDon())
                 .stream()
                 .map(item -> {
-                    BigDecimal lineTotal = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+                    PhieuSuaChuaDichVu psdv = item.getPhieuDichVu();
+                    int qty = (psdv != null && psdv.getSoLuong() != null) ? psdv.getSoLuong() : 1;
+                    BigDecimal lineTotal = item.getDonGia().multiply(BigDecimal.valueOf(qty));
+                    Integer maPhieuDichVu = psdv != null ? psdv.getMaChiTiet() : null;
+                    Integer maDichVu = (psdv != null && psdv.getDichVu() != null) ? psdv.getDichVu().getMaDichVu() : null;
+                    String tenDichVu = (psdv != null && psdv.getDichVu() != null) ? psdv.getDichVu().getTenDichVu() : null;
+
                     return new InvoiceServiceItemResponse(
                             item.getMaChiTiet(),
-                            item.getDichVu().getMaDichVu(),
-                            item.getDichVu().getTenDichVu(),
-                            item.getSoLuong(),
+                            maPhieuDichVu,
+                            maDichVu,
+                            tenDichVu,
+                            qty,
                             item.getDonGia(),
                             lineTotal
                     );
@@ -306,14 +328,27 @@ public class InvoiceService {
         List<InvoicePartItemResponse> parts = hoaDonPhuTungRepository.findByHoaDonMaHoaDon(invoice.getMaHoaDon())
                 .stream()
                 .map(item -> {
-                    BigDecimal lineTotal = item.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+                    int qty = item.getSoLuong() != null ? item.getSoLuong() : 1;
+                    BigDecimal lineTotal = item.getDonGia().multiply(BigDecimal.valueOf(qty));
+                    PhieuSuaChuaPhuTung pspt = item.getPhieuPhuTung();
+                    Integer maPhieuPhuTung = pspt != null ? pspt.getMaChiTiet() : null;
+                    Integer maDichVuChiTiet = item.getHoaDonDichVu() != null ? item.getHoaDonDichVu().getMaChiTiet() : null;
+
+                    PhuTung pt = (pspt != null) ? pspt.getPhuTung() : null;
+                    Integer maPhuTung = pt != null ? pt.getMaPhuTung() : null;
+                    String maPhuTungCode = pt != null ? pt.getMaPhuTungCode() : null;
+                    String tenPhuTung = pt != null ? pt.getTenPhuTung() : null;
+                    String donViTinh = pt != null ? pt.getDonViTinh() : null;
+
                     return new InvoicePartItemResponse(
                             item.getMaChiTiet(),
-                            item.getPhuTung().getMaPhuTung(),
-                            item.getPhuTung().getMaPhuTungCode(),
-                            item.getPhuTung().getTenPhuTung(),
-                            item.getPhuTung().getDonViTinh(),
-                            item.getSoLuong(),
+                            maPhieuPhuTung,
+                            maDichVuChiTiet,
+                            maPhuTung,
+                            maPhuTungCode,
+                            tenPhuTung,
+                            donViTinh,
+                            qty,
                             item.getDonGia(),
                             lineTotal
                     );

@@ -2,24 +2,30 @@ export type AppointmentStatus =
   | 'CHO_XAC_NHAN'
   | 'DA_XAC_NHAN'
   | 'DA_TIEP_NHAN'
-  | 'DA_HUY';
+  | 'HOAN_TAT'
+  | 'HUY'
+  | 'KHONG_DEN';
 
-export interface AppointmentItem {
+export interface AppointmentResponse {
   maDatLich: number;
-  maKhachHang: number;
+  maKhachHang?: number;
   tenKhachHang?: string;
   soDienThoaiKhachHang?: string;
-  maXe: number;
+  maNhanVienXacNhan?: number;
+  maXe?: number;
   bienSoXe?: string;
   hangXe?: string;
   modelXe?: string;
-  maChiNhanh: number;
+  maChiNhanh?: number;
   tenChiNhanh?: string;
   thoiGianHen: string;
   trangThai: AppointmentStatus | string;
   ghiChu?: string;
   ngayDat?: string;
 }
+
+// Alias for backward compatibility
+export type AppointmentItem = AppointmentResponse;
 
 export interface CreateAppointmentRequest {
   maKhachHang?: number;
@@ -37,23 +43,30 @@ export interface AppointmentFilters {
   toDate: string;
 }
 
-export const AppointmentStatusLabels: Record<AppointmentStatus, string> = {
+export const AppointmentStatusLabels: Record<string, string> = {
   CHO_XAC_NHAN: 'Chờ xác nhận',
   DA_XAC_NHAN: 'Đã xác nhận',
   DA_TIEP_NHAN: 'Đã tiếp nhận',
-  DA_HUY: 'Đã hủy',
+  HOAN_TAT: 'Hoàn tất',
+  HUY: 'Đã hủy',
+  KHONG_DEN: 'Không đến',
 };
 
-export const AppointmentStatusTone: Record<AppointmentStatus, 'warning' | 'success' | 'primary' | 'danger'> = {
+export const AppointmentStatusTone: Record<string, 'warning' | 'success' | 'primary' | 'danger' | 'info' | 'gray'> = {
   CHO_XAC_NHAN: 'warning',
-  DA_XAC_NHAN: 'success',
+  DA_XAC_NHAN: 'info',
   DA_TIEP_NHAN: 'primary',
-  DA_HUY: 'danger',
+  HOAN_TAT: 'success',
+  HUY: 'danger',
+  KHONG_DEN: 'gray',
 };
 
-export const APPOINTMENT_STATUSES: AppointmentStatus[] = [
-  'CHO_XAC_NHAN',
-  'DA_XAC_NHAN',
-  'DA_TIEP_NHAN',
-  'DA_HUY',
+export const APPOINTMENT_STATUSES: { value: AppointmentStatus | 'ALL'; label: string }[] = [
+  { value: 'ALL', label: 'Tất cả trạng thái' },
+  { value: 'CHO_XAC_NHAN', label: 'Chờ xác nhận' },
+  { value: 'DA_XAC_NHAN', label: 'Đã xác nhận' },
+  { value: 'DA_TIEP_NHAN', label: 'Đã tiếp nhận' },
+  { value: 'HOAN_TAT', label: 'Hoàn tất' },
+  { value: 'HUY', label: 'Đã hủy' },
+  { value: 'KHONG_DEN', label: 'Không đến' },
 ];

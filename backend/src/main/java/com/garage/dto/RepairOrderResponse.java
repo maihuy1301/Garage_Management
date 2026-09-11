@@ -8,11 +8,16 @@ import java.time.LocalDateTime;
 public class RepairOrderResponse {
 
     private Integer maPhieuSuaChua;
+    private Integer maPhieuCha;
     private Integer maTiepNhan;
     private Integer maDatLich;
 
     private Integer maXe;
     private String bienSoXe;
+    private Integer maHangXe;
+    private String tenHangXe;
+    private Integer maModel;
+    private String tenModel;
     private String hangXe;
     private String modelXe;
 
@@ -36,13 +41,33 @@ public class RepairOrderResponse {
                                Integer maChiNhanh, String tenChiNhanh,
                                LocalDateTime thoiGianBatDau, LocalDateTime thoiGianHoanTat,
                                String trangThai, String ghiChu) {
+        this(maPhieuSuaChua, null, maTiepNhan, maDatLich, maXe, bienSoXe,
+                null, hangXe, null, modelXe,
+                maKhachHang, tenKhachHang, soDienThoaiKhachHang,
+                maChiNhanh, tenChiNhanh,
+                thoiGianBatDau, thoiGianHoanTat, trangThai, ghiChu);
+    }
+
+    public RepairOrderResponse(Integer maPhieuSuaChua, Integer maPhieuCha, Integer maTiepNhan, Integer maDatLich,
+                               Integer maXe, String bienSoXe,
+                               Integer maHangXe, String tenHangXe,
+                               Integer maModel, String tenModel,
+                               Integer maKhachHang, String tenKhachHang, String soDienThoaiKhachHang,
+                               Integer maChiNhanh, String tenChiNhanh,
+                               LocalDateTime thoiGianBatDau, LocalDateTime thoiGianHoanTat,
+                               String trangThai, String ghiChu) {
         this.maPhieuSuaChua = maPhieuSuaChua;
+        this.maPhieuCha = maPhieuCha;
         this.maTiepNhan = maTiepNhan;
         this.maDatLich = maDatLich;
         this.maXe = maXe;
         this.bienSoXe = bienSoXe;
-        this.hangXe = hangXe;
-        this.modelXe = modelXe;
+        this.maHangXe = maHangXe;
+        this.tenHangXe = tenHangXe;
+        this.maModel = maModel;
+        this.tenModel = tenModel;
+        this.hangXe = (tenHangXe != null) ? tenHangXe : "";
+        this.modelXe = (tenModel != null) ? tenModel : "";
         this.maKhachHang = maKhachHang;
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
@@ -57,6 +82,9 @@ public class RepairOrderResponse {
     public Integer getMaPhieuSuaChua() { return maPhieuSuaChua; }
     public void setMaPhieuSuaChua(Integer maPhieuSuaChua) { this.maPhieuSuaChua = maPhieuSuaChua; }
 
+    public Integer getMaPhieuCha() { return maPhieuCha; }
+    public void setMaPhieuCha(Integer maPhieuCha) { this.maPhieuCha = maPhieuCha; }
+
     public Integer getMaTiepNhan() { return maTiepNhan; }
     public void setMaTiepNhan(Integer maTiepNhan) { this.maTiepNhan = maTiepNhan; }
 
@@ -68,6 +96,18 @@ public class RepairOrderResponse {
 
     public String getBienSoXe() { return bienSoXe; }
     public void setBienSoXe(String bienSoXe) { this.bienSoXe = bienSoXe; }
+
+    public Integer getMaHangXe() { return maHangXe; }
+    public void setMaHangXe(Integer maHangXe) { this.maHangXe = maHangXe; }
+
+    public String getTenHangXe() { return tenHangXe; }
+    public void setTenHangXe(String tenHangXe) { this.tenHangXe = tenHangXe; }
+
+    public Integer getMaModel() { return maModel; }
+    public void setMaModel(Integer maModel) { this.maModel = maModel; }
+
+    public String getTenModel() { return tenModel; }
+    public void setTenModel(String tenModel) { this.tenModel = tenModel; }
 
     public String getHangXe() { return hangXe; }
     public void setHangXe(String hangXe) { this.hangXe = hangXe; }

@@ -19,11 +19,9 @@ public class Xe {
     @Column(name = "BienSo", nullable = false, unique = true, length = 20)
     private String bienSo;
 
-    @Column(name = "HangXe", length = 50)
-    private String hangXe;
-
-    @Column(name = "Model", length = 100)
-    private String model;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaModel")
+    private ModelXe modelXe;
 
     @Column(name = "NamSanXuat")
     private Integer namSanXuat;
@@ -69,20 +67,26 @@ public class Xe {
         this.bienSo = bienSo;
     }
 
-    public String getHangXe() {
-        return hangXe;
+    public ModelXe getModelXe() {
+        return modelXe;
     }
 
-    public void setHangXe(String hangXe) {
-        this.hangXe = hangXe;
+    public void setModelXe(ModelXe modelXe) {
+        this.modelXe = modelXe;
     }
 
     public String getModel() {
-        return model;
+        return getTenModel();
     }
 
     public void setModel(String model) {
-        this.model = model;
+        if (model != null && this.modelXe == null) {
+            ModelXe m = new ModelXe();
+            m.setTenModel(model);
+            this.modelXe = m;
+        } else if (model != null && this.modelXe != null) {
+            this.modelXe.setTenModel(model);
+        }
     }
 
     public Integer getNamSanXuat() {
@@ -131,5 +135,40 @@ public class Xe {
 
     public void setTrangThai(Boolean trangThai) {
         this.trangThai = trangThai;
+    }
+
+    /**
+     * Helper tiện ích lấy tên Hãng xe an toàn từ ModelXe
+     */
+    public String getTenHangXe() {
+        if (modelXe != null && modelXe.getHangXe() != null) {
+            return modelXe.getHangXe().getTenHangXe();
+        }
+        return null;
+    }
+
+    public String getHangXe() {
+        return getTenHangXe();
+    }
+
+    public void setHangXe(String hangXe) {
+        // Fallback for legacy fixtures
+        if (hangXe != null && this.modelXe == null) {
+            ModelXe m = new ModelXe();
+            HangXe h = new HangXe();
+            h.setTenHangXe(hangXe);
+            m.setHangXe(h);
+            this.modelXe = m;
+        }
+    }
+
+    /**
+     * Helper tiện ích lấy tên Model an toàn
+     */
+    public String getTenModel() {
+        if (modelXe != null) {
+            return modelXe.getTenModel();
+        }
+        return null;
     }
 }

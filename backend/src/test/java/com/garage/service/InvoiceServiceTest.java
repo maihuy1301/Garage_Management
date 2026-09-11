@@ -114,6 +114,7 @@ class InvoiceServiceTest {
         service1 = new DichVu();
         service1.setMaDichVu(10);
         service1.setTenDichVu("Thay dầu");
+        service1.setDonGia(new BigDecimal("300000.00"));
 
         repairSvc1 = new PhieuSuaChuaDichVu();
         repairSvc1.setMaChiTiet(1);
@@ -127,11 +128,13 @@ class InvoiceServiceTest {
         part1.setMaPhuTungCode("PT001");
         part1.setTenPhuTung("Dầu nhớt");
         part1.setDonViTinh("Chai");
+        part1.setGiaBan(new BigDecimal("150000.00"));
 
         repairPart1 = new PhieuSuaChuaPhuTung();
         repairPart1.setMaChiTiet(2);
         repairPart1.setPhieuSuaChua(order1);
         repairPart1.setPhuTung(part1);
+        repairPart1.setDichVuChiTiet(repairSvc1);
         repairPart1.setSoLuong(2);
         repairPart1.setDonGia(new BigDecimal("150000.00"));
 
@@ -178,14 +181,14 @@ class InvoiceServiceTest {
 
         HoaDonDichVu hdSvc = new HoaDonDichVu();
         hdSvc.setMaChiTiet(11);
-        hdSvc.setDichVu(service1);
-        hdSvc.setSoLuong(1);
+        hdSvc.setPhieuDichVu(repairSvc1);
         hdSvc.setDonGia(new BigDecimal("300000.00"));
         when(hoaDonDichVuRepository.save(any(HoaDonDichVu.class))).thenReturn(hdSvc);
 
         HoaDonPhuTung hdPart = new HoaDonPhuTung();
         hdPart.setMaChiTiet(12);
-        hdPart.setPhuTung(part1);
+        hdPart.setPhieuPhuTung(repairPart1);
+        hdPart.setHoaDonDichVu(hdSvc);
         hdPart.setSoLuong(2);
         hdPart.setDonGia(new BigDecimal("150000.00"));
         when(hoaDonPhuTungRepository.save(any(HoaDonPhuTung.class))).thenReturn(hdPart);

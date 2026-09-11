@@ -6,6 +6,7 @@ import com.garage.entity.ChiNhanh;
 import com.garage.entity.DatLich;
 import com.garage.entity.KhachHang;
 import com.garage.entity.NguoiDung;
+import com.garage.entity.NhanVien;
 import com.garage.entity.Xe;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
@@ -14,6 +15,7 @@ import com.garage.repository.ChiNhanhRepository;
 import com.garage.repository.DatLichRepository;
 import com.garage.repository.KhachHangRepository;
 import com.garage.repository.NguoiDungRepository;
+import com.garage.repository.NhanVienRepository;
 import com.garage.repository.XeRepository;
 import com.garage.security.BranchAuthorizationService;
 import com.garage.security.CustomUserDetails;
@@ -36,6 +38,7 @@ public class AppointmentService {
     private final XeRepository xeRepository;
     private final ChiNhanhRepository chiNhanhRepository;
     private final NguoiDungRepository nguoiDungRepository;
+    private final NhanVienRepository nhanVienRepository;
     private final BranchAuthorizationService branchAuthorizationService;
 
     public AppointmentService(DatLichRepository datLichRepository,
@@ -43,12 +46,14 @@ public class AppointmentService {
                               XeRepository xeRepository,
                               ChiNhanhRepository chiNhanhRepository,
                               NguoiDungRepository nguoiDungRepository,
+                              NhanVienRepository nhanVienRepository,
                               BranchAuthorizationService branchAuthorizationService) {
         this.datLichRepository = datLichRepository;
         this.khachHangRepository = khachHangRepository;
         this.xeRepository = xeRepository;
         this.chiNhanhRepository = chiNhanhRepository;
         this.nguoiDungRepository = nguoiDungRepository;
+        this.nhanVienRepository = nhanVienRepository;
         this.branchAuthorizationService = branchAuthorizationService;
     }
 
@@ -195,6 +200,107 @@ public class AppointmentService {
         return mapToAppointmentResponse(updated);
     }
 
+    /**
+     * Xác nhận lịch hẹn:
+     * - SYSTEM_ADMIN / BRANCH_MANAGER / RECEPTIONIST
+     * - Chuyển trạng thái từ CHO_XAC_NHAN -> DA_XAC_NHAN
+     */
+    @Transactional
+    public AppointmentResponse confirmAppointment(Integer id) {
+        DatLich datLich = datLichRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch hẹn với ID: " + id));
+
+        validateStaffActionPermission(datLich);
+
+        String currentStatus = datLich.getTrangThai();
+        if ("HUY".equalsIgnoreCase(currentStatus)) {
+            throw new BadRequestException("Không thể xác nhận lịch hẹn đã bị hủy");
+        }
+        if ("DA_TIEP_NHAN".equalsIgnoreCase(currentStatus) || "HOAN_TAT".equalsIgnoreCase(currentStatus)) {
+            throw new BadRequestException("Lịch hẹn này đã được tiếp nhận / hoàn tất trước đó");
+        }
+
+        datLich.setTrangThai("DA_XAC_NHAN");
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            try {
+                NguoiDung user = getAuthenticatedUser(auth);
+                NhanVien staff = nhanVienRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung()).orElse(null);
+                if (staff != null) {
+                    datLich.setNhanVienXacNhan(staff);
+                }
+            } catch (Exception ignored) {
+                // Fallback nếu tài khoản không liên kết với bản ghi NhanVien
+            }
+        }
+
+        DatLich updated = datLichRepository.save(datLich);
+        return mapToAppointmentResponse(updated);
+    }
+
+    /**
+     * Tiếp nhận xe từ lịch hẹn:
+     * - SYSTEM_ADMIN / BRANCH_MANAGER / RECEPTIONIST
+     * - Chuyển trạng thái sang DA_TIEP_NHAN
+     */
+    @Transactional
+    public AppointmentResponse receiveAppointment(Integer id) {
+        DatLich datLich = datLichRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch hẹn với ID: " + id));
+
+        validateStaffActionPermission(datLich);
+
+        String currentStatus = datLich.getTrangThai();
+        if ("HUY".equalsIgnoreCase(currentStatus)) {
+            throw new BadRequestException("Không thể tiếp nhận lịch hẹn đã bị hủy");
+        }
+        if ("HOAN_TAT".equalsIgnoreCase(currentStatus)) {
+            throw new BadRequestException("Lịch hẹn này đã hoàn tất");
+        }
+
+        datLich.setTrangThai("DA_TIEP_NHAN");
+        DatLich updated = datLichRepository.save(datLich);
+        return mapToAppointmentResponse(updated);
+    }
+
+    /**
+     * Cập nhật trạng thái lịch hẹn:
+     * - SYSTEM_ADMIN / BRANCH_MANAGER / RECEPTIONIST
+     */
+    @Transactional
+    public AppointmentResponse updateStatus(Integer id, com.garage.dto.UpdateAppointmentStatusRequest request) {
+        DatLich datLich = datLichRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lịch hẹn với ID: " + id));
+
+        validateStaffActionPermission(datLich);
+
+        String newStatus = request.getTrangThai();
+        if (newStatus == null || newStatus.trim().isEmpty()) {
+            throw new BadRequestException("Trạng thái mới không được để trống");
+        }
+
+        datLich.setTrangThai(newStatus.trim().toUpperCase());
+        DatLich updated = datLichRepository.save(datLich);
+        return mapToAppointmentResponse(updated);
+    }
+
+    private void validateStaffActionPermission(DatLich datLich) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (isSystemAdmin(auth)) {
+            return;
+        }
+
+        if (isBranchStaff(auth)) {
+            if (!branchAuthorizationService.isAllowedBranch(datLich.getChiNhanh().getMaChiNhanh())) {
+                throw new AccessDeniedException("Forbidden: Bạn không có quyền thao tác trên lịch hẹn của chi nhánh khác");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("Forbidden: Chỉ nhân viên hoặc quản trị viên mới có quyền cập nhật trạng thái lịch hẹn");
+    }
+
     // --- Private Helpers ---
 
     private void validateViewPermission(DatLich datLich) {
@@ -298,15 +404,18 @@ public class AppointmentService {
             soDienThoaiKhachHang = kh.getNguoiDung().getSoDienThoai();
         }
 
+        Integer maNhanVienXacNhan = dl.getNhanVienXacNhan() != null ? dl.getNhanVienXacNhan().getMaNhanVien() : null;
+
         return new AppointmentResponse(
                 dl.getMaDatLich(),
                 kh != null ? kh.getMaKhachHang() : null,
                 tenKhachHang,
                 soDienThoaiKhachHang,
+                maNhanVienXacNhan,
                 xe != null ? xe.getMaXe() : null,
                 xe != null ? xe.getBienSo() : null,
-                xe != null ? xe.getHangXe() : null,
-                xe != null ? xe.getModel() : null,
+                xe != null ? xe.getTenHangXe() : null,
+                xe != null ? xe.getTenModel() : null,
                 cn != null ? cn.getMaChiNhanh() : null,
                 cn != null ? cn.getTenChiNhanh() : null,
                 dl.getThoiGianHen(),

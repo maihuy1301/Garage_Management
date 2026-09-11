@@ -17,11 +17,8 @@ public class HoaDonDichVu {
     private HoaDon hoaDon;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MaDichVu", nullable = false)
-    private DichVu dichVu;
-
-    @Column(name = "SoLuong", nullable = false)
-    private Integer soLuong;
+    @JoinColumn(name = "MaPhieuDichVu", nullable = false)
+    private PhieuSuaChuaDichVu phieuDichVu;
 
     @Column(name = "DonGia", nullable = false, precision = 18, scale = 2)
     private BigDecimal donGia;
@@ -47,20 +44,12 @@ public class HoaDonDichVu {
         this.hoaDon = hoaDon;
     }
 
-    public DichVu getDichVu() {
-        return dichVu;
+    public PhieuSuaChuaDichVu getPhieuDichVu() {
+        return phieuDichVu;
     }
 
-    public void setDichVu(DichVu dichVu) {
-        this.dichVu = dichVu;
-    }
-
-    public Integer getSoLuong() {
-        return soLuong;
-    }
-
-    public void setSoLuong(Integer soLuong) {
-        this.soLuong = soLuong;
+    public void setPhieuDichVu(PhieuSuaChuaDichVu phieuDichVu) {
+        this.phieuDichVu = phieuDichVu;
     }
 
     public BigDecimal getDonGia() {

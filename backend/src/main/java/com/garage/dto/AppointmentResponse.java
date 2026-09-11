@@ -12,6 +12,8 @@ public class AppointmentResponse {
     private String tenKhachHang;
     private String soDienThoaiKhachHang;
 
+    private Integer maNhanVienXacNhan;
+
     private Integer maXe;
     private String bienSoXe;
     private String hangXe;
@@ -33,10 +35,24 @@ public class AppointmentResponse {
                                Integer maChiNhanh, String tenChiNhanh,
                                LocalDateTime thoiGianHen, String trangThai, String ghiChu,
                                LocalDateTime ngayDat) {
+        this(maDatLich, maKhachHang, tenKhachHang, soDienThoaiKhachHang, null,
+                maXe, bienSoXe, hangXe, modelXe,
+                maChiNhanh, tenChiNhanh,
+                thoiGianHen, trangThai, ghiChu, ngayDat);
+    }
+
+    public AppointmentResponse(Integer maDatLich, Integer maKhachHang,
+                               String tenKhachHang, String soDienThoaiKhachHang,
+                               Integer maNhanVienXacNhan,
+                               Integer maXe, String bienSoXe, String hangXe, String modelXe,
+                               Integer maChiNhanh, String tenChiNhanh,
+                               LocalDateTime thoiGianHen, String trangThai, String ghiChu,
+                               LocalDateTime ngayDat) {
         this.maDatLich = maDatLich;
         this.maKhachHang = maKhachHang;
         this.tenKhachHang = tenKhachHang;
         this.soDienThoaiKhachHang = soDienThoaiKhachHang;
+        this.maNhanVienXacNhan = maNhanVienXacNhan;
         this.maXe = maXe;
         this.bienSoXe = bienSoXe;
         this.hangXe = hangXe;
@@ -60,6 +76,9 @@ public class AppointmentResponse {
 
     public String getSoDienThoaiKhachHang() { return soDienThoaiKhachHang; }
     public void setSoDienThoaiKhachHang(String soDienThoaiKhachHang) { this.soDienThoaiKhachHang = soDienThoaiKhachHang; }
+
+    public Integer getMaNhanVienXacNhan() { return maNhanVienXacNhan; }
+    public void setMaNhanVienXacNhan(Integer maNhanVienXacNhan) { this.maNhanVienXacNhan = maNhanVienXacNhan; }
 
     public Integer getMaXe() { return maXe; }
     public void setMaXe(Integer maXe) { this.maXe = maXe; }

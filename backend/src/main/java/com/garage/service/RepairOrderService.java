@@ -42,7 +42,8 @@ public class RepairOrderService {
     /**
      * Tạo phiếu sửa chữa từ phiếu tiếp nhận:
      * - Kiểm tra phiếu tiếp nhận tồn tại & hợp lệ
-     * - Idempotency: Không cho tạo trùng phiếu sửa chữa cho cùng phiếu tiếp nhận
+     * - Idempotency: Không cho tạo trùng phiếu sửa chữa chính cho cùng phiếu tiếp nhận (nếu không phải sub-repair order)
+     * - Hỗ trợ maPhieuCha cho sub-repair order
      * - Branch authorization: Kiểm tra quyền truy cập chi nhánh
      * - Tự động liên kết ChiNhanh từ PhieuTiepNhan
      */
@@ -62,15 +63,23 @@ public class RepairOrderService {
             throw new BadRequestException("Không thể tạo phiếu sửa chữa cho phiếu tiếp nhận đã bị hủy");
         }
 
-        // 4. Idempotency check: Đã có phiếu sửa chữa cho phiếu tiếp nhận này chưa
-        if (phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(request.getMaTiepNhan())) {
-            throw new DuplicateResourceException("Phiếu sửa chữa đã tồn tại cho phiếu tiếp nhận ID: " + request.getMaTiepNhan());
+        // 4. Validate MaPhieuCha nếu có
+        PhieuSuaChua parentOrder = null;
+        if (request.getMaPhieuCha() != null) {
+            parentOrder = phieuSuaChuaRepository.findById(request.getMaPhieuCha())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu sửa chữa cha ID: " + request.getMaPhieuCha()));
+        } else {
+            // Idempotency check: Chỉ chặn khi tạo phiếu sửa chữa chính gốc
+            if (phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(request.getMaTiepNhan())) {
+                throw new DuplicateResourceException("Phiếu sửa chữa đã tồn tại cho phiếu tiếp nhận ID: " + request.getMaTiepNhan());
+            }
         }
 
         // 5. Tạo PhieuSuaChua
         PhieuSuaChua order = new PhieuSuaChua();
         order.setPhieuTiepNhan(reception);
         order.setChiNhanh(reception.getChiNhanh());
+        order.setPhieuCha(parentOrder);
         order.setThoiGianBatDau(request.getThoiGianBatDau() != null ? request.getThoiGianBatDau() : LocalDateTime.now());
         order.setTrangThai("CHO_XU_LY");
         order.setGhiChu(request.getGhiChu());
@@ -202,8 +211,10 @@ public class RepairOrderService {
         Integer maDatLich = null;
         Integer maXe = null;
         String bienSoXe = null;
-        String hangXe = null;
-        String modelXe = null;
+        Integer maHangXe = null;
+        String tenHangXe = null;
+        Integer maModel = null;
+        String tenModel = null;
 
         Integer maKhachHang = null;
         String tenKhachHang = null;
@@ -218,8 +229,15 @@ public class RepairOrderService {
             if (xe != null) {
                 maXe = xe.getMaXe();
                 bienSoXe = xe.getBienSo();
-                hangXe = xe.getHangXe();
-                modelXe = xe.getModel();
+                if (xe.getModelXe() != null) {
+                    maModel = xe.getModelXe().getMaModel();
+                    tenModel = xe.getModelXe().getTenModel();
+                    if (xe.getModelXe().getHangXe() != null) {
+                        maHangXe = xe.getModelXe().getHangXe().getMaHangXe();
+                        tenHangXe = xe.getModelXe().getHangXe().getTenHangXe();
+                    }
+                }
+
                 if (xe.getKhachHang() != null) {
                     KhachHang kh = xe.getKhachHang();
                     maKhachHang = kh.getMaKhachHang();
@@ -231,14 +249,19 @@ public class RepairOrderService {
             }
         }
 
+        Integer maPhieuCha = (order.getPhieuCha() != null) ? order.getPhieuCha().getMaPhieuSuaChua() : null;
+
         return new RepairOrderResponse(
                 order.getMaPhieuSuaChua(),
+                maPhieuCha,
                 maTiepNhan,
                 maDatLich,
                 maXe,
                 bienSoXe,
-                hangXe,
-                modelXe,
+                maHangXe,
+                tenHangXe,
+                maModel,
+                tenModel,
                 maKhachHang,
                 tenKhachHang,
                 soDienThoaiKhachHang,

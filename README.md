@@ -339,10 +339,12 @@ npm run dev
 - **FRONTEND TASK 03**: Dashboard & Real Data Integration (Role-Specific Dashboards for Admin, Manager, Receptionist, Technician, Customer; Live Backend Reports API `/api/reports/*`, Vehicles `/api/vehicles`, Appointments `/api/appointments`) — PASS
 - **FRONTEND TASK 05**: User / Employee / Customer Management (Employee List/Detail/Form/Status, Customer List/Detail/Form/Status/Vehicles, User List/Detail/Form/Status, RoleGuards for `/app/employees`, `/app/customers`, `/app/users`) — PASS
 - **FRONTEND TASK 06**: Vehicle Management (Vehicle List/Detail/Form/Delete, Customer Ownership Protection, License Plate/VIN validation, RoleGuards for `/app/vehicles` for `ROLE_ADMIN` & `ROLE_CUSTOMER`) — PASS
+- **FRONTEND TASK 07**: Appointment Management (Appointment List/Detail/Form/Cancel/Confirm/Receive, Bento KPI Cards, Real Data API `/api/appointments` & `/api/branches`, Customer/Branch Isolation, RoleGuards for `/app/appointments` for `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_CUSTOMER`) — PASS
 - **MOBILE CUSTOMER REGISTRATION & LOGIN PIN STATE**: Public registration UI, phone-as-username contract, transactional customer account creation without `MaKhachHangCode`, fixed `ROLE_CUSTOMER`, BCrypt password hashing, login/session exposes `hasPin` from `NguoiDung.MaPinHash` — PASS (87 targeted backend tests, backend compile, 6 Flutter tests, Flutter analyze clean)
-- **INFRASTRUCTURE TASK 01**: Docker Development Environment (Docker Compose, Multi-stage Backend Dockerfile, React/Vite Frontend Dockerfile, MSSQL Container with Auto-Init & Named Volume Persistence, Zero Source Code Regressions) — PASS (374/374 backend tests, 0 build errors)
+- **FRONTEND TASK 08**: Reception / Check-in Management (Vehicle Check-in Modal with ODO & exterior condition tracking, Reception Slips List/Detail, Direct Appointment-to-Reception Check-in, One-click Repair Order Creation, RoleGuards for `/app/reception` for `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`) — PASS
+- **INFRASTRUCTURE TASK 01**: Docker Development Environment (Docker Compose, Multi-stage Backend Dockerfile, React/Vite Frontend Dockerfile, MSSQL Container with Auto-Init & Named Volume Persistence, Zero Source Code Regressions) — PASS (381/381 backend tests, 0 build errors)
 
 ## 9. Next Step
-**FRONTEND TASK 07 — APPOINTMENT MANAGEMENT**
+**FRONTEND TASK 09 — REPAIR ORDER MANAGEMENT (LỆNH SỬA CHỮA & PHÂN CÔNG KỸ THUẬT)**
 
 

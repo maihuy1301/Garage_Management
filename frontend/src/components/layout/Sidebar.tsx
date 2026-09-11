@@ -34,7 +34,7 @@ const ALL_NAV_ITEMS: NavItemConfig[] = [
     label: 'Tài khoản & Phân quyền',
     path: '/app/users',
     icon: 'manage_accounts',
-    roles: ['ROLE_ADMIN'],
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER'],
   },
   {
     label: 'Danh mục dịch vụ',
@@ -83,7 +83,13 @@ const ALL_NAV_ITEMS: NavItemConfig[] = [
     label: 'Phương tiện / Xe',
     path: '/app/vehicles',
     icon: 'directions_car',
-    roles: ['ROLE_ADMIN', 'ROLE_CUSTOMER'],
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CUSTOMER'],
+  },
+  {
+    label: 'Hãng & Dòng xe',
+    path: '/app/brands-models',
+    icon: 'category',
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER'],
   },
   {
     label: 'Kho & Phụ tùng',

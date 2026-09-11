@@ -8,7 +8,6 @@ import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.DichVuRepository;
-import com.garage.repository.GiaDichVuChiNhanhRepository;
 import com.garage.repository.PhieuSuaChuaDichVuRepository;
 import com.garage.repository.PhieuSuaChuaRepository;
 import com.garage.security.BranchAuthorizationService;
@@ -42,9 +41,6 @@ class RepairItemServiceTest {
     private DichVuRepository dichVuRepository;
 
     @Mock
-    private GiaDichVuChiNhanhRepository giaDichVuChiNhanhRepository;
-
-    @Mock
     private BranchAuthorizationService branchAuthorizationService;
 
     @InjectMocks
@@ -56,7 +52,6 @@ class RepairItemServiceTest {
     private PhieuSuaChua order1;
     private LoaiDichVu category;
     private DichVu service1;
-    private GiaDichVuChiNhanh branchPrice;
     private PhieuSuaChuaDichVu item1;
 
     @BeforeEach
@@ -82,13 +77,8 @@ class RepairItemServiceTest {
         service1.setMaDichVu(10);
         service1.setTenDichVu("Thay dầu động cơ");
         service1.setLoaiDichVu(category);
+        service1.setDonGia(new BigDecimal("150000.00"));
         service1.setTrangThai(true);
-
-        branchPrice = new GiaDichVuChiNhanh();
-        branchPrice.setChiNhanh(branch1);
-        branchPrice.setDichVu(service1);
-        branchPrice.setDonGia(new BigDecimal("150000.00"));
-        branchPrice.setTrangThai(true);
 
         item1 = new PhieuSuaChuaDichVu();
         item1.setMaChiTiet(701);
@@ -109,8 +99,6 @@ class RepairItemServiceTest {
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
         when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(false);
-        when(giaDichVuChiNhanhRepository.findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(1, 10))
-                .thenReturn(List.of(branchPrice));
         when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(item1);
 
         CreateRepairItemRequest req = new CreateRepairItemRequest(10, 2);
@@ -124,13 +112,11 @@ class RepairItemServiceTest {
     }
 
     @Test
-    void addRepairItem_customPrice_whenNoCatalog_success() {
+    void addRepairItem_customPrice_override_success() {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
         when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(false);
-        when(giaDichVuChiNhanhRepository.findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue(1, 10))
-                .thenReturn(List.of()); // No catalog price
 
         PhieuSuaChuaDichVu customItem = new PhieuSuaChuaDichVu();
         customItem.setMaChiTiet(702);
@@ -164,7 +150,7 @@ class RepairItemServiceTest {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(dichVuRepository.findById(10)).thenReturn(Optional.of(service1));
-        when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(true); // already exists
+        when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 10)).thenReturn(true);
 
         CreateRepairItemRequest req = new CreateRepairItemRequest(10, 1);
 

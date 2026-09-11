@@ -19,7 +19,6 @@ CREATE TABLE NguoiDung (
 	MaNguoiDung INT IDENTITY(1,1) PRIMARY KEY,
 	TenDangNhap VARCHAR(50) UNIQUE NOT NULL,
 	MatKhauHash VARCHAR(255) NOT NULL,
-	MaPinHash VARCHAR(255),
     HoTen NVARCHAR(100) NOT NULL,
     Email VARCHAR(100),
 	SoDienThoai VARCHAR(20),
@@ -66,19 +65,35 @@ CREATE TABLE KhachHang (
     FOREIGN KEY (MaNguoiDung) REFERENCES NguoiDung(MaNguoiDung)
 );
 
+CREATE TABLE HangXe (
+    MaHangXe INT IDENTITY(1,1) PRIMARY KEY,
+    TenHangXe NVARCHAR(255) NOT NULL,
+    TrangThai BIT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE ModelXe (
+    MaModel INT IDENTITY(1,1) PRIMARY KEY,
+    MaHangXe INT NOT NULL,
+    TenModel NVARCHAR(100) NOT NULL,
+    TrangThai BIT NOT NULL DEFAULT 1,
+
+    FOREIGN KEY (MaHangXe) REFERENCES HangXe(MaHangXe),
+    CONSTRAINT UQ_ModelXe_HangXe UNIQUE (MaHangXe, TenModel)
+);
+
 CREATE TABLE Xe (
     MaXe INT IDENTITY(1,1) PRIMARY KEY,
 	MaKhachHang INT NOT NULL,
     BienSo VARCHAR(20) UNIQUE NOT NULL,
-    HangXe NVARCHAR(50), --note: Backend cần xử lí các model thuộc về HangXe nào!
-    Model NVARCHAR(100),
+    MaModel INT, --note: Backend cần xử lí các model thuộc về HangXe nào!
     NamSanXuat INT,
     MauXe NVARCHAR(50),
     SoVIN VARCHAR(50), --Số khung xe
 	SoKmHienTai INT DEFAULT 0,
     NgayTao DATETIME2 DEFAULT SYSDATETIME(),
     TrangThai BIT DEFAULT 1,
-    FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang)
+    FOREIGN KEY (MaKhachHang) REFERENCES KhachHang(MaKhachHang),
+	FOREIGN KEY (MaModel) REFERENCES ModelXe(MaModel) 
 );
 
 CREATE TABLE LoaiDichVu (
@@ -91,14 +106,12 @@ CREATE TABLE LoaiDichVu (
 CREATE TABLE DichVu (
     MaDichVu INT IDENTITY(1,1) PRIMARY KEY,
     MaLoaiDichVu INT NOT NULL,
-    MaChiNhanh INT NOT NULL,
     TenDichVu NVARCHAR(150) NOT NULL,
     MoTa NVARCHAR(500),
     DonGia DECIMAL(18,2) NOT NULL,
     ThoiGianDuKien INT, --tính bằng giờ
     TrangThai BIT DEFAULT 1,
-    FOREIGN KEY (MaLoaiDichVu) REFERENCES LoaiDichVu(MaLoaiDichVu),
-    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh)
+    FOREIGN KEY (MaLoaiDichVu) REFERENCES LoaiDichVu(MaLoaiDichVu)
 );
 
 
@@ -151,12 +164,14 @@ CREATE TABLE PhieuSuaChua (
 	MaPhieuSuaChua INT IDENTITY(1,1) PRIMARY KEY,
     MaTiepNhan INT NOT NULL,
     MaChiNhanh INT NOT NULL,
+	MaPhieuCha INT NULL,
 	ThoiGianBatDau DATETIME2,
 	ThoiGianHoanTat DATETIME2,
     TrangThai VARCHAR(30) DEFAULT 'CHO_XU_LY',
     GhiChu NVARCHAR(1000),
     FOREIGN KEY (MaTiepNhan) REFERENCES PhieuTiepNhan(MaTiepNhan),
-    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh)
+    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh),
+	FOREIGN KEY (MaPhieuCha) REFERENCES PhieuSuaChua(MaPhieuSuaChua)
 );
 --CHO_XU_LY | DA_PHAN_CONG | DANG_SUA | CHO_KH_DUYET | TAM_DUNG | HOAN_TAT | HUY
 
@@ -197,92 +212,62 @@ CREATE TABLE HinhAnhSuaChua (
 
 CREATE TABLE PhuTung (
     MaPhuTung INT IDENTITY(1,1) PRIMARY KEY,
-    MaChiNhanh INT NOT NULL,
-    MaPhuTungCode VARCHAR(30) UNIQUE NOT NULL,
+    MaPhuTungCode VARCHAR(30) NOT NULL,
     TenPhuTung NVARCHAR(150) NOT NULL,
     DonViTinh NVARCHAR(30),
     GiaNhap DECIMAL(18,2),
     GiaBan DECIMAL(18,2),
-    TrangThai BIT DEFAULT 1,
-    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh)
+    TrangThai BIT DEFAULT 1
 );
 CREATE TABLE PhieuSuaChua_PhuTung (
     MaChiTiet INT IDENTITY(1,1) PRIMARY KEY,
 	MaPhieuSuaChua INT NOT NULL,
     MaPhuTung INT NOT NULL,
+	MaDichVuChiTiet INT NULL,
     SoLuong INT NOT NULL,
     DonGia DECIMAL(18,2) NOT NULL,
     ThanhTien AS (SoLuong * DonGia) PERSISTED,
     FOREIGN KEY (MaPhieuSuaChua) REFERENCES PhieuSuaChua(MaPhieuSuaChua),
-    FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung)
+    FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung),
+	FOREIGN KEY (MaDichVuChiTiet) REFERENCES PhieuSuaChua_DichVu(MaChiTiet)
 );
 CREATE TABLE DichVu_PhuTung (
     MaDichVu INT NOT NULL,
     MaPhuTung INT NOT NULL,
+	SoLuong INT, --Đại diện cho số lượng phụ tùng sử dụng
     PRIMARY KEY (MaDichVu, MaPhuTung),
     FOREIGN KEY (MaDichVu) REFERENCES DichVu(MaDichVu),
     FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung)
 );
 
-CREATE TABLE TonKho (
-    MaChiNhanh INT NOT NULL,
-    MaPhuTung INT NOT NULL,
-    SoLuongTon INT DEFAULT 0,
-	SoLuongToiThieu INT DEFAULT 0,
-    PRIMARY KEY (MaChiNhanh, MaPhuTung),
-    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh),
-    FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung)
-);
 CREATE TABLE GiaoDichKho ( --Tự động lưu khi có giao dịch nhập xuất đối với phụ tùng
     MaGiaoDich INT IDENTITY(1,1) PRIMARY KEY,
-    MaChiNhanh INT NOT NULL,
+	MaChiNhanh INT NOT NULL,
     MaPhuTung INT NOT NULL,
 	LoaiGiaoDich VARCHAR(30) NOT NULL, --NHAP (MANAGER), XUAT(TECHNICIAN)
     SoLuong INT NOT NULL,
 	MaPhieuSuaChua INT NULL,
     GhiChu NVARCHAR(500),
     ThoiGian DATETIME2 DEFAULT SYSDATETIME(),
-    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh),
+	FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh),
     FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung),
     FOREIGN KEY (MaPhieuSuaChua) REFERENCES PhieuSuaChua(MaPhieuSuaChua)
 );
 
-
-
-CREATE TABLE BaoGiaPhatSinh (
-    MaBaoGia INT IDENTITY(1,1) PRIMARY KEY,
-	MaPhieuSuaChua INT NOT NULL,
-	LyDoPhatSinh NVARCHAR(1000),
-    TongTien DECIMAL(18,2),
-    TrangThai VARCHAR(30) DEFAULT 'CHO_KHACH_DUYET',
-	ThoiGianTao DATETIME2 DEFAULT SYSDATETIME(),
-	ThoiGianDuyet DATETIME2,
-    FOREIGN KEY (MaPhieuSuaChua) REFERENCES PhieuSuaChua(MaPhieuSuaChua)
-);
-
-CREATE TABLE BaoGiaPhatSinh_DichVu (
-    MaChiTiet INT IDENTITY(1,1) PRIMARY KEY,
-    MaBaoGia INT NOT NULL,
-    MaDichVu INT NOT NULL,
-    DonGia DECIMAL(18,2) NOT NULL,
-    FOREIGN KEY (MaBaoGia) REFERENCES BaoGiaPhatSinh(MaBaoGia),
-    FOREIGN KEY (MaDichVu) REFERENCES DichVu(MaDichVu)
-);
-
-CREATE TABLE BaoGiaPhatSinh_PhuTung (
-    MaChiTiet INT IDENTITY(1,1) PRIMARY KEY,
-    MaBaoGia INT NOT NULL,
+CREATE TABLE TonKho (
+    MaChiNhanh INT NOT NULL,
     MaPhuTung INT NOT NULL,
-    SoLuong INT NOT NULL,
-    DonGia DECIMAL(18,2) NOT NULL,
-    FOREIGN KEY (MaBaoGia) REFERENCES BaoGiaPhatSinh(MaBaoGia),
+    SoLuongTon INT NOT NULL DEFAULT 0,
+    SoLuongToiThieu INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (MaChiNhanh, MaPhuTung),
+    FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh),
     FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung)
 );
 
 CREATE TABLE HoaDon (
     MaHoaDon INT IDENTITY(1,1) PRIMARY KEY,
-	MaPhieuSuaChua INT NOT NULL UNIQUE,
-	MaKhachHang INT NOT NULL,
+	MaPhieuSuaChua INT,
+	MaKhachHang INT,
     MaChiNhanh INT NOT NULL,
 	MaNhanVienThuNgan INT,
     TongTien DECIMAL(18,2) NOT NULL DEFAULT 0,
@@ -300,22 +285,25 @@ CREATE TABLE HoaDon (
 CREATE TABLE HoaDon_DichVu (
     MaChiTiet INT IDENTITY(1,1) PRIMARY KEY,
     MaHoaDon INT NOT NULL,
-    MaDichVu INT NOT NULL,
+    MaPhieuDichVu INT NOT NULL,
     DonGia DECIMAL(18,2) NOT NULL,
     ThanhTien AS (DonGia) PERSISTED,
     FOREIGN KEY (MaHoaDon) REFERENCES HoaDon(MaHoaDon),
-    FOREIGN KEY (MaDichVu) REFERENCES DichVu(MaDichVu)
+    FOREIGN KEY (MaPhieuDichVu) REFERENCES PhieuSuaChua_DichVu(MaChiTiet)
 );
 
 CREATE TABLE HoaDon_PhuTung (
     MaChiTiet INT IDENTITY(1,1) PRIMARY KEY,
     MaHoaDon INT NOT NULL,
-    MaPhuTung INT NOT NULL,
+	MaDichVuChiTiet INT NULL,
+    MaPhieuPhuTung INT NULL,
     SoLuong INT NOT NULL,
     DonGia DECIMAL(18,2) NOT NULL,
     ThanhTien AS (SoLuong * DonGia) PERSISTED,
     FOREIGN KEY (MaHoaDon) REFERENCES HoaDon(MaHoaDon),
-    FOREIGN KEY (MaPhuTung) REFERENCES PhuTung(MaPhuTung)
+	FOREIGN KEY (MaDichVuChiTiet) REFERENCES HoaDon_DichVu(MaChiTiet),
+    FOREIGN KEY (MaPhieuPhuTung) REFERENCES PhieuSuaChua_PhuTung(MaChiTiet)
+	
 );
 
 CREATE TABLE ThanhToan (
@@ -392,3 +380,7 @@ CREATE TABLE TinNhan (
     FOREIGN KEY (MaCuocHoiThoai) REFERENCES CuocHoiThoai(MaCuocHoiThoai),
     FOREIGN KEY (MaNguoiGui) REFERENCES NguoiDung(MaNguoiDung)
 );
+
+
+
+

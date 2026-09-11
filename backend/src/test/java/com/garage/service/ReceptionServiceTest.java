@@ -111,7 +111,7 @@ class ReceptionServiceTest {
         appointmentBranch1.setXe(vehicle);
         appointmentBranch1.setChiNhanh(branch1);
         appointmentBranch1.setThoiGianHen(LocalDateTime.now().plusHours(2));
-        appointmentBranch1.setTrangThai("CHO_XAC_NHAN");
+        appointmentBranch1.setTrangThai("DA_XAC_NHAN");
 
         appointmentBranch2 = new DatLich();
         appointmentBranch2.setMaDatLich(1002);
@@ -119,7 +119,7 @@ class ReceptionServiceTest {
         appointmentBranch2.setXe(vehicle);
         appointmentBranch2.setChiNhanh(branch2);
         appointmentBranch2.setThoiGianHen(LocalDateTime.now().plusHours(3));
-        appointmentBranch2.setTrangThai("CHO_XAC_NHAN");
+        appointmentBranch2.setTrangThai("DA_XAC_NHAN");
 
         receptionSlip1 = new PhieuTiepNhan();
         receptionSlip1.setMaTiepNhan(501);
@@ -193,6 +193,18 @@ class ReceptionServiceTest {
         assertThatThrownBy(() -> receptionService.checkIn(1001, new CheckInRequest()))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("đã bị hủy");
+    }
+
+    @Test
+    void checkIn_unconfirmedAppointment_throwsBadRequest() {
+        setStaffAuth(receptionistUser, "ROLE_FRONT_DESK");
+        appointmentBranch1.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.findById(1001)).thenReturn(Optional.of(appointmentBranch1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+
+        assertThatThrownBy(() -> receptionService.checkIn(1001, new CheckInRequest()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("chưa được xác nhận");
     }
 
     @Test

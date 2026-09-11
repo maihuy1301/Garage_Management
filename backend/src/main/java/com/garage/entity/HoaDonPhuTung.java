@@ -17,8 +17,12 @@ public class HoaDonPhuTung {
     private HoaDon hoaDon;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MaPhuTung", nullable = false)
-    private PhuTung phuTung;
+    @JoinColumn(name = "MaDichVuChiTiet")
+    private HoaDonDichVu hoaDonDichVu;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaPhieuPhuTung")
+    private PhieuSuaChuaPhuTung phieuPhuTung;
 
     @Column(name = "SoLuong", nullable = false)
     private Integer soLuong;
@@ -47,12 +51,20 @@ public class HoaDonPhuTung {
         this.hoaDon = hoaDon;
     }
 
-    public PhuTung getPhuTung() {
-        return phuTung;
+    public HoaDonDichVu getHoaDonDichVu() {
+        return hoaDonDichVu;
     }
 
-    public void setPhuTung(PhuTung phuTung) {
-        this.phuTung = phuTung;
+    public void setHoaDonDichVu(HoaDonDichVu hoaDonDichVu) {
+        this.hoaDonDichVu = hoaDonDichVu;
+    }
+
+    public PhieuSuaChuaPhuTung getPhieuPhuTung() {
+        return phieuPhuTung;
+    }
+
+    public void setPhieuPhuTung(PhieuSuaChuaPhuTung phieuPhuTung) {
+        this.phieuPhuTung = phieuPhuTung;
     }
 
     public Integer getSoLuong() {

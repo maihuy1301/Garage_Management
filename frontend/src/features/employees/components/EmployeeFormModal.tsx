@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { EmployeeResponse, CreateEmployeeRequest, UpdateEmployeeRequest } from '@/types/employee.types';
 import { UserResponse } from '@/types/user.types';
 import { BranchResponse } from '@/types/branch.types';
+import { RoleLabels, RoleType } from '@/types/role.types';
 import { userService } from '@/features/users/services/user.service';
 import { branchService } from '@/features/branches/services/branch.service';
 import { useAuth } from '@/hooks/useAuth';
@@ -38,6 +39,33 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // Filter accounts strictly by role:
+  // - MUST NOT have ROLE_CUSTOMER
+  // - MUST have employee roles: ROLE_FRONT_DESK, ROLE_TECHNICIAN (and ROLE_MANAGER if Admin)
+  const eligibleEmployeeUsers = useMemo(() => {
+    return usersList.filter((u) => {
+      // Strictly exclude CUSTOMER accounts
+      if (u.roles?.includes('ROLE_CUSTOMER')) {
+        return false;
+      }
+
+      // Strictly exclude ADMIN accounts from being linked as standard employee profile
+      if (u.roles?.includes('ROLE_ADMIN')) {
+        return false;
+      }
+
+      if (!isSystemAdmin) {
+        // Manager can only assign FRONT_DESK or TECHNICIAN users
+        return u.roles?.some((r) => r === 'ROLE_FRONT_DESK' || r === 'ROLE_TECHNICIAN');
+      }
+
+      // Admin can assign MANAGER, FRONT_DESK, or TECHNICIAN users
+      return u.roles?.some(
+        (r) => r === 'ROLE_MANAGER' || r === 'ROLE_FRONT_DESK' || r === 'ROLE_TECHNICIAN'
+      );
+    });
+  }, [usersList, isSystemAdmin]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -64,7 +92,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         setIsLoadingAux(true);
         const [branches, users] = await Promise.all([
           branchService.getAll().catch(() => []),
-          isSystemAdmin ? userService.getAll().catch(() => []) : Promise.resolve([]),
+          userService.getAll().catch(() => []),
         ]);
         setBranchesList(branches);
         setUsersList(users);
@@ -169,31 +197,40 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
             {!isEdit && (
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="form-label" htmlFor="emp-user">
-                  Tài khoản người dùng <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  Tài khoản người dùng (Nhân sự) <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
-                {usersList.length > 0 ? (
+                {eligibleEmployeeUsers.length > 0 ? (
                   <select
                     id="emp-user"
                     className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
                     value={maNguoiDung}
                     onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
                   >
-                    <option value="">-- Chọn tài khoản người dùng --</option>
-                    {usersList.map((u) => (
-                      <option key={u.maNguoiDung} value={u.maNguoiDung}>
-                        {u.hoTen} ({u.tenDangNhap}) - ID: {u.maNguoiDung}
-                      </option>
-                    ))}
+                    <option value="">-- Chọn tài khoản nhân sự --</option>
+                    {eligibleEmployeeUsers.map((u) => {
+                      const roleTags = (u.roles || [])
+                        .map((r) => RoleLabels[r as RoleType] || r)
+                        .join(', ');
+                      return (
+                        <option key={u.maNguoiDung} value={u.maNguoiDung}>
+                          {u.hoTen} ({u.tenDangNhap}) — [{roleTags}] (ID: #{u.maNguoiDung})
+                        </option>
+                      );
+                    })}
                   </select>
                 ) : (
-                  <input
-                    id="emp-user"
-                    type="number"
-                    className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
-                    placeholder="Nhập ID Người Dùng (MaNguoiDung)"
-                    value={maNguoiDung}
-                    onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
-                  />
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: 'var(--color-surface-gray)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px dashed var(--color-outline)',
+                      fontSize: '0.85rem',
+                      color: 'var(--color-outline)',
+                    }}
+                  >
+                    Không có tài khoản nhân sự khả dụng (Cần tạo tài khoản với vai trò Lễ tân hoặc Kỹ thuật viên trước).
+                  </div>
                 )}
                 {fieldErrors.maNguoiDung && (
                   <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>

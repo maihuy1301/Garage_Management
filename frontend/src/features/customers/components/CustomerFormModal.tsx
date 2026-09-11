@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CustomerResponse, CreateCustomerRequest, UpdateCustomerRequest } from '@/types/customer.types';
 import { UserResponse } from '@/types/user.types';
 import { userService } from '@/features/users/services/user.service';
@@ -32,6 +32,17 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Filter users to ONLY those who have ROLE_CUSTOMER and NOT any employee/admin roles
+  const eligibleCustomerUsers = useMemo(() => {
+    return usersList.filter((u) => {
+      const isCustomer = u.roles?.includes('ROLE_CUSTOMER');
+      const hasEmployeeOrAdminRole = u.roles?.some((r) =>
+        ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_TECHNICIAN'].includes(r)
+      );
+      return isCustomer && !hasEmployeeOrAdminRole;
+    });
+  }, [usersList]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -159,31 +170,35 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             {!isEdit ? (
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="form-label" htmlFor="cust-user">
-                  Tài khoản người dùng <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  Tài khoản người dùng (Khách hàng) <span style={{ color: 'var(--color-danger)' }}>*</span>
                 </label>
-                {usersList.length > 0 ? (
+                {eligibleCustomerUsers.length > 0 ? (
                   <select
                     id="cust-user"
                     className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
                     value={maNguoiDung}
                     onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
                   >
-                    <option value="">-- Chọn người dùng liên kết --</option>
-                    {usersList.map((u) => (
+                    <option value="">-- Chọn tài khoản khách hàng --</option>
+                    {eligibleCustomerUsers.map((u) => (
                       <option key={u.maNguoiDung} value={u.maNguoiDung}>
-                        {u.hoTen} ({u.tenDangNhap}) - ID: {u.maNguoiDung}
+                        {u.hoTen} ({u.tenDangNhap}) — [Khách hàng] (ID: #{u.maNguoiDung})
                       </option>
                     ))}
                   </select>
                 ) : (
-                  <input
-                    id="cust-user"
-                    type="number"
-                    className={`form-input ${fieldErrors.maNguoiDung ? 'border-error' : ''}`}
-                    placeholder="Nhập ID Người Dùng (MaNguoiDung)"
-                    value={maNguoiDung}
-                    onChange={(e) => setMaNguoiDung(e.target.value ? Number(e.target.value) : '')}
-                  />
+                  <div
+                    style={{
+                      padding: '12px 16px',
+                      backgroundColor: 'var(--color-surface-gray)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px dashed var(--color-outline)',
+                      fontSize: '0.85rem',
+                      color: 'var(--color-outline)',
+                    }}
+                  >
+                    Không có tài khoản Khách hàng khả dụng (Cần tạo tài khoản với vai trò Khách hàng trước).
+                  </div>
                 )}
                 {fieldErrors.maNguoiDung && (
                   <span style={{ color: 'var(--color-danger)', fontSize: '0.8rem', marginTop: '2px' }}>

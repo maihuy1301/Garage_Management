@@ -10,6 +10,8 @@ public class RepairPartResponse {
     private Integer maChiTiet;
     private Integer maPhieuSuaChua;
     private Integer maPhuTung;
+    private Integer maDichVuChiTiet;
+    private String tenDichVuChiTiet;
     private String maPhuTungCode;
     private String tenPhuTung;
     private String donViTinh;
@@ -19,12 +21,21 @@ public class RepairPartResponse {
 
     public RepairPartResponse() {}
 
+    public RepairPartResponse(Integer maChiTiet, Integer maPhieuSuaChua, Integer maPhuTung,
+                              String maPhuTungCode, String tenPhuTung, String donViTinh,
+                              Integer soLuong, BigDecimal donGia, BigDecimal thanhTien) {
+        this(maChiTiet, maPhieuSuaChua, maPhuTung, null, null, maPhuTungCode, tenPhuTung, donViTinh, soLuong, donGia, thanhTien);
+    }
+
     public RepairPartResponse(Integer maChiTiet, Integer maPhieuSuaChua,
-                              Integer maPhuTung, String maPhuTungCode, String tenPhuTung,
+                              Integer maPhuTung, Integer maDichVuChiTiet, String tenDichVuChiTiet,
+                              String maPhuTungCode, String tenPhuTung,
                               String donViTinh, Integer soLuong, BigDecimal donGia, BigDecimal thanhTien) {
         this.maChiTiet = maChiTiet;
         this.maPhieuSuaChua = maPhieuSuaChua;
         this.maPhuTung = maPhuTung;
+        this.maDichVuChiTiet = maDichVuChiTiet;
+        this.tenDichVuChiTiet = tenDichVuChiTiet;
         this.maPhuTungCode = maPhuTungCode;
         this.tenPhuTung = tenPhuTung;
         this.donViTinh = donViTinh;
@@ -41,6 +52,12 @@ public class RepairPartResponse {
 
     public Integer getMaPhuTung() { return maPhuTung; }
     public void setMaPhuTung(Integer maPhuTung) { this.maPhuTung = maPhuTung; }
+
+    public Integer getMaDichVuChiTiet() { return maDichVuChiTiet; }
+    public void setMaDichVuChiTiet(Integer maDichVuChiTiet) { this.maDichVuChiTiet = maDichVuChiTiet; }
+
+    public String getTenDichVuChiTiet() { return tenDichVuChiTiet; }
+    public void setTenDichVuChiTiet(String tenDichVuChiTiet) { this.tenDichVuChiTiet = tenDichVuChiTiet; }
 
     public String getMaPhuTungCode() { return maPhuTungCode; }
     public void setMaPhuTungCode(String maPhuTungCode) { this.maPhuTungCode = maPhuTungCode; }

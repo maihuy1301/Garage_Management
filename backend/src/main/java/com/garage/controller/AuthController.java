@@ -41,13 +41,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<CurrentUserResponse>> getCurrentUser(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         var user = userDetails.getNguoiDung();
-        boolean hasPin = user.getMaPinHash() != null && !user.getMaPinHash().isBlank();
         CurrentUserResponse userInfo = new CurrentUserResponse(
                 user.getMaNguoiDung(),
                 user.getTenDangNhap(),
                 user.getHoTen(),
                 user.getEmail(),
-                hasPin
+                false
         );
 
         return ResponseEntity.ok(ApiResponse.success("Thông tin người dùng hiện tại", userInfo));

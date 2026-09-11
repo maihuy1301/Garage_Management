@@ -111,13 +111,17 @@ class VehicleControllerTest {
     // ============================
 
     @Test
-    void branchManager_getVehicles_returns403() throws Exception {
+    void branchManager_getVehicles_returns200() throws Exception {
         NguoiDung mgr = mockUser(2, "manager");
         stubUser(mgr, "ROLE_MANAGER");
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
+        when(vehicleService.getVehicles())
+                .thenReturn(List.of(sampleVehicle(100, 1, "51A-11111")));
+
         mockMvc.perform(get("/api/vehicles").header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
@@ -231,8 +235,8 @@ class VehicleControllerTest {
 
         CreateVehicleRequest req = new CreateVehicleRequest();
         req.setBienSo("51C-33333");
-        req.setHangXe("Toyota");
-        req.setModel("Vios");
+        req.setMaHangXe(1);
+        req.setMaModel(101);
 
         when(vehicleService.createVehicle(any(CreateVehicleRequest.class)))
                 .thenReturn(sampleVehicle(300, 1, "51C-33333"));

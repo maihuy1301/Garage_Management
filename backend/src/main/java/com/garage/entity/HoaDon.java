@@ -13,12 +13,12 @@ public class HoaDon {
     @Column(name = "MaHoaDon")
     private Integer maHoaDon;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MaPhieuSuaChua", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaPhieuSuaChua")
     private PhieuSuaChua phieuSuaChua;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MaKhachHang", nullable = false)
+    @JoinColumn(name = "MaKhachHang")
     private KhachHang khachHang;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -2791,4 +2791,48 @@ Remaining issues:
 None
 
 Next task:
-FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
+FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
+
+============================================================
+FRONTEND TASK 07 — APPOINTMENT MANAGEMENT
+============================================================
+Date: 2026-09-11
+Status: PASS
+
+Deliverables:
+- API Integration & Backend Synchronization:
+  * Integrated real Spring Boot REST API (`GET /api/appointments`, `GET /api/appointments/{id}`, `POST /api/appointments`, `PATCH /api/appointments/{id}/cancel`, `GET /api/branches`).
+  * 0 mock data, 0 fake data. All data retrieved directly from database via Spring Boot backend.
+  * Preserved backend authority: Role permissions, branch scope, customer ownership strictly enforced by backend and mirrored cleanly in frontend UI.
+- TypeScript DTOs & Service Layer:
+  * `frontend/src/types/appointment.types.ts`: Defined `AppointmentResponse`, `CreateAppointmentRequest`, `AppointmentStatus`, `AppointmentFilters`, `AppointmentStatusLabels`, `AppointmentStatusTone`, `APPOINTMENT_STATUSES`.
+  * `frontend/src/features/appointments/services/appointment.service.ts`: Abstraction calling backend endpoints via centralized `apiClient` & `API_ENDPOINTS.APPOINTMENTS`.
+- UI Components & Pages:
+  * `AppointmentsPage.tsx`: Bento header, 4 KPI cards (Total, Pending, Confirmed, Completed), search by query, status filter, branch filter, date filter, refresh trigger, integrated modals.
+  * `AppointmentTable.tsx`: Full data columns (Code, Customer & Phone, Vehicle Plate & Model, Branch, DateTime, Status Badge, Note, Actions), responsive layout, empty & loading states.
+  * `AppointmentDetailModal.tsx`: Complete appointment information modal (Customer, Vehicle, Branch, DateTime, Note, Cancel CTA).
+  * `AppointmentFormModal.tsx`: Create appointment modal with real branch master data and customer vehicle selection. Supports Admin & Customer creation workflows with validation.
+  * `AppointmentCancelModal.tsx`: Confirmation modal with safety warnings to execute `PATCH /api/appointments/{id}/cancel`.
+- Routing & Navigation:
+  * `AppRouter.tsx`: Mounted `AppointmentsPage` under `/app/appointments` guarded by `RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_CUSTOMER']}`.
+  * `Sidebar.tsx`: Verified navigation link for allowed roles.
+
+Testing & Validation:
+- Frontend Build: `npm run build` PASS (0 TypeScript errors, 0 build errors).
+- Backend Regression: `mvn test` PASS (377/377 tests pass, 0 failures, 0 errors).
+- Security & RBAC:
+  * Admin: Global access, creates for any customer, cancels appointments.
+  * Manager / FrontDesk: Branch-scoped access, cancels branch appointments, cannot POST appointments.
+  * Customer: Own-appointment access, creates for own vehicles only, cancels own appointments.
+  * Technician: Blocked by RoleGuard (`/unauthorized`) and 403 at backend.
+- Code & Architecture Integrity:
+  * Database schema changed: NO
+  * Backend business logic changed: NO
+  * RBAC changed: NO
+
+Remaining issues:
+None
+
+Next task:
+FRONTEND TASK 08 — RECEPTION / CHECK-IN MANAGEMENT
+

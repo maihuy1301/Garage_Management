@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public class InvoiceServiceItemResponse {
 
     private Integer maChiTiet;
+    private Integer maPhieuDichVu;
     private Integer maDichVu;
     private String tenDichVu;
     private Integer soLuong;
@@ -15,16 +16,25 @@ public class InvoiceServiceItemResponse {
 
     public InvoiceServiceItemResponse(Integer maChiTiet, Integer maDichVu, String tenDichVu,
                                       Integer soLuong, BigDecimal donGia, BigDecimal thanhTien) {
+        this(maChiTiet, null, maDichVu, tenDichVu, soLuong, donGia, thanhTien);
+    }
+
+    public InvoiceServiceItemResponse(Integer maChiTiet, Integer maPhieuDichVu, Integer maDichVu,
+                                      String tenDichVu, Integer soLuong, BigDecimal donGia, BigDecimal thanhTien) {
         this.maChiTiet = maChiTiet;
+        this.maPhieuDichVu = maPhieuDichVu;
         this.maDichVu = maDichVu;
         this.tenDichVu = tenDichVu;
-        this.soLuong = soLuong;
+        this.soLuong = soLuong != null ? soLuong : 1;
         this.donGia = donGia;
         this.thanhTien = thanhTien;
     }
 
     public Integer getMaChiTiet() { return maChiTiet; }
     public void setMaChiTiet(Integer maChiTiet) { this.maChiTiet = maChiTiet; }
+
+    public Integer getMaPhieuDichVu() { return maPhieuDichVu; }
+    public void setMaPhieuDichVu(Integer maPhieuDichVu) { this.maPhieuDichVu = maPhieuDichVu; }
 
     public Integer getMaDichVu() { return maDichVu; }
     public void setMaDichVu(Integer maDichVu) { this.maDichVu = maDichVu; }

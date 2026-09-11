@@ -70,10 +70,16 @@ public class ReceptionService {
         if ("HUY".equalsIgnoreCase(currentStatus)) {
             throw new BadRequestException("Không thể tiếp nhận lịch hẹn đã bị hủy");
         }
+        if ("CHO_XAC_NHAN".equalsIgnoreCase(currentStatus)) {
+            throw new BadRequestException("Lịch hẹn chưa được xác nhận. Vui lòng xác nhận lịch hẹn trước khi tiếp nhận xe");
+        }
         if ("DA_TIEP_NHAN".equalsIgnoreCase(currentStatus)
                 || "DANG_XU_LY".equalsIgnoreCase(currentStatus)
                 || "HOAN_TAT".equalsIgnoreCase(currentStatus)) {
             throw new DuplicateResourceException("Lịch hẹn này đã được tiếp nhận trước đó (trạng thái hiện tại: " + currentStatus + ")");
+        }
+        if (!"DA_XAC_NHAN".equalsIgnoreCase(currentStatus)) {
+            throw new BadRequestException("Chỉ có thể tiếp nhận lịch hẹn ở trạng thái đã xác nhận (trạng thái hiện tại: " + currentStatus + ")");
         }
 
         // 4. Idempotency check: Kiểm tra xem đã có phiếu tiếp nhận cho lịch hẹn này chưa
@@ -215,8 +221,8 @@ public class ReceptionService {
                 dl != null ? dl.getMaDatLich() : null,
                 xe != null ? xe.getMaXe() : null,
                 xe != null ? xe.getBienSo() : null,
-                xe != null ? xe.getHangXe() : null,
-                xe != null ? xe.getModel() : null,
+                xe != null ? xe.getTenHangXe() : null,
+                xe != null ? xe.getTenModel() : null,
                 maKhachHang,
                 tenKhachHang,
                 soDienThoaiKhachHang,

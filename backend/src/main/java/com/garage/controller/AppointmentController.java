@@ -65,4 +65,30 @@ public class AppointmentController {
         AppointmentResponse appointment = appointmentService.cancelAppointment(id);
         return ResponseEntity.ok(ApiResponse.success("Hủy lịch hẹn thành công", appointment));
     }
+
+    /** PATCH /api/appointments/{id}/confirm — Xác nhận lịch hẹn (DA_XAC_NHAN) */
+    @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> confirmAppointment(@PathVariable Integer id) {
+        AppointmentResponse appointment = appointmentService.confirmAppointment(id);
+        return ResponseEntity.ok(ApiResponse.success("Xác nhận lịch hẹn thành công", appointment));
+    }
+
+    /** PATCH /api/appointments/{id}/receive — Tiếp nhận xe từ lịch hẹn (DA_TIEP_NHAN) */
+    @PatchMapping("/{id}/receive")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> receiveAppointment(@PathVariable Integer id) {
+        AppointmentResponse appointment = appointmentService.receiveAppointment(id);
+        return ResponseEntity.ok(ApiResponse.success("Tiếp nhận xe từ lịch hẹn thành công", appointment));
+    }
+
+    /** PATCH /api/appointments/{id}/status — Cập nhật trạng thái lịch hẹn */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
+    public ResponseEntity<ApiResponse<AppointmentResponse>> updateStatus(
+            @PathVariable Integer id,
+            @Valid @RequestBody com.garage.dto.UpdateAppointmentStatusRequest request) {
+        AppointmentResponse appointment = appointmentService.updateStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái lịch hẹn thành công", appointment));
+    }
 }

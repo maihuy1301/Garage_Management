@@ -13,6 +13,9 @@ import { EmployeesPage } from '@/features/employees/pages/EmployeesPage';
 import { CustomersPage } from '@/features/customers/pages/CustomersPage';
 import { UsersPage } from '@/features/users/pages/UsersPage';
 import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage';
+import { BrandModelManagementPage } from '@/features/vehicles/pages/BrandModelManagementPage';
+import { AppointmentsPage } from '@/features/appointments/pages/AppointmentsPage';
+import { ReceptionPage } from '@/features/reception/pages/ReceptionPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -35,7 +38,7 @@ export const AppRouter: React.FC = () => {
         <Route index element={<Navigate to="/app/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
 
-        {/* Admin only routes */}
+        {/* Admin & Manager routes */}
         <Route
           path="branches"
           element={
@@ -47,7 +50,7 @@ export const AppRouter: React.FC = () => {
         <Route
           path="users"
           element={
-            <RoleGuard roles={['ROLE_ADMIN']}>
+            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER']}>
               <UsersPage />
             </RoleGuard>
           }
@@ -108,7 +111,7 @@ export const AppRouter: React.FC = () => {
           path="reception"
           element={
             <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK']}>
-              <PlaceholderPage moduleName="Tiếp nhận xe" taskNumber="Frontend Task Tiếp nhận" />
+              <ReceptionPage />
             </RoleGuard>
           }
         />
@@ -134,7 +137,11 @@ export const AppRouter: React.FC = () => {
         {/* Common protected business routes */}
         <Route
           path="appointments"
-          element={<PlaceholderPage moduleName="Lịch hẹn dịch vụ" taskNumber="Frontend Task Lịch hẹn" />}
+          element={
+            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_CUSTOMER']}>
+              <AppointmentsPage />
+            </RoleGuard>
+          }
         />
         <Route
           path="repair-orders"
@@ -143,8 +150,16 @@ export const AppRouter: React.FC = () => {
         <Route
           path="vehicles"
           element={
-            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_CUSTOMER']}>
+            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CUSTOMER']}>
               <VehiclesPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="brands-models"
+          element={
+            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER']}>
+              <BrandModelManagementPage />
             </RoleGuard>
           }
         />

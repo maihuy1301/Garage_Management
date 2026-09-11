@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { UserResponse } from '@/types/user.types';
 import { RoleLabels, RoleType } from '@/types/role.types';
 import { EmptyState } from '@/components/common/EmptyState';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserTableProps {
   users: UserResponse[];
@@ -16,12 +17,20 @@ export const UserTable: React.FC<UserTableProps> = ({
   onEdit,
   onToggleStatus,
 }) => {
+  const { user: currentUser } = useAuth();
+  const isSystemAdmin = (currentUser?.roles || []).includes('ROLE_ADMIN');
+
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
+      // If viewer is not Admin (i.e. Manager), do not display Admin accounts
+      if (!isSystemAdmin && u.roles?.includes('ROLE_ADMIN')) {
+        return false;
+      }
+
       const term = searchTerm.toLowerCase().trim();
       const matchSearch =
         !term ||
@@ -40,7 +49,7 @@ export const UserTable: React.FC<UserTableProps> = ({
 
       return matchSearch && matchRole && matchStatus;
     });
-  }, [users, searchTerm, selectedRole, selectedStatus]);
+  }, [users, searchTerm, selectedRole, selectedStatus, isSystemAdmin]);
 
   return (
     <div>
@@ -64,7 +73,7 @@ export const UserTable: React.FC<UserTableProps> = ({
             onChange={(e) => setSelectedRole(e.target.value)}
           >
             <option value="ALL">Tất cả vai trò</option>
-            <option value="ROLE_ADMIN">Quản trị viên (Admin)</option>
+            {isSystemAdmin && <option value="ROLE_ADMIN">Quản trị viên (Admin)</option>}
             <option value="ROLE_MANAGER">Quản lý chi nhánh</option>
             <option value="ROLE_FRONT_DESK">Lễ tân tiếp nhận</option>
             <option value="ROLE_TECHNICIAN">Kỹ thuật viên</option>

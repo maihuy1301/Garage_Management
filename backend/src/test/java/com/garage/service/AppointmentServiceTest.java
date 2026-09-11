@@ -51,6 +51,9 @@ class AppointmentServiceTest {
     private NguoiDungRepository nguoiDungRepository;
 
     @Mock
+    private NhanVienRepository nhanVienRepository;
+
+    @Mock
     private BranchAuthorizationService branchAuthorizationService;
 
     @InjectMocks
@@ -384,5 +387,34 @@ class AppointmentServiceTest {
 
         assertThatThrownBy(() -> appointmentService.getAppointmentById(9999))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ==========================================
+    // 4. Confirm & Receive Status Updates
+    // ==========================================
+
+    @Test
+    void admin_confirmAppointment_success() {
+        setAdminAuth();
+        appointment1.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.findById(1001)).thenReturn(Optional.of(appointment1));
+        when(datLichRepository.save(any(DatLich.class))).thenAnswer(i -> i.getArgument(0));
+
+        AppointmentResponse res = appointmentService.confirmAppointment(1001);
+
+        assertThat(res.getTrangThai()).isEqualTo("DA_XAC_NHAN");
+    }
+
+    @Test
+    void receptionist_receiveAppointment_success() {
+        setManagerAuth(managerUser, 1);
+        appointment1.setTrangThai("DA_XAC_NHAN");
+        when(datLichRepository.findById(1001)).thenReturn(Optional.of(appointment1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(datLichRepository.save(any(DatLich.class))).thenAnswer(i -> i.getArgument(0));
+
+        AppointmentResponse res = appointmentService.receiveAppointment(1001);
+
+        assertThat(res.getTrangThai()).isEqualTo("DA_TIEP_NHAN");
     }
 }

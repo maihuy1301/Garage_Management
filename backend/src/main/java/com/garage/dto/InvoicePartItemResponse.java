@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 public class InvoicePartItemResponse {
 
     private Integer maChiTiet;
+    private Integer maPhieuPhuTung;
+    private Integer maDichVuChiTiet;
     private Integer maPhuTung;
     private String maPhuTungCode;
     private String tenPhuTung;
@@ -18,7 +20,16 @@ public class InvoicePartItemResponse {
     public InvoicePartItemResponse(Integer maChiTiet, Integer maPhuTung, String maPhuTungCode,
                                    String tenPhuTung, String donViTinh,
                                    Integer soLuong, BigDecimal donGia, BigDecimal thanhTien) {
+        this(maChiTiet, null, null, maPhuTung, maPhuTungCode, tenPhuTung, donViTinh, soLuong, donGia, thanhTien);
+    }
+
+    public InvoicePartItemResponse(Integer maChiTiet, Integer maPhieuPhuTung, Integer maDichVuChiTiet,
+                                   Integer maPhuTung, String maPhuTungCode,
+                                   String tenPhuTung, String donViTinh,
+                                   Integer soLuong, BigDecimal donGia, BigDecimal thanhTien) {
         this.maChiTiet = maChiTiet;
+        this.maPhieuPhuTung = maPhieuPhuTung;
+        this.maDichVuChiTiet = maDichVuChiTiet;
         this.maPhuTung = maPhuTung;
         this.maPhuTungCode = maPhuTungCode;
         this.tenPhuTung = tenPhuTung;
@@ -30,6 +41,12 @@ public class InvoicePartItemResponse {
 
     public Integer getMaChiTiet() { return maChiTiet; }
     public void setMaChiTiet(Integer maChiTiet) { this.maChiTiet = maChiTiet; }
+
+    public Integer getMaPhieuPhuTung() { return maPhieuPhuTung; }
+    public void setMaPhieuPhuTung(Integer maPhieuPhuTung) { this.maPhieuPhuTung = maPhieuPhuTung; }
+
+    public Integer getMaDichVuChiTiet() { return maDichVuChiTiet; }
+    public void setMaDichVuChiTiet(Integer maDichVuChiTiet) { this.maDichVuChiTiet = maDichVuChiTiet; }
 
     public Integer getMaPhuTung() { return maPhuTung; }
     public void setMaPhuTung(Integer maPhuTung) { this.maPhuTung = maPhuTung; }

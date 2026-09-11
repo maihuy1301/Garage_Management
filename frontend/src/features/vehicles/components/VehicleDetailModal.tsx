@@ -88,7 +88,7 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
                 </span>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--color-on-surface-variant)', marginTop: '4px' }}>
-                {vehicle.hangXe || 'Hãng xe'} {vehicle.model || 'Dòng xe'} {vehicle.namSanXuat ? `(Đời ${vehicle.namSanXuat})` : ''}
+                {vehicle.tenHangXe || vehicle.hangXe || 'Hãng xe'} {vehicle.tenModel || vehicle.model || 'Dòng xe'} {vehicle.namSanXuat ? `(Đời ${vehicle.namSanXuat})` : ''}
               </p>
             </div>
           </div>
@@ -110,12 +110,12 @@ export const VehicleDetailModal: React.FC<VehicleDetailModalProps> = ({
           <div className="detail-grid" style={{ marginBottom: '20px' }}>
             <div className="detail-item">
               <div className="detail-label">Hãng sản xuất</div>
-              <div className="detail-value">{vehicle.hangXe || 'Chưa cập nhật'}</div>
+              <div className="detail-value">{vehicle.tenHangXe || vehicle.hangXe || 'Chưa cập nhật'}</div>
             </div>
 
             <div className="detail-item">
               <div className="detail-label">Dòng xe (Model)</div>
-              <div className="detail-value">{vehicle.model || 'Chưa cập nhật'}</div>
+              <div className="detail-value">{vehicle.tenModel || vehicle.model || 'Chưa cập nhật'}</div>
             </div>
 
             <div className="detail-item">

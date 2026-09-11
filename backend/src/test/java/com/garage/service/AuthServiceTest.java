@@ -91,27 +91,6 @@ class AuthServiceTest {
     }
 
     @Test
-    void testLogin_WithConfiguredPin_ReturnsHasPinTrue() {
-        NguoiDung user = new NguoiDung();
-        user.setMaNguoiDung(1);
-        user.setTenDangNhap("customer");
-        user.setMatKhauHash("$2a$10$hashedpassword");
-        user.setMaPinHash("$2a$10$hashedpin");
-        user.setHoTen("Customer");
-        user.setTrangThai(true);
-
-        when(nguoiDungRepository.findByTenDangNhapOrEmail("customer", "customer"))
-                .thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("password123", "$2a$10$hashedpassword")).thenReturn(true);
-        when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(1)).thenReturn(Collections.emptyList());
-        when(jwtService.generateToken(anyString(), anyList())).thenReturn("mocked.jwt.token");
-
-        LoginResponse response = authService.login(new LoginRequest("customer", "password123"));
-
-        assertTrue(response.isHasPin());
-    }
-
-    @Test
     void testLogin_UserNotFound_ThrowsBadCredentials() {
         when(nguoiDungRepository.findByTenDangNhapOrEmail(anyString(), anyString())).thenReturn(Optional.empty());
 
@@ -216,7 +195,6 @@ class AuthServiceTest {
         verify(nguoiDungRepository).save(userCaptor.capture());
         assertEquals("$2a$10$encoded", userCaptor.getValue().getMatKhauHash());
         assertNotEquals("SecurePass123", userCaptor.getValue().getMatKhauHash());
-        assertNull(userCaptor.getValue().getMaPinHash());
 
         ArgumentCaptor<NguoiDungVaiTro> roleCaptor = ArgumentCaptor.forClass(NguoiDungVaiTro.class);
         verify(nguoiDungVaiTroRepository).save(roleCaptor.capture());

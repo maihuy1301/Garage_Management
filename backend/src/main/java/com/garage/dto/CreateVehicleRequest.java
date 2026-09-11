@@ -1,11 +1,13 @@
 package com.garage.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
  * DTO tạo xe mới.
- * Backend tự xác định owner từ JWT — client không được gửi customerId.
+ * Cascading Dropdown: maHangXe và maModel đều được gửi từ client.
+ * Backend tự xác định owner từ JWT (hoặc maKhachHang nếu là SYSTEM_ADMIN).
  */
 public class CreateVehicleRequest {
 
@@ -19,11 +21,11 @@ public class CreateVehicleRequest {
     @Size(max = 20, message = "Biển số xe không được vượt quá 20 ký tự")
     private String bienSo;
 
-    @Size(max = 50, message = "Hãng xe không được vượt quá 50 ký tự")
-    private String hangXe;
+    @NotNull(message = "Hãng xe không được để trống")
+    private Integer maHangXe;
 
-    @Size(max = 100, message = "Model xe không được vượt quá 100 ký tự")
-    private String model;
+    @NotNull(message = "Model xe không được để trống")
+    private Integer maModel;
 
     private Integer namSanXuat;
 
@@ -43,11 +45,13 @@ public class CreateVehicleRequest {
     public String getBienSo() { return bienSo; }
     public void setBienSo(String bienSo) { this.bienSo = bienSo; }
 
-    public String getHangXe() { return hangXe; }
-    public void setHangXe(String hangXe) { this.hangXe = hangXe; }
+    public Integer getMaHangXe() { return maHangXe; }
+    public void setMaHangXe(Integer maHangXe) { this.maHangXe = maHangXe; }
 
-    public String getModel() { return model; }
-    public void setModel(String model) { this.model = model; }
+    public void setHangXe(String hangXe) { /* fallback */ }
+
+    public Integer getMaModel() { return maModel; }
+    public void setMaModel(Integer maModel) { this.maModel = maModel; }
 
     public Integer getNamSanXuat() { return namSanXuat; }
     public void setNamSanXuat(Integer namSanXuat) { this.namSanXuat = namSanXuat; }

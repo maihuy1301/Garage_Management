@@ -2,12 +2,15 @@ package com.garage.service;
 
 import com.garage.dto.*;
 import com.garage.entity.KhachHang;
+import com.garage.entity.ModelXe;
 import com.garage.entity.NguoiDung;
 import com.garage.entity.Xe;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
+import com.garage.repository.HangXeRepository;
 import com.garage.repository.KhachHangRepository;
+import com.garage.repository.ModelXeRepository;
 import com.garage.repository.NguoiDungRepository;
 import com.garage.repository.XeRepository;
 import com.garage.security.CustomUserDetails;
@@ -27,13 +30,19 @@ public class VehicleService {
     private final XeRepository xeRepository;
     private final KhachHangRepository khachHangRepository;
     private final NguoiDungRepository nguoiDungRepository;
+    private final HangXeRepository hangXeRepository;
+    private final ModelXeRepository modelXeRepository;
 
     public VehicleService(XeRepository xeRepository,
                           KhachHangRepository khachHangRepository,
-                          NguoiDungRepository nguoiDungRepository) {
+                          NguoiDungRepository nguoiDungRepository,
+                          HangXeRepository hangXeRepository,
+                          ModelXeRepository modelXeRepository) {
         this.xeRepository = xeRepository;
         this.khachHangRepository = khachHangRepository;
         this.nguoiDungRepository = nguoiDungRepository;
+        this.hangXeRepository = hangXeRepository;
+        this.modelXeRepository = modelXeRepository;
     }
 
     // =========================================================
@@ -58,8 +67,8 @@ public class VehicleService {
         // CUSTOMER — filter theo owner
         KhachHang customer = getAuthenticatedCustomer(auth);
         return xeRepository.findByKhachHangMaKhachHang(customer.getMaKhachHang()).stream()
-                .map(this::mapToVehicleResponse)
-                .collect(Collectors.toList());
+                    .map(this::mapToVehicleResponse)
+                    .collect(Collectors.toList());
     }
 
     /**
@@ -92,9 +101,7 @@ public class VehicleService {
 
     /**
      * Tạo xe mới.
-     * SYSTEM_ADMIN → phải cung cấp maKhachHang trong request (admin flow — handled by AdminVehicleService or via separate endpoint).
-     *               Trong task này, SYSTEM_ADMIN tạo xe cũng theo flow customer: phải được assign customer.
-     * CUSTOMER → owner tự động lấy từ JWT.
+     * Validate bắt buộc ModelXe tồn tại và ModelXe.MaHangXe == request.maHangXe.
      */
     @Transactional
     public VehicleResponse createVehicle(CreateVehicleRequest request) {
@@ -102,16 +109,17 @@ public class VehicleService {
 
         KhachHang owner;
         if (isSystemAdmin(auth)) {
-            // SYSTEM_ADMIN phải gửi maKhachHang khi tạo xe
             if (request.getMaKhachHang() == null) {
                 throw new BadRequestException("ADMIN phải cung cấp maKhachHang khi tạo xe");
             }
             owner = khachHangRepository.findById(request.getMaKhachHang())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy khách hàng với ID: " + request.getMaKhachHang()));
         } else {
-            // CUSTOMER → owner từ JWT
             owner = getAuthenticatedCustomer(auth);
         }
+
+        // Validate Brand & Model relationship
+        ModelXe modelXe = validateBrandAndModel(request.getMaHangXe(), request.getMaModel());
 
         validateBienSoUnique(request.getBienSo(), null);
         if (request.getSoVIN() != null && !request.getSoVIN().isBlank()) {
@@ -121,8 +129,7 @@ public class VehicleService {
         Xe xe = new Xe();
         xe.setKhachHang(owner);
         xe.setBienSo(request.getBienSo().trim());
-        xe.setHangXe(request.getHangXe());
-        xe.setModel(request.getModel());
+        xe.setModelXe(modelXe);
         xe.setNamSanXuat(request.getNamSanXuat());
         xe.setMauXe(request.getMauXe());
         xe.setSoVIN(request.getSoVIN());
@@ -167,7 +174,6 @@ public class VehicleService {
      * Xóa xe.
      * SYSTEM_ADMIN → bất kỳ xe (nếu không có business dependency).
      * CUSTOMER → chỉ xe của chính mình (nếu không có business dependency).
-     * Nếu xe đã có DatLich / PhieuTiepNhan → database constraint sẽ chặn → trả lỗi phù hợp.
      */
     @Transactional
     public void deleteVehicle(Integer id) {
@@ -199,6 +205,21 @@ public class VehicleService {
     // Private Helpers
     // =========================================================
 
+    private ModelXe validateBrandAndModel(Integer maHangXe, Integer maModel) {
+        if (maModel == null) {
+            throw new BadRequestException("Mã Model xe không được để trống");
+        }
+        ModelXe model = modelXeRepository.findById(maModel)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy model xe với ID: " + maModel));
+
+        if (maHangXe != null) {
+            if (model.getHangXe() == null || !model.getHangXe().getMaHangXe().equals(maHangXe)) {
+                throw new BadRequestException("Model xe ID " + maModel + " ('" + model.getTenModel() + "') không thuộc hãng xe ID " + maHangXe);
+            }
+        }
+        return model;
+    }
+
     private KhachHang getAuthenticatedCustomer(Authentication auth) {
         NguoiDung user = getAuthenticatedUser(auth);
         return khachHangRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung())
@@ -224,7 +245,7 @@ public class VehicleService {
         if (auth == null) return false;
         return auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_ADMIN"::equals);
+                .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ROLE_MANAGER".equals(r));
     }
 
     private void validateBienSoUnique(String bienSo, Integer excludeId) {
@@ -240,8 +261,10 @@ public class VehicleService {
     }
 
     private void applyVehicleUpdate(Xe xe, UpdateVehicleRequest request) {
-        if (request.getHangXe() != null) xe.setHangXe(request.getHangXe());
-        if (request.getModel() != null) xe.setModel(request.getModel());
+        if (request.getMaModel() != null) {
+            ModelXe modelXe = validateBrandAndModel(request.getMaHangXe(), request.getMaModel());
+            xe.setModelXe(modelXe);
+        }
         if (request.getNamSanXuat() != null) xe.setNamSanXuat(request.getNamSanXuat());
         if (request.getMauXe() != null) xe.setMauXe(request.getMauXe());
         if (request.getSoVIN() != null) xe.setSoVIN(request.getSoVIN());
@@ -254,13 +277,30 @@ public class VehicleService {
         if (kh != null && kh.getNguoiDung() != null) {
             tenChuXe = kh.getNguoiDung().getHoTen();
         }
+
+        Integer maHangXe = null;
+        String tenHangXe = null;
+        Integer maModel = null;
+        String tenModel = null;
+
+        if (xe.getModelXe() != null) {
+            maModel = xe.getModelXe().getMaModel();
+            tenModel = xe.getModelXe().getTenModel();
+            if (xe.getModelXe().getHangXe() != null) {
+                maHangXe = xe.getModelXe().getHangXe().getMaHangXe();
+                tenHangXe = xe.getModelXe().getHangXe().getTenHangXe();
+            }
+        }
+
         return new VehicleResponse(
                 xe.getMaXe(),
                 kh != null ? kh.getMaKhachHang() : null,
                 tenChuXe,
                 xe.getBienSo(),
-                xe.getHangXe(),
-                xe.getModel(),
+                maHangXe,
+                tenHangXe,
+                maModel,
+                tenModel,
                 xe.getNamSanXuat(),
                 xe.getMauXe(),
                 xe.getSoVIN(),
