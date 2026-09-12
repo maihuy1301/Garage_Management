@@ -215,16 +215,8 @@
 
 ## 4. Database
 - Schema: `database/GarageManagementSystem.sql` (SQL Server DDL — single source of truth. **KHÔNG sửa nếu chưa được duyệt**).
-- Seed: `database/seed/V01__development_seed.sql`.
-  - Bám schema identity hiện tại: `ChiNhanh`, `NhanVien`, `KhachHang` chỉ dùng khóa chính số; seed không dùng các cột code legacy. Chi nhánh được resolve bằng email ổn định, khách hàng/nhân viên qua `NguoiDung.TenDangNhap`.
-  - `DichVu` chứa trực tiếp `MaChiNhanh` và `DonGia`; seed không dùng bảng legacy `GiaDichVuChiNhanh`. `PhuTung` được seed riêng theo từng `MaChiNhanh`.
-  - 2 branches: `Garage Central Chi Nhánh 1`, `Garage Chi Nhánh 2 Bình Thạnh`.
-  - 5 roles: `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_TECHNICIAN`, `ROLE_CUSTOMER`.
-  - 8 dev accounts (BCrypt `Password123@`): `admin`, `manager`, `receptionist`, `technician`, `manager2`, `technician2`, `customer`, `customer2`.
-  - 2 seed vehicles: `51A-11111` (`customer`), `51B-22222` (`customer2`).
-  - 2 seed appointments, 3 branch services, 6 branch parts và 6 inventory rows.
-  - Fresh-schema validation ngày 2026-09-05: schema tạo thành công; seed chạy lặp hai lần không nhân bản dữ liệu; xác nhận `KhachHang.MaKhachHangCode` không tồn tại.
-- Cảnh báo đồng bộ: Docker volume local hiện tại và nhiều mapping/service backend vẫn theo schema legacy (`MaChiNhanhCode`, `MaNhanVienCode`, `GiaDichVuChiNhanh`). Seed nguồn đã theo schema mới nhưng chưa được chạy lên volume legacy; cần migration/backend refactor riêng trước khi thay DB đang dùng.
+- Docker init chỉ thực thi `GarageManagementSystem.sql` khi database chưa tồn tại. Hai seed mẫu cũ `V01__development_seed.sql` và `V02__restore_original_roles.sql` đã bị loại khỏi project và không còn được Docker tham chiếu.
+- Cảnh báo đồng bộ: Docker volume local đã được khởi tạo lại từ schema nguồn ngày 2026-09-12 (32 bảng, 0 dòng, không có `GiaDichVuChiNhanh`), nhưng nhiều mapping/service backend vẫn theo schema legacy (`MaChiNhanhCode`, `MaNhanVienCode`, `GiaDichVuChiNhanh`) và cần refactor riêng.
 
 ## 5. Nhật ký tiến độ
 - **TASK 01** (COMPLETED): Project Foundation.
@@ -256,7 +248,7 @@
 - **FRONTEND TASK 05** (COMPLETED): User / Employee / Customer Management (Full CRUD interfaces, dynamic filters, detail & form modals, status toggles, branch constraints, RoleGuard protection for `/app/employees`, `/app/customers`, `/app/users`) — PASS.
 - **FRONTEND TASK 06** (COMPLETED): Vehicle Management (Full CRUD interfaces, customer ownership isolation, license plate & VIN validation, detail & form & delete modals, RoleGuard protection for `/app/vehicles` for `ROLE_ADMIN` & `ROLE_CUSTOMER`) — PASS.
 - **FRONTEND TASK 07** (COMPLETED): Appointment Management (role-scoped list and KPIs, search/status/branch/date filters, detail modal backed by `GET /api/appointments/{id}`, create flow for `ROLE_ADMIN`/`ROLE_CUSTOMER`, cancel/confirm/receive theo quyền backend, loading/error/empty states, Customer & Branch isolation, RoleGuard protection for `/app/appointments` for `ROLE_ADMIN`, `ROLE_MANAGER`, `ROLE_FRONT_DESK`, `ROLE_CUSTOMER`) — frontend production build PASS; repository ESLint script is currently missing an ESLint configuration.
-- **INFRASTRUCTURE TASK 01** (COMPLETED): Docker Development Environment (Docker Compose orchestration, multi-stage Spring Boot Dockerfile, React/Vite dev Dockerfile, MS SQL Server 2022 container with automatic DB schema + seed initialization via entrypoint script, named volume persistence `garage-sqlserver-data`, bridge network `garage-network`) — PASS.
+- **INFRASTRUCTURE TASK 01** (COMPLETED): Docker Development Environment (Docker Compose orchestration, multi-stage Spring Boot Dockerfile, React/Vite dev Dockerfile, MS SQL Server 2022 container with schema-only initialization via entrypoint script, named volume persistence `garage-sqlserver-data`, bridge network `garage-network`) — PASS.
 - **MOBILE CUSTOMER REGISTRATION & LOGIN PIN STATE** (COMPLETED): Public `/api/auth/register`, fixed `ROLE_CUSTOMER`, BCrypt + transactional account/profile creation without `MaKhachHangCode`, Flutter registration screen and login handoff, `/api/auth/login` and `/api/auth/me` expose `hasPin` from `NguoiDung.MaPinHash` — 87 targeted backend tests PASS, backend compile PASS, 6 Flutter tests PASS, `flutter analyze` clean.
 
 ## 6. Frontend Status & Architecture
@@ -305,7 +297,7 @@
 
 ## 8. Docker Infrastructure & LAN Networking Status
 - **Docker Compose**: `docker-compose.yml` defining `garage-frontend` (:3001), `garage-backend` (:8080), `garage-sqlserver` (:1433), connected via `garage-network`.
-- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageManagementSystem.sql` + `V01__development_seed.sql` + `V02__restore_original_roles.sql` only on first run if DB does not exist. Client devices in LAN do not require local SQL Server.
+- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing only `GarageManagementSystem.sql` on first run if DB does not exist. Client devices in LAN do not require local SQL Server.
 - **Backend Service**: Multi-stage `maven:3.9-eclipse-temurin-17` builder and `eclipse-temurin:17-jre-jammy` runner. Configurable `CORS_ALLOWED_ORIGIN_PATTERNS` supporting `*` and LAN host origins.
 - **Frontend Service**: `node:20-alpine` running Vite dev server bound to `0.0.0.0:3001` with dynamic hostname resolution in `env.ts` (`http://<HOST_IP>:8080/api` and `ws://<HOST_IP>:8080/ws`) for cross-device LAN development.
 - **Secrets & Configuration**: `.env.example` at root, `.gitignore` protecting `.env` and sensitive build/log files.

@@ -2,10 +2,9 @@ FROM mcr.microsoft.com/mssql/server:2022-latest
 
 USER root
 
-# Create init directory and copy SQL initialization and seed scripts
+# Create init directory and copy the schema initialization script
 WORKDIR /docker-init
 COPY GarageManagementSystem.sql /docker-init/
-COPY seed /docker-init/seed/
 COPY entrypoint.sh /docker-init/
 
 RUN chmod +x /docker-init/entrypoint.sh

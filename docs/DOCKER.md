@@ -31,7 +31,7 @@ Tài liệu hướng dẫn triển khai và vận hành tầng hạ tầng (Infr
 
 | Tên Service | Container Name | Công nghệ | Cổng Host | Cổng Container | Mô tả |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`sqlserver`** | `garage-sqlserver` | Microsoft SQL Server 2022 | `1433` | `1433` | Database chính. Khởi tạo schema và seed data tự động nếu DB chưa tồn tại. Lưu dữ liệu persistent trên volume `garage-sqlserver-data`. |
+| **`sqlserver`** | `garage-sqlserver` | Microsoft SQL Server 2022 | `1433` | `1433` | Database chính. Chỉ chạy `GarageManagementSystem.sql` nếu DB chưa tồn tại; không tự động nạp seed. Lưu dữ liệu persistent trên volume `garage-sqlserver-data`. |
 
 * **Backend** và **Frontend** chạy trực tiếp trên máy host để tối ưu hiệu năng phát triển và hot reload.
 
@@ -65,18 +65,9 @@ npm run dev
 
 ---
 
-## 3. Tài khoản kiểm thử mặc định (Default Test Accounts)
+## 3. Dữ liệu khởi tạo
 
-Tất cả tài khoản trong seed data có mật khẩu: `Password123@`
-
-| Vai trò (Role) | Username | Password | Chi nhánh |
-| :--- | :--- | :--- | :--- |
-| **System Admin** | `admin` | `Password123@` | Toàn hệ thống (Global) |
-| **Branch Manager (CN001)** | `manager` | `Password123@` | CN001 - Central Chi Nhánh 1 |
-| **Branch Manager (CN002)** | `manager2` | `Password123@` | CN002 - Chi Nhánh 2 Bình Thạnh |
-| **Receptionist / Front Desk** | `receptionist` | `Password123@` | CN001 - Central Chi Nhánh 1 |
-| **Technician** | `technician` | `Password123@` | CN001 - Central Chi Nhánh 1 |
-| **Customer** | `customer` | `Password123@` | Khách hàng |
+Docker không còn tự động tạo tài khoản hoặc dữ liệu mẫu. Khi database chưa tồn tại, entrypoint chỉ thực thi `database/GarageManagementSystem.sql`.
 
 ---
 
@@ -102,7 +93,7 @@ docker compose down -v
 
 - Dữ liệu của SQL Server được lưu trong Docker Named Volume `garage-sqlserver-data`.
 - Khi bạn chạy `docker compose down` và sau đó `docker compose up`, toàn bộ bảng biểu và dữ liệu đã phát sinh **không bị mất**.
-- Script `database/entrypoint.sh` sẽ kiểm tra nếu DB `GarageManagementSystem` đã tồn tại thì sẽ bỏ qua bước nạp init schema/seed, bảo toàn 100% dữ liệu mới nhất.
+- Script `database/entrypoint.sh` sẽ kiểm tra nếu DB `GarageManagementSystem` đã tồn tại thì bỏ qua `GarageManagementSystem.sql`, bảo toàn 100% dữ liệu mới nhất.
 - Khi muốn **làm mới hoàn toàn** (fresh start):
   ```bash
   docker compose down -v

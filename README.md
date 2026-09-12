@@ -49,9 +49,7 @@ AUTO_GARAGE/
 ├── frontend/             # React + Vite foundation
 ├── mobile/               # Flutter customer/technician app foundation
 ├── database/
-│   ├── GarageManagementSystem.sql       # SQL Server DDL schema (source of truth)
-│   └── seed/
-│       └── V01__development_seed.sql    # 5 roles, 8 dev accounts, 2 branches (BCrypt)
+│   └── GarageManagementSystem.sql       # SQL Server DDL schema and the only Docker init script
 └── docs/PROJECT_CONTEXT.md
 ```
 
@@ -109,6 +107,9 @@ npm run dev
 | Mobile App | Flutter CLI | — | Flutter / Android / iOS |
 
 ## 5. Development Test Accounts (Password: `Password123@`)
+
+Các tài khoản dưới đây là dữ liệu development trước đây và **không còn được Docker tự động tạo**. Database khởi tạo mới từ `GarageManagementSystem.sql` hiện không có tài khoản mẫu.
+
 | Username | Role | Branch | Records |
 |---|---|---|---|
 | `admin` | `ROLE_ADMIN` | Global | — |
@@ -120,7 +121,10 @@ npm run dev
 | `customer` | `ROLE_CUSTOMER` | — | `KhachHang`, `Xe` (51A-11111) |
 | `customer2` | `ROLE_CUSTOMER` | — | `KhachHang`, `Xe` (51B-22222) |
 
-## 6. Seed Vehicles (TASK 07)
+## 6. Development Sample Vehicles (TASK 07)
+
+Các xe mẫu dưới đây cũng không còn được Docker tự động tạo.
+
 | Biển số | Owner | Hãng xe | Model | Năm |
 |---|---|---|---|---|
 | `51A-11111` | `customer` | Toyota | Camry | 2020 |
