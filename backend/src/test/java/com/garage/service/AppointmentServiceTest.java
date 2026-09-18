@@ -9,6 +9,7 @@ import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.*;
 import com.garage.security.BranchAuthorizationService;
 import com.garage.security.CustomUserDetails;
+import com.garage.websocket.WebSocketEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,6 +56,9 @@ class AppointmentServiceTest {
 
     @Mock
     private BranchAuthorizationService branchAuthorizationService;
+
+    @Mock
+    private WebSocketEventPublisher webSocketEventPublisher;
 
     @InjectMocks
     private AppointmentService appointmentService;

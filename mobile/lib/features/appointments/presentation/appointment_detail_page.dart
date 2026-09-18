@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +28,7 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
   bool _isLoading = true;
   String? _error;
   AppointmentBookingResult? _appointment;
+  Timer? _refreshTimer;
 
   @override
   void didChangeDependencies() {
@@ -34,6 +37,10 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
     _gateway = widget.gateway ?? context.read<AppointmentGateway>();
     _initialized = true;
     _load();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _refreshSilently(),
+    );
   }
 
   Future<void> _load() async {
@@ -56,6 +63,26 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _refreshSilently() async {
+    if (_isLoading || widget.appointmentId < 1) return;
+    try {
+      final appointment = await _gateway.loadAppointment(widget.appointmentId);
+      if (!mounted) return;
+      setState(() {
+        _appointment = appointment;
+        _error = null;
+      });
+    } on AppointmentException {
+      // Giữ trạng thái hiện tại để màn theo dõi không nhấp nháy khi mạng chập chờn.
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override

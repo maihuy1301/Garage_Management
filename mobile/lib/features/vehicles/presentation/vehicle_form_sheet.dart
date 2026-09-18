@@ -1,14 +1,30 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../data/vehicle_service.dart';
 import '../domain/vehicle_models.dart';
 
-Future<CustomerVehicle?> showVehicleFormSheet(
+class VehicleFormResult {
+  const VehicleFormResult(
+    this.vehicle, {
+    this.warning,
+    this.imageUploaded = false,
+  });
+
+  final CustomerVehicle vehicle;
+  final String? warning;
+  final bool imageUploaded;
+}
+
+Future<VehicleFormResult?> showVehicleFormSheet(
   BuildContext context,
   VehicleGateway gateway,
 ) {
-  return showModalBottomSheet<CustomerVehicle>(
+  return showModalBottomSheet<VehicleFormResult>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -26,7 +42,10 @@ class _VehicleFormSheet extends StatefulWidget {
 }
 
 class _VehicleFormSheetState extends State<_VehicleFormSheet> {
+  static const _maxImageBytes = 8 * 1024 * 1024;
+
   final _formKey = GlobalKey<FormState>();
+  final _imagePicker = ImagePicker();
   final _plate = TextEditingController();
   final _year = TextEditingController();
   final _color = TextEditingController();
@@ -41,6 +60,7 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
   bool _isSubmitting = false;
   String? _catalogError;
   String? _error;
+  XFile? _selectedImage;
 
   @override
   void initState() {
@@ -137,7 +157,29 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
           vin: _vin.text,
         ),
       );
-      if (mounted) Navigator.pop(context, vehicle);
+      String? warning;
+      var imageUploaded = false;
+      if (_selectedImage != null) {
+        try {
+          await widget.gateway.uploadVehicleImage(
+            vehicle.id,
+            _selectedImage!.path,
+          );
+          imageUploaded = true;
+        } on VehicleException catch (error) {
+          warning = 'Xe đã được tạo nhưng ảnh chưa tải lên: ${error.message}';
+        }
+      }
+      if (mounted) {
+        Navigator.pop(
+          context,
+          VehicleFormResult(
+            vehicle,
+            warning: warning,
+            imageUploaded: imageUploaded,
+          ),
+        );
+      }
     } on VehicleException catch (error) {
       if (mounted) setState(() => _error = error.message);
     } finally {
@@ -151,25 +193,105 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
         : null;
   }
 
-  Future<void> _showImageContractNotice() {
+  Future<void> _chooseImageSource() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Thêm ảnh hồ sơ xe',
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Chụp ảnh'),
+                subtitle: const Text('Mở camera trên thiết bị'),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Chọn từ thư viện'),
+                subtitle: const Text('JPEG, PNG hoặc WebP, tối đa 8 MB'),
+                onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+
+    if (source == ImageSource.camera) {
+      final permission = await Permission.camera.request();
+      if (!permission.isGranted) {
+        if (mounted) await _showCameraPermissionDialog(permission);
+        return;
+      }
+    }
+
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 82,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+      if (image == null) return;
+      if (await image.length() > _maxImageBytes) {
+        if (mounted) {
+          setState(() => _error = 'Ảnh xe không được vượt quá 8 MB.');
+        }
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _selectedImage = image;
+          _error = null;
+        });
+      }
+    } on Object {
+      if (mounted) {
+        setState(() => _error = 'Không thể mở ảnh. Vui lòng thử lại.');
+      }
+    }
+  }
+
+  Future<void> _showCameraPermissionDialog(PermissionStatus status) {
+    final canOpenSettings = status.isPermanentlyDenied || status.isRestricted;
     return showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: const Icon(
-          Icons.add_a_photo_outlined,
-          color: AppColors.primaryContainer,
+          Icons.no_photography_outlined,
+          color: AppColors.warning,
         ),
-        title: const Text('Ảnh xe chưa thể tải lên'),
+        title: const Text('Cần quyền sử dụng camera'),
         content: const Text(
-          'API xe hiện tại chưa hỗ trợ lưu ảnh hoặc giấy đăng kiểm. '
-          'Bạn vẫn có thể thêm xe bằng các thông tin trong form; '
-          'tính năng ảnh sẽ được mở khi backend có endpoint phù hợp.',
+          'AutoCare cần quyền camera để chụp ảnh xe hoặc giấy đăng kiểm. '
+          'Bạn vẫn có thể chọn ảnh từ thư viện.',
         ),
         actions: [
-          FilledButton(
+          TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Đã hiểu'),
+            child: const Text('Để sau'),
           ),
+          if (canOpenSettings)
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                await openAppSettings();
+              },
+              child: const Text('Mở cài đặt'),
+            ),
         ],
       ),
     );
@@ -498,7 +620,9 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
                 optional: true,
                 child: _VehicleImagePlaceholder(
                   enabled: !_isSubmitting,
-                  onTap: _showImageContractNotice,
+                  selectedImage: _selectedImage,
+                  onTap: _chooseImageSource,
+                  onRemove: () => setState(() => _selectedImage = null),
                 ),
               ),
               if (_error != null) ...[
@@ -630,17 +754,24 @@ class _VehicleFormField extends StatelessWidget {
 }
 
 class _VehicleImagePlaceholder extends StatelessWidget {
-  const _VehicleImagePlaceholder({required this.enabled, required this.onTap});
+  const _VehicleImagePlaceholder({
+    required this.enabled,
+    required this.selectedImage,
+    required this.onTap,
+    required this.onRemove,
+  });
 
   final bool enabled;
+  final XFile? selectedImage;
   final VoidCallback onTap;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
       enabled: enabled,
-      label: 'Thông tin tải ảnh xe',
+      label: selectedImage == null ? 'Thêm ảnh xe' : 'Thay đổi ảnh xe',
       child: InkWell(
         key: const ValueKey('vehicle-image-placeholder'),
         onTap: enabled ? onTap : null,
@@ -650,73 +781,123 @@ class _VehicleImagePlaceholder extends StatelessWidget {
             color: const Color(0xFFCBD5E1),
             radius: 12,
           ),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC).withValues(alpha: 0.72),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: const Icon(
-                    Icons.add_a_photo_outlined,
-                    color: AppColors.primaryContainer,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: selectedImage != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Stack(
                     children: [
-                      Text(
-                        'Chụp ảnh hoặc chọn file',
-                        style: TextStyle(
-                          color: Color(0xFF1E293B),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Image.file(
+                          File(selectedImage!.path),
+                          key: const ValueKey('vehicle-image-preview'),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Cần API lưu ảnh để kích hoạt',
-                        style: TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 10,
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: IconButton.filledTonal(
+                          tooltip: 'Bỏ ảnh đã chọn',
+                          onPressed: enabled ? onRemove : null,
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ),
+                      const Positioned(
+                        left: 10,
+                        bottom: 10,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color(0xB3000000),
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            child: Text(
+                              'Nhấn để thay đổi ảnh',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC).withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: const Icon(
+                          Icons.add_a_photo_outlined,
+                          color: AppColors.primaryContainer,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Chụp ảnh hoặc chọn file',
+                              style: TextStyle(
+                                color: Color(0xFF1E293B),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'JPEG, PNG hoặc WebP • tối đa 8 MB',
+                              style: TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Tải lên',
+                          style: TextStyle(
+                            color: AppColors.primaryContainer,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEF2FF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Tải lên',
-                    style: TextStyle(
-                      color: AppColors.primaryContainer,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

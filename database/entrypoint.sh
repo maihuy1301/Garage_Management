@@ -43,6 +43,15 @@ SQLCMD=$(find_sqlcmd)
             echo "-> Executing /docker-init/GarageManagementSystem.sql..."
             $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -i /docker-init/GarageManagementSystem.sql
         fi
+
+        if [ -d /docker-init/seed ]; then
+            for seed_file in /docker-init/seed/*.sql; do
+                if [ -f "$seed_file" ]; then
+                    echo "-> Executing $seed_file..."
+                    $SQLCMD -S localhost -U sa -P "$SA_PASSWORD" -i "$seed_file"
+                fi
+            done
+        fi
         echo "Database initialization completed successfully!"
     fi
 ) &

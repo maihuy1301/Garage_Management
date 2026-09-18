@@ -78,25 +78,30 @@ public class VehicleService {
      */
     @Transactional(readOnly = true)
     public VehicleResponse getVehicleById(Integer id) {
+        return mapToVehicleResponse(requireAccessibleVehicle(id));
+    }
+
+    /**
+     * Trả về xe sau khi đã kiểm tra quyền theo JWT. Dùng chung cho các module con
+     * của hồ sơ xe như ảnh đại diện, không nhận ownership từ client.
+     */
+    @Transactional(readOnly = true)
+    public Xe requireAccessibleVehicle(Integer id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (isSystemAdmin(auth)) {
-            Xe xe = xeRepository.findById(id)
+            return xeRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy xe với ID: " + id));
-            return mapToVehicleResponse(xe);
         }
 
         KhachHang customer = getAuthenticatedCustomer(auth);
-        // Query trực tiếp theo owner — không thể leak xe của customer khác
-        Xe xe = xeRepository.findByMaXeAndKhachHangMaKhachHang(id, customer.getMaKhachHang())
+        return xeRepository.findByMaXeAndKhachHangMaKhachHang(id, customer.getMaKhachHang())
                 .orElseThrow(() -> {
-                    // Kiểm tra xe có tồn tại không để trả đúng 404 vs 403
                     if (xeRepository.existsById(id)) {
                         return new AccessDeniedException("Forbidden: Bạn không có quyền truy cập xe này");
                     }
                     return new ResourceNotFoundException("Không tìm thấy xe với ID: " + id);
                 });
-        return mapToVehicleResponse(xe);
     }
 
     /**

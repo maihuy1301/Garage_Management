@@ -11,9 +11,17 @@ import { AppointmentCancelModal } from '../components/AppointmentCancelModal';
 import { CheckInModal } from '@/features/reception/components/CheckInModal';
 import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { Button } from '@/components/common/Button';
+import { wsClient } from '@/lib/websocket/websocket-client';
+
+interface AppointmentRealtimeEvent {
+  eventType?: string;
+  entityType?: string;
+  entityId?: number | string;
+  payload?: AppointmentResponse;
+}
 
 export const AppointmentsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const isAdmin = user?.roles?.includes('ROLE_ADMIN');
   const isManager = user?.roles?.includes('ROLE_MANAGER');
   const isFrontDesk = user?.roles?.includes('ROLE_FRONT_DESK');
@@ -84,6 +92,51 @@ export const AppointmentsPage: React.FC = () => {
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const destinations = new Set<string>();
+    if (isCustomer) {
+      destinations.add('/user/queue/notifications');
+    }
+    if (isAdmin) {
+      branches.forEach((branch) => destinations.add(`/topic/branches/${branch.maChiNhanh}`));
+    } else if ((isManager || isFrontDesk) && user.maChiNhanh) {
+      destinations.add(`/topic/branches/${user.maChiNhanh}`);
+    }
+    if (destinations.size === 0) return;
+
+    wsClient.connect(token);
+    const handleAppointmentEvent = (payload: unknown) => {
+      const event = payload as AppointmentRealtimeEvent;
+      if (event.entityType !== 'DAT_LICH') return;
+
+      if (event.payload?.maDatLich) {
+        setAppointments((current) => {
+          const exists = current.some((item) => item.maDatLich === event.payload!.maDatLich);
+          return exists
+            ? current.map((item) => item.maDatLich === event.payload!.maDatLich ? event.payload! : item)
+            : [event.payload!, ...current];
+        });
+        setSelectedDetail((current) =>
+          current?.maDatLich === event.payload!.maDatLich ? event.payload! : current
+        );
+        setLastUpdated(new Date().toLocaleTimeString('vi-VN'));
+        return;
+      }
+
+      fetchAppointments();
+    };
+
+    const unsubscribers = Array.from(destinations).map((destination) =>
+      wsClient.subscribe(destination, handleAppointmentEvent)
+    );
+
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [branches, fetchAppointments, isAdmin, isCustomer, isFrontDesk, isManager, token, user]);
 
   // Toast timer
   useEffect(() => {

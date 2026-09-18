@@ -20,7 +20,7 @@ public class PhieuSuaChuaDichVu {
     @JoinColumn(name = "MaDichVu", nullable = false)
     private DichVu dichVu;
 
-    @Column(name = "SoLuong")
+    @Transient
     private Integer soLuong = 1;
 
     @Column(name = "DonGia", nullable = false, precision = 18, scale = 2)

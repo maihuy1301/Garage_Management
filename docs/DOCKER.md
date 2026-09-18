@@ -31,7 +31,7 @@ Tài liệu hướng dẫn triển khai và vận hành tầng hạ tầng (Infr
 
 | Tên Service | Container Name | Công nghệ | Cổng Host | Cổng Container | Mô tả |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`sqlserver`** | `garage-sqlserver` | Microsoft SQL Server 2022 | `1433` | `1433` | Database chính. Chỉ chạy `GarageManagementSystem.sql` nếu DB chưa tồn tại; không tự động nạp seed. Lưu dữ liệu persistent trên volume `garage-sqlserver-data`. |
+| **`sqlserver`** | `garage-sqlserver` | Microsoft SQL Server 2022 | `1433` | `1433` | Database chính. Chỉ chạy `GarageManagementSystem.sql` và seed development nếu DB chưa tồn tại. Lưu dữ liệu persistent trên volume `garage-sqlserver-data`. |
 
 * **Backend** và **Frontend** chạy trực tiếp trên máy host để tối ưu hiệu năng phát triển và hot reload.
 
@@ -67,7 +67,23 @@ npm run dev
 
 ## 3. Dữ liệu khởi tạo
 
-Docker không còn tự động tạo tài khoản hoặc dữ liệu mẫu. Khi database chưa tồn tại, entrypoint chỉ thực thi `database/GarageManagementSystem.sql`.
+Khi database chưa tồn tại, entrypoint thực thi `database/GarageManagementSystem.sql`, sau đó chạy các seed trong `database/seed/*.sql`. Seed development hiện tại tạo role, chi nhánh, tài khoản mẫu, khách hàng, xe, hãng/model, dịch vụ giá chung, phụ tùng và tồn kho tối thiểu.
+
+Nếu database đã tồn tại trong volume `garage-sqlserver-data`, entrypoint bỏ qua cả schema và seed để bảo toàn dữ liệu hiện có.
+
+### Nạp seed cho database đã tồn tại
+
+Nếu volume đã có database nhưng thiếu dữ liệu mẫu, có thể chạy seed idempotent thủ công sau khi SQL Server đã sẵn sàng. Lệnh này chỉ insert dữ liệu còn thiếu, không xóa dữ liệu và không sửa schema:
+
+```powershell
+.\database\apply-dev-seed.ps1
+```
+
+Nếu dùng port hoặc mật khẩu khác:
+
+```powershell
+.\database\apply-dev-seed.ps1 -Server "localhost,1434" -Password "<SQLSERVER_PASSWORD>"
+```
 
 ---
 

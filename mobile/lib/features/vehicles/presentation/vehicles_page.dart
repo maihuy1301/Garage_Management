@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -47,17 +49,26 @@ class _VehiclesPageState extends State<VehiclesPage> {
   }
 
   Future<void> _addVehicle() async {
-    final created = await showVehicleFormSheet(context, _gateway);
-    if (created == null || !mounted) return;
+    final result = await showVehicleFormSheet(context, _gateway);
+    if (result == null || !mounted) return;
+    final created = result.vehicle;
     setState(
       () => _vehicles = [
         created,
         ..._vehicles.where((item) => item.id != created.id),
       ],
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Đã thêm xe thành công.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.warning ??
+              (result.imageUploaded
+                  ? 'Đã thêm xe và ảnh hồ sơ thành công.'
+                  : 'Đã thêm xe thành công.'),
+        ),
+        backgroundColor: result.warning == null ? null : AppColors.warning,
+      ),
+    );
   }
 
   @override
@@ -148,6 +159,7 @@ class _VehiclesPageState extends State<VehiclesPage> {
               for (final vehicle in _vehicles) ...[
                 _VehicleCard(
                   vehicle: vehicle,
+                  gateway: _gateway,
                   onBook: () =>
                       context.go('/appointments?vehicleId=${vehicle.id}'),
                 ),
@@ -423,13 +435,41 @@ class _EmptyVehiclesCard extends StatelessWidget {
   }
 }
 
-class _VehicleCard extends StatelessWidget {
-  const _VehicleCard({required this.vehicle, required this.onBook});
+class _VehicleCard extends StatefulWidget {
+  const _VehicleCard({
+    required this.vehicle,
+    required this.gateway,
+    required this.onBook,
+  });
+
   final CustomerVehicle vehicle;
+  final VehicleGateway gateway;
   final VoidCallback onBook;
 
   @override
+  State<_VehicleCard> createState() => _VehicleCardState();
+}
+
+class _VehicleCardState extends State<_VehicleCard> {
+  late Future<Uint8List?> _imageFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageFuture = widget.gateway.loadVehicleImage(widget.vehicle.id);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VehicleCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.vehicle.id != widget.vehicle.id) {
+      _imageFuture = widget.gateway.loadVehicleImage(widget.vehicle.id);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final vehicle = widget.vehicle;
     final title = vehicle.description.isEmpty
         ? 'Phương tiện của bạn'
         : vehicle.description;
@@ -448,12 +488,27 @@ class _VehicleCard extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                const Align(
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.directions_car_filled_rounded,
-                    size: 92,
-                    color: Color(0xFF7892D0),
+                Positioned.fill(
+                  child: FutureBuilder<Uint8List?>(
+                    future: _imageFuture,
+                    builder: (context, snapshot) {
+                      final bytes = snapshot.data;
+                      if (bytes != null && bytes.isNotEmpty) {
+                        return Image.memory(
+                          bytes,
+                          key: ValueKey('vehicle-image-${vehicle.id}'),
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
+                        );
+                      }
+                      return const Center(
+                        child: Icon(
+                          Icons.directions_car_filled_rounded,
+                          size: 92,
+                          color: Color(0xFF7892D0),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 Align(
@@ -583,7 +638,7 @@ class _VehicleCard extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: vehicle.isActive ? onBook : null,
+                    onPressed: vehicle.isActive ? widget.onBook : null,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.primaryContainer,
                       foregroundColor: Colors.white,

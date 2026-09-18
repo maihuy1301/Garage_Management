@@ -60,8 +60,10 @@
     - User Private: `/user/queue/notifications` (Spring User Destination prefix `/user`, simple broker `/queue`).
     - Branch Topic: `/topic/branches/{branchCode}` (Enforces branch authorization check against `BranchAuthorizationService.isAllowedBranchByCode(branchCode)` on `SUBSCRIBE`).
   - Integration: `NotificationService` calls `WebSocketEventPublisher` to push `RealtimeEvent` to the recipient user destination; wrapped in try-catch to guarantee database persistence safety even if client is offline.
+  - Appointment realtime (2026-09-15): `AppointmentService` phát `RealtimeEvent` với `entityType = DAT_LICH` sau khi tạo, hủy, xác nhận, tiếp nhận hoặc cập nhật trạng thái lịch hẹn. Event được gửi tới `/topic/branches/{maChiNhanh}` cho staff đúng chi nhánh và `/user/queue/notifications` của khách hàng liên quan. Frontend web dùng STOMP client tối giản để subscribe và tự cập nhật `/app/appointments`; Flutter tracking/detail tự refresh nền mỗi 8 giây.
   - Classes: `WebSocketConfig`, `WebSocketAuthChannelInterceptor`, `WebSocketEventPublisher`, `RealtimeEvent`.
 - **Notification Management (TASK 16)**:
+  - Mobile CUSTOMER (2026-09-17): `/notifications` đã thay placeholder bằng danh sách, số chưa đọc từ API, đọc từng mục/đọc tất cả, loading/error/empty/retry và pull-to-refresh. Page -> NotificationGateway/NotificationService -> ApiClient; giữ backend authority, không gửi owner/role/branch. Kết nối STOMP tới `/ws`, subscribe `/user/queue/notifications`, tải lại REST khi có `DAT_LICH` hoặc `THONG_BAO`, khi kết nối lại hoặc app resume; polling dự phòng 30 giây khi màn hình hoạt động. Hủy subscription/timer khi pause/dispose; tuần tự hóa tải và mutation, gộp sự kiện đến trong lúc bận. `flutter analyze` sạch, `flutter test` đạt 56/56 (17 test mới); chưa kiểm thử thiết bị/backend thật.
   - Base paths: `/api/notifications`, `/api/notifications/{id}`, `/api/notifications/unread-count`, `/api/notifications/read-all`.
   - Entities: `ThongBao`.
   - Workflow: Tạo thông báo runtime theo các business event (Lịch hẹn, Tiếp nhận, Báo giá, Sửa chữa, Hóa đơn, Thanh toán) -> Người dùng xem danh sách thông báo của chính mình (sắp xếp mới nhất trước) -> Đánh dấu đã đọc (`daDoc = true`) / Đánh dấu tất cả đã đọc -> Đếm số lượng thông báo chưa đọc.
@@ -83,7 +85,7 @@
   - Base paths: `/api/repair-orders/{repairOrderId}/quotations`, `/api/quotations/{quotationId}`.
   - Entities: `BaoGiaPhatSinh`, `BaoGiaPhatSinh_DichVu`, `BaoGiaPhatSinh_PhuTung`.
   - Workflow: Tạo báo giá phát sinh khi sửa chữa (`CHO_KHACH_DUYET`) -> Khách hàng xem và duyệt (`DA_DUYET`) hoặc từ chối (`TU_CHOI`) -> Quản lý/nhân viên có thể hủy (`HUY`).
-  - Server-side Price Calculation: Đơn giá dịch vụ được resolve từ `GiaDichVuChiNhanh`, đơn giá phụ tùng từ `PhuTung.giaBan`. Backend tự động tính `thanhTien = donGia * soLuong` và `tongTien = SUM(thanhTien)`. Client không thể override giá.
+  - Server-side Price Calculation: Đơn giá dịch vụ được resolve từ `DichVu.DonGia`, đơn giá phụ tùng từ `PhuTung.giaBan`. Backend tự động tính tổng tiền từ dữ liệu server. Client không thể override giá.
   - Status Protection & Immutability: Không thể duyệt/từ chối/hủy/chỉnh sửa báo giá đã ở trạng thái kết thúc (`DA_DUYET`, `TU_CHOI`, `HUY` -> 400 Bad Request). Không thể tạo báo giá cho phiếu đã `HUY` hoặc `HOAN_TAT`.
   - Ownership & RBAC: Customer chỉ được xem/duyệt/từ chối báo giá thuộc xe của chính mình (`NguoiDung -> KhachHang -> Xe -> PhieuTiepNhan -> PhieuSuaChua -> BaoGiaPhatSinh`). Customer khác truy cập -> 403 Forbidden. Staff tuân thủ `BranchAuthorizationService` và Technician Assignment.
   - Repositories: `BaoGiaPhatSinhRepository`, `BaoGiaPhatSinhDichVuRepository`, `BaoGiaPhatSinhPhuTungRepository`.
@@ -128,8 +130,8 @@
 - **Service / Repair Items Management (TASK 11)**:
   - Base path: `/api/repair-orders/{repairOrderId}/items`.
   - `POST /api/repair-orders/{repairOrderId}/items`: Thêm dịch vụ vào phiếu sửa chữa.
-  - Price resolution: Đơn giá được ưu tiên lấy tự động từ `GiaDichVuChiNhanh` của chi nhánh phiếu sửa chữa, hoặc đơn giá từ request nếu catalog chưa định nghĩa.
-  - Calculation: `ThanhTien = DonGia * SoLuong` (được tính toán tự động trên Backend).
+  - Price resolution: Đơn giá được ưu tiên lấy tự động từ `DichVu.DonGia`, hoặc đơn giá từ request nếu catalog chưa định nghĩa. Schema hiện tại không có bảng `GiaDichVuChiNhanh`; nếu cần bảng giá riêng theo chi nhánh thì phải được duyệt thay đổi schema riêng.
+  - Calculation: `ThanhTien = DonGia` theo computed column hiện tại của `PhieuSuaChua_DichVu`. API còn nhận/hiển thị `soLuong` để giữ tương thích DTO nhưng schema chưa lưu số lượng dịch vụ; muốn lưu `SoLuong` thật cần duyệt đổi schema riêng.
   - Duplicate prevention: Mỗi dịch vụ chỉ được xuất hiện tối đa 1 lần trong cùng một phiếu sửa chữa (409 Conflict).
   - Status protection: Chặn thêm/sửa/xóa dịch vụ khi phiếu sửa chữa đã ở trạng thái `HOAN_TAT` hoặc `HUY` (400 Bad Request).
   - `SYSTEM_ADMIN`: Toàn quyền xem, thêm, sửa, xóa trên mọi chi nhánh.
@@ -200,8 +202,8 @@
 | `NguoiDungRepository` | `NguoiDung` | `findByTenDangNhap`, `findByEmail`, `findByTenDangNhapOrEmail`, `existsByTenDangNhap`, `existsByEmail` |
 | `NguoiDungVaiTroRepository` | `NguoiDungVaiTro` | `findByNguoiDungMaNguoiDung`, `deleteByNguoiDungMaNguoiDung`, `countActiveUsersByRoleName` |
 | `VaiTroRepository` | `VaiTro` | `findByTenVaiTro` |
-| `ChiNhanhRepository` | `ChiNhanh` | `findByMaChiNhanhCode` |
-| `NhanVienRepository` | `NhanVien` | `findByNguoiDungMaNguoiDung`, `findByMaNhanVienCode`, `findByChiNhanhMaChiNhanh`, `existsByMaNhanVienCode`, `existsByNguoiDungMaNguoiDung` |
+| `ChiNhanhRepository` | `ChiNhanh` | `findByTrangThaiTrue` |
+| `NhanVienRepository` | `NhanVien` | `findByNguoiDungMaNguoiDung`, `findByChiNhanhMaChiNhanh`, `existsByNguoiDungMaNguoiDung` |
 | `KhachHangRepository` | `KhachHang` | `findByNguoiDungMaNguoiDung`, `existsByNguoiDungMaNguoiDung` |
 | `XeRepository` | `Xe` | `findByKhachHangMaKhachHang`, `findByMaXeAndKhachHangMaKhachHang`, `existsByBienSo`, `existsBySoVIN` |
 | `DatLichRepository` | `DatLich` | `findByKhachHangMaKhachHang`, `findByChiNhanhMaChiNhanh`, `findByMaDatLichAndKhachHangMaKhachHang`, `existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn` |
@@ -211,12 +213,11 @@
 | `PhanCongRepository` | `PhanCong` | `findByPhieuSuaChuaMaPhieuSuaChua`, `existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien`, `findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua`, `countByPhieuSuaChuaMaPhieuSuaChua`, `findByNhanVienMaNhanVien` |
 | `TienDoSuaChuaRepository` | `TienDoSuaChua` | `findByPhieuSuaChuaMaPhieuSuaChuaOrderByThoiGianDesc` |
 | `DichVuRepository` | `DichVu` | `findByTrangThaiTrue` |
-| `GiaDichVuChiNhanhRepository` | `GiaDichVuChiNhanh` | `findByChiNhanhMaChiNhanhAndDichVuMaDichVuAndTrangThaiTrue` |
 
 ## 4. Database
 - Schema: `database/GarageManagementSystem.sql` (SQL Server DDL — single source of truth. **KHÔNG sửa nếu chưa được duyệt**).
-- Docker init chỉ thực thi `GarageManagementSystem.sql` khi database chưa tồn tại. Hai seed mẫu cũ `V01__development_seed.sql` và `V02__restore_original_roles.sql` đã bị loại khỏi project và không còn được Docker tham chiếu.
-- Cảnh báo đồng bộ: Docker volume local đã được khởi tạo lại từ schema nguồn ngày 2026-09-12 (32 bảng, 0 dòng, không có `GiaDichVuChiNhanh`), nhưng nhiều mapping/service backend vẫn theo schema legacy (`MaChiNhanhCode`, `MaNhanVienCode`, `GiaDichVuChiNhanh`) và cần refactor riêng.
+- Docker init thực thi `GarageManagementSystem.sql` và sau đó `database/seed/V01__development_seed.sql` chỉ khi database chưa tồn tại. Nếu volume đã có database, entrypoint bỏ qua khởi tạo để bảo toàn dữ liệu.
+- Cảnh báo đồng bộ: Schema nguồn hiện có 32 bảng và không có `GiaDichVuChiNhanh`, `MaChiNhanhCode`, `MaNhanVienCode`. Seed development và code service/repair-item phải bám theo `DichVu.DonGia`; mọi nhu cầu bảng giá chi nhánh hoặc số lượng dịch vụ lưu bền vững cần duyệt đổi schema riêng.
 
 ## 5. Nhật ký tiến độ
 - **TASK 01** (COMPLETED): Project Foundation.
@@ -293,15 +294,17 @@
   - Các route cá nhân yêu cầu đăng nhập và bảo toàn route đích qua tham số `returnTo`.
 - **API base URL**: mặc định `http://10.0.2.2:8080/api` cho Android emulator; override bằng `--dart-define=API_BASE_URL=...` cho thiết bị/môi trường khác. Với Android thật qua USB, chạy `adb reverse tcp:8080 tcp:8080` và dùng `http://127.0.0.1:8080/api`.
 - **Android emulator graphics**: AVD `Pixel_10_Pro_XL` Android 17/API 37, page size 16 KB có thể bị SurfaceView đen dù Flutter widget tree và Dart VM vẫn hoạt động. Android debug manifest tắt Impeller để dùng Skia fallback. Ngày 2026-09-11, Android Studio đã ghi AVD trở lại `hw.gpu.mode=auto` và bật Fast Boot, làm lỗi tái diễn kèm ADB mất thiết bị; đã đặt `hw.gpu.mode=software`, `fastboot.forceColdBoot=yes`, `fastboot.forceFastBoot=no`, cold boot và xác minh launcher cùng AutoCare render bình thường. Bản release giữ renderer mặc định.
-- **Customer feature screens**: `/vehicles` đã dùng `GET/POST /api/vehicles` để xem và thêm xe chính chủ bằng form bottom sheet; mục “Xe của tôi”, CTA/nút `+` và dấu cộng lớn ở empty state cùng mở form. Form đăng ký xe bám bố cục Stitch với các trường hai cột, badge bảo mật, vùng nét đứt “Ảnh xe hoặc Giấy đăng kiểm”, CTA “Thêm xe vào danh sách” và khối trợ giúp. Hãng xe được tải từ `GET /api/brands`; khi chọn hãng, app tải model qua `GET /api/brands/{brandId}/models`, bắt buộc chọn cặp hợp lệ rồi gửi `maHangXe`/`maModel` trong `POST /api/vehicles`. Mobile không gửi `maKhachHang`; backend xác định owner từ JWT. Form có loading, retry, empty/error cho danh mục hãng-model. Vì `CreateVehicleRequest` hiện không có trường ảnh/upload/OCR, vùng ảnh chỉ giải thích giới hạn contract và không giả lập việc lưu ảnh. Card xe có nút “Đặt lịch ngay” chuyển sang `/appointments?vehicleId=...` và tự chọn xe tương ứng. `/vehicles` và `/appointments` dùng header/banner AutoCare phỏng theo tài liệu Stitch nhưng giữ thanh điều hướng hiện hành `Trang chủ / Đặt lịch / Theo dõi / Thông báo / Tài khoản`; route `/vehicles` đánh dấu đúng mục Tài khoản. Màn lịch hẹn tải xe/chi nhánh hoạt động, cho phép thêm xe ngay trong luồng rồi tự tải lại để hiện form đặt lịch, tạo lịch, hiển thị lịch của customer và hủy trạng thái `CHO_XAC_NHAN`/`DA_XAC_NHAN` qua quyền backend. `/tracking` đã thay placeholder bằng danh sách lịch hẹn và màn chi tiết `/tracking/{appointmentId}`; app đọc `GET /api/appointments` cùng `GET /api/appointments/{id}`, hiển thị timeline `CHO_XAC_NHAN`, `DA_XAC_NHAN`, `DA_TIEP_NHAN`, `HOAN_TAT`, hỗ trợ pull-to-refresh/loading/error/empty và không tự cập nhật trạng thái. Theo dõi phiếu sửa chữa chi tiết và notification vẫn là phase tiếp theo.
+- **Customer feature screens**: `/vehicles` đã dùng `GET/POST /api/vehicles` để xem và thêm xe chính chủ bằng form bottom sheet; mục “Xe của tôi”, CTA/nút `+` và dấu cộng lớn ở empty state cùng mở form. Form đăng ký xe bám bố cục Stitch với các trường hai cột, badge bảo mật, vùng “Ảnh xe hoặc Giấy đăng kiểm”, CTA “Thêm xe vào danh sách” và khối trợ giúp. Hãng xe được tải từ `GET /api/brands`; khi chọn hãng, app tải model qua `GET /api/brands/{brandId}/models`, bắt buộc chọn cặp hợp lệ rồi gửi `maHangXe`/`maModel` trong `POST /api/vehicles`. Mobile không gửi `maKhachHang`; backend xác định owner từ JWT. Form có loading, retry, empty/error cho danh mục hãng-model. Vùng ảnh cho phép chụp bằng camera hoặc chọn từ thư viện, xin quyền camera, xem trước, nén ở chất lượng 82 và tải lên sau khi tạo xe qua `POST /api/vehicles/{id}/image`; hỗ trợ JPEG/PNG/WebP tối đa 8 MB. Backend lưu metadata ở `HinhAnhXe`, nội dung file tại `VEHICLE_IMAGES_DIR`, kiểm tra ownership trước upload/xem/xóa; card xe đọc ảnh có JWT qua `GET /api/vehicles/{id}/image` và dùng placeholder nếu chưa có. Card xe có nút “Đặt lịch ngay” chuyển sang `/appointments?vehicleId=...` và tự chọn xe tương ứng. `/vehicles` và `/appointments` dùng header/banner AutoCare phỏng theo tài liệu Stitch nhưng giữ thanh điều hướng hiện hành `Trang chủ / Đặt lịch / Theo dõi / Thông báo / Tài khoản`; route `/vehicles` đánh dấu đúng mục Tài khoản. Màn lịch hẹn tải xe/chi nhánh hoạt động, cho phép thêm xe ngay trong luồng rồi tự tải lại để hiện form đặt lịch, tạo lịch, hiển thị lịch của customer và hủy trạng thái `CHO_XAC_NHAN`/`DA_XAC_NHAN` qua quyền backend. `/tracking` đã thay placeholder bằng danh sách lịch hẹn và màn chi tiết `/tracking/{appointmentId}`; app đọc `GET /api/appointments` cùng `GET /api/appointments/{id}`, hiển thị timeline `CHO_XAC_NHAN`, `DA_XAC_NHAN`, `DA_TIEP_NHAN`, `HOAN_TAT`, hỗ trợ pull-to-refresh/loading/error/empty và không tự cập nhật trạng thái. Theo dõi phiếu sửa chữa chi tiết cho customer và notification vẫn là phase tiếp theo.
+- **Technician feature screens**: `/technician` đã thay placeholder bằng danh sách phiếu sửa chữa được phân công, có bộ lọc đang xử lý/hoàn tất/tất cả, pull-to-refresh và loading/error/empty state. Route `/technician/repair-orders/{id}` tải song song chi tiết phiếu, hạng mục dịch vụ và lịch sử tiến độ; hiển thị xe, khách hàng, chi nhánh, ghi chú tiếp nhận, trạng thái và tỷ lệ hạng mục hoàn tất. Kỹ thuật viên có thể cập nhật tiến độ (`DA_PHAN_CONG`, `DANG_SUA`, `TAM_DUNG`, `CHO_KH_DUYET`, `HOAN_TAT`) kèm phần trăm/mô tả, hoặc đổi trạng thái hạng mục (`CHO_XU_LY`, `DANG_SUA`, `HOAN_TAT`, `HUY`). Phiếu `HOAN_TAT`/`HUY` bị khóa thao tác trên UI; backend vẫn enforce role, branch và assigned-only. Mobile không gửi `maNhanVien` hoặc `maChiNhanh`. `flutter analyze` sạch và toàn bộ 37 test đạt ngày 2026-09-14.
 
 ## 8. Docker Infrastructure & LAN Networking Status
 - **Docker Compose**: `docker-compose.yml` defining `garage-frontend` (:3001), `garage-backend` (:8080), `garage-sqlserver` (:1433), connected via `garage-network`.
-- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing only `GarageManagementSystem.sql` on first run if DB does not exist. Client devices in LAN do not require local SQL Server.
+- **Database Service**: `mcr.microsoft.com/mssql/server:2022-latest` with `entrypoint.sh` executing `GarageManagementSystem.sql` and `database/seed/*.sql` only on first run if DB does not exist. Existing volumes are preserved; `database/apply-dev-seed.ps1` can apply the idempotent dev seed to an existing DB without deleting data or changing schema. Client devices in LAN do not require local SQL Server.
 - **Backend Service**: Multi-stage `maven:3.9-eclipse-temurin-17` builder and `eclipse-temurin:17-jre-jammy` runner. Configurable `CORS_ALLOWED_ORIGIN_PATTERNS` supporting `*` and LAN host origins.
 - **Frontend Service**: `node:20-alpine` running Vite dev server bound to `0.0.0.0:3001` with dynamic hostname resolution in `env.ts` (`http://<HOST_IP>:8080/api` and `ws://<HOST_IP>:8080/ws`) for cross-device LAN development.
 - **Secrets & Configuration**: `.env.example` at root, `.gitignore` protecting `.env` and sensitive build/log files.
 - **Persistence**: Named volume `garage-sqlserver-data` keeps database changes across container restarts.
+- **Vehicle profile image migration**: database mới nhận bảng `HinhAnhXe` từ `GarageManagementSystem.sql`; database development đã tồn tại áp migration idempotent bằng `database/apply-vehicle-image-migration.ps1`.
 
 ## 9. Nguyên tắc cốt lõi
 - Không triển khai business feature chưa được yêu cầu.

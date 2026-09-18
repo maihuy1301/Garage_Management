@@ -9,10 +9,11 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/customer/presentation/account_page.dart';
 import '../features/customer/presentation/customer_shell.dart';
-import '../features/customer/presentation/feature_placeholder_page.dart';
+import '../features/notifications/presentation/notifications_page.dart';
 import '../features/public/presentation/home_page.dart';
 import '../features/public/presentation/splash_page.dart';
 import '../features/technician/presentation/technician_home_page.dart';
+import '../features/technician/presentation/technician_repair_detail_page.dart';
 import '../features/vehicles/presentation/vehicles_page.dart';
 
 class AppRouter {
@@ -70,12 +71,8 @@ class AppRouter {
               ),
               GoRoute(
                 path: '/notifications',
-                builder: (context, state) => const FeaturePlaceholderPage(
-                  icon: Icons.notifications_active_rounded,
-                  title: 'Thông báo của tôi',
-                  description:
-                      'Thông báo lịch hẹn và tiến độ sửa chữa sẽ xuất hiện tại đây.',
-                ),
+                builder: (context, state) =>
+                    NotificationsPage(key: ObjectKey(authController.session)),
               ),
               GoRoute(
                 path: '/account',
@@ -90,6 +87,18 @@ class AppRouter {
           GoRoute(
             path: '/technician',
             builder: (context, state) => const TechnicianHomePage(),
+            routes: [
+              GoRoute(
+                path: 'repair-orders/:repairOrderId',
+                builder: (context, state) => TechnicianRepairDetailPage(
+                  repairOrderId:
+                      int.tryParse(
+                        state.pathParameters['repairOrderId'] ?? '',
+                      ) ??
+                      -1,
+                ),
+              ),
+            ],
           ),
         ],
       );
@@ -121,10 +130,10 @@ class AppRouter {
       ).toString();
     }
 
-    if (!auth.isAuthenticated && location == '/technician') {
+    if (!auth.isAuthenticated && _isTechnicianPath(location)) {
       return Uri(
         path: '/login',
-        queryParameters: const {'returnTo': '/technician'},
+        queryParameters: {'returnTo': state.uri.toString()},
       ).toString();
     }
 
@@ -135,10 +144,10 @@ class AppRouter {
       return _safeReturnTo(returnTo) ?? '/';
     }
 
-    if (auth.session?.isTechnician == true && location != '/technician') {
+    if (auth.session?.isTechnician == true && !_isTechnicianPath(location)) {
       return '/technician';
     }
-    if (auth.session?.isCustomer == true && location == '/technician') {
+    if (auth.session?.isCustomer == true && _isTechnicianPath(location)) {
       return '/';
     }
     return null;
@@ -148,6 +157,10 @@ class AppRouter {
     return _protectedCustomerPaths.any(
       (path) => location == path || location.startsWith('$path/'),
     );
+  }
+
+  static bool _isTechnicianPath(String location) {
+    return location == '/technician' || location.startsWith('/technician/');
   }
 
   static String? _safeReturnTo(String? value) {

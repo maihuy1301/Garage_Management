@@ -9,6 +9,8 @@ class WebSocketClient {
   private status: WebSocketStatus = 'DISCONNECTED';
   private subscriptions: Map<string, Set<MessageHandler>> = new Map();
   private reconnectTimer: number | null = null;
+  private subscriptionIds: Map<string, string> = new Map();
+  private nextSubscriptionId = 1;
 
   public getStatus(): WebSocketStatus {
     return this.status;
@@ -23,28 +25,40 @@ class WebSocketClient {
     this.status = 'CONNECTING';
 
     try {
-      // WebSocket endpoint supporting query or subprotocol token
       const wsUrl = new URL(ENV.WS_BASE_URL.replace(/^http/, 'ws'));
-      if (token) {
-        wsUrl.searchParams.set('token', token);
-      }
-
       this.ws = new WebSocket(wsUrl.toString());
 
       this.ws.onopen = () => {
-        this.status = 'CONNECTED';
-        console.info('[WebSocket] Connected successfully to', ENV.WS_BASE_URL);
+        this.sendFrame('CONNECT', {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'accept-version': '1.2',
+          'heart-beat': '10000,10000',
+        });
       };
 
       this.ws.onmessage = (event: MessageEvent) => {
-        try {
-          const data = JSON.parse(event.data);
-          const destination = data.destination || data.topic;
-          if (destination && this.subscriptions.has(destination)) {
-            this.subscriptions.get(destination)?.forEach((handler) => handler(data.payload || data));
-          }
-        } catch {
-          // Non-JSON message handler
+        const frame = this.parseFrame(event.data);
+        if (!frame) return;
+
+        if (frame.command === 'CONNECTED') {
+          this.status = 'CONNECTED';
+          this.subscriptions.forEach((_handlers, destination) => {
+            this.sendSubscribe(destination);
+          });
+          console.info('[WebSocket] Connected successfully to', ENV.WS_BASE_URL);
+          return;
+        }
+
+        if (frame.command === 'MESSAGE') {
+          const destination = frame.headers.destination;
+          if (!destination) return;
+          const payload = this.parseJson(frame.body);
+          this.subscriptions.get(destination)?.forEach((handler) => handler(payload));
+        }
+
+        if (frame.command === 'ERROR') {
+          this.status = 'ERROR';
+          console.warn('[WebSocket] STOMP error:', frame.body || frame.headers.message);
         }
       };
 
@@ -74,13 +88,19 @@ class WebSocketClient {
     }
     this.status = 'DISCONNECTED';
     this.subscriptions.clear();
+    this.subscriptionIds.clear();
   }
 
   public subscribe(destination: string, callback: MessageHandler): () => void {
+    const alreadySubscribed = this.subscriptions.has(destination);
     if (!this.subscriptions.has(destination)) {
       this.subscriptions.set(destination, new Set());
     }
     this.subscriptions.get(destination)!.add(callback);
+
+    if (!alreadySubscribed && this.status === 'CONNECTED') {
+      this.sendSubscribe(destination);
+    }
 
     return () => {
       this.unsubscribe(destination, callback);
@@ -93,18 +113,71 @@ class WebSocketClient {
       this.subscriptions.get(destination)!.delete(callback);
       if (this.subscriptions.get(destination)!.size === 0) {
         this.subscriptions.delete(destination);
+        this.sendUnsubscribe(destination);
       }
     } else {
       this.subscriptions.delete(destination);
+      this.sendUnsubscribe(destination);
     }
   }
 
   public send(destination: string, payload: unknown): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const message = JSON.stringify({ destination, payload });
-      this.ws.send(message);
+      this.sendFrame('SEND', {
+        destination,
+        'content-type': 'application/json',
+      }, JSON.stringify(payload));
     } else {
       console.warn('[WebSocket] Cannot send message, socket is not connected');
+    }
+  }
+
+  private sendSubscribe(destination: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.subscriptionIds.has(destination)) {
+      this.subscriptionIds.set(destination, `sub-${this.nextSubscriptionId++}`);
+    }
+    this.sendFrame('SUBSCRIBE', {
+      id: this.subscriptionIds.get(destination)!,
+      destination,
+    });
+  }
+
+  private sendUnsubscribe(destination: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const id = this.subscriptionIds.get(destination);
+    if (!id) return;
+    this.sendFrame('UNSUBSCRIBE', { id });
+    this.subscriptionIds.delete(destination);
+  }
+
+  private sendFrame(command: string, headers: Record<string, string>, body = ''): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const headerLines = Object.entries(headers).map(([key, value]) => `${key}:${value}`);
+    this.ws.send(`${command}\n${headerLines.join('\n')}\n\n${body}\0`);
+  }
+
+  private parseFrame(raw: string): { command: string; headers: Record<string, string>; body: string } | null {
+    const normalized = raw.replace(/\0+$/, '');
+    const [head = '', body = ''] = normalized.split('\n\n');
+    const lines = head.split('\n').filter(Boolean);
+    const command = lines.shift();
+    if (!command) return null;
+    const headers = lines.reduce<Record<string, string>>((acc, line) => {
+      const separator = line.indexOf(':');
+      if (separator > -1) {
+        acc[line.slice(0, separator)] = line.slice(separator + 1);
+      }
+      return acc;
+    }, {});
+    return { command, headers, body };
+  }
+
+  private parseJson(body: string): unknown {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return body;
     }
   }
 }

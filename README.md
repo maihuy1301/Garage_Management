@@ -34,7 +34,7 @@ AUTO_GARAGE/
 │   │                     # KhachHangRepository (TASK 06C), XeRepository (TASK 07),
 │   │                     # DatLichRepository (TASK 08), PhieuTiepNhanRepository (TASK 09),
 │   │                     # PhieuSuaChuaRepository (TASK 10), PhieuSuaChuaDichVuRepository (TASK 11),
-│   │                     # DichVuRepository (TASK 11), GiaDichVuChiNhanhRepository (TASK 11),
+│   │                     # DichVuRepository (TASK 11),
 │   │                     # PhanCongRepository (TASK 12), TienDoSuaChuaRepository (TASK 12 Execution),
 │   │                     # PhuTungRepository (TASK 13), TonKhoRepository (TASK 13), PhieuSuaChuaPhuTungRepository (TASK 13), GiaoDichKhoRepository (TASK 13),
 │   │                     # BaoGiaPhatSinhRepository (TASK 14), BaoGiaPhatSinhDichVuRepository (TASK 14), BaoGiaPhatSinhPhuTungRepository (TASK 14),
@@ -80,7 +80,7 @@ AUTO_GARAGE/
   - Nếu AVD Android 17/API 37 16 KB chỉ hiện màn hình đen dù app vẫn chạy, Android debug manifest đã tắt Impeller để dùng Skia fallback. Dừng phiên cũ rồi chạy lại `flutter run`; nếu vẫn đen, đổi `Emulated Performance > Graphics` sang `Software`, cold boot AVD và thử lại.
   - Thiết bị thật/iOS/Desktop: `flutter run --dart-define=API_BASE_URL=http://<backend-host>:8080/api`.
   - Thiết bị Android thật qua USB: chạy `adb reverse tcp:8080 tcp:8080`, sau đó `flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8080/api`.
-  - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`; CUSTOMER có màn `/vehicles` để xem/thêm xe và chuyển thẳng sang `/appointments?vehicleId=...` để đặt lịch với xe đã chọn, xem lịch của mình, hủy lịch khi backend cho phép. Form thêm xe tải hãng qua `GET /api/brands`, tải model phụ thuộc qua `GET /api/brands/{brandId}/models` và gửi `maHangXe`/`maModel` theo schema mới; không gửi owner từ mobile. Tab `/tracking` tải lịch hẹn thuộc customer và mở `/tracking/{appointmentId}` qua `GET /api/appointments/{id}` để hiển thị chi tiết cùng tiến trình `CHO_XAC_NHAN -> DA_XAC_NHAN -> DA_TIEP_NHAN -> HOAN_TAT`; hỗ trợ pull-to-refresh, loading/error/empty state và không cho mobile tự đổi trạng thái. Các màn dùng header/banner AutoCare theo tham khảo Stitch; thanh điều hướng vẫn đồng bộ 5 mục hiện hành.
+  - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`; CUSTOMER có màn `/vehicles` để xem/thêm xe và chuyển thẳng sang `/appointments?vehicleId=...` để đặt lịch với xe đã chọn, xem lịch của mình, hủy lịch khi backend cho phép. Form thêm xe tải hãng qua `GET /api/brands`, tải model phụ thuộc qua `GET /api/brands/{brandId}/models` và gửi `maHangXe`/`maModel` theo schema mới; không gửi owner từ mobile. Tab `/tracking` tải lịch hẹn thuộc customer và mở `/tracking/{appointmentId}` qua `GET /api/appointments/{id}` để hiển thị chi tiết cùng tiến trình `CHO_XAC_NHAN -> DA_XAC_NHAN -> DA_TIEP_NHAN -> HOAN_TAT`; hỗ trợ pull-to-refresh, loading/error/empty state và không cho mobile tự đổi trạng thái. TECHNICIAN có danh sách công việc `/technician`, bộ lọc trạng thái, chi tiết `/technician/repair-orders/{id}`, danh sách hạng mục/lịch sử tiến độ và thao tác cập nhật tiến độ hoặc trạng thái hạng mục qua các endpoint assigned-only. Mobile không gửi mã kỹ thuật viên hay chi nhánh; backend xác định quyền từ JWT và phân công. Các màn dùng header/banner AutoCare theo tham khảo Stitch.
 
 ## 4.2 Infrastructure & Development Workflow
 Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).
@@ -106,9 +106,21 @@ npm run dev
 | Frontend | Native Host | `3001` | React 18 / Vite 5 (`http://localhost:3001/`) |
 | Mobile App | Flutter CLI | — | Flutter / Android / iOS |
 
+Nếu database đã tồn tại nhưng thiếu dữ liệu mẫu, khởi động SQL Server rồi chạy seed idempotent an toàn:
+
+```powershell
+.\database\apply-dev-seed.ps1
+```
+
+Database development đã tồn tại cần áp migration ảnh hồ sơ xe một lần:
+
+```powershell
+.\database\apply-vehicle-image-migration.ps1
+```
+
 ## 5. Development Test Accounts (Password: `Password123@`)
 
-Các tài khoản dưới đây là dữ liệu development trước đây và **không còn được Docker tự động tạo**. Database khởi tạo mới từ `GarageManagementSystem.sql` hiện không có tài khoản mẫu.
+Các tài khoản dưới đây được tạo bởi seed development `database/seed/V01__development_seed.sql` khi Docker khởi tạo database mới. Nếu volume `garage-sqlserver-data` đã có database từ trước, entrypoint bỏ qua cả schema và seed để bảo toàn dữ liệu hiện có.
 
 | Username | Role | Branch | Records |
 |---|---|---|---|
@@ -123,7 +135,7 @@ Các tài khoản dưới đây là dữ liệu development trước đây và *
 
 ## 6. Development Sample Vehicles (TASK 07)
 
-Các xe mẫu dưới đây cũng không còn được Docker tự động tạo.
+Các xe mẫu dưới đây cũng được tạo bởi seed development khi database mới được khởi tạo.
 
 | Biển số | Owner | Hãng xe | Model | Năm |
 |---|---|---|---|---|
@@ -174,7 +186,11 @@ Các xe mẫu dưới đây cũng không còn được Docker tự động tạo
 | `STOMP` | `/user/queue/notifications` | User private notification destination | Authenticated user (own queue) |
 | `STOMP` | `/topic/branches/{branchCode}` | Branch-specific event broadcast topic | `SYSTEM_ADMIN` or Staff belonging to that branch |
 
+Appointment realtime: khi lịch hẹn được tạo, hủy, xác nhận, tiếp nhận hoặc cập nhật trạng thái, backend phát `RealtimeEvent` với `entityType = DAT_LICH` tới `/topic/branches/{maChiNhanh}` và private queue của khách hàng. Web `/app/appointments` subscribe STOMP và tự cập nhật danh sách/chi tiết đang mở; mobile `/tracking` và `/tracking/{appointmentId}` tự refresh nền mỗi 8 giây để không cần reload thủ công.
+
 ### Notification Endpoints (`NotificationController`)
+Mobile CUSTOMER có tab `/notifications`: danh sách và số chưa đọc lấy từ API, đánh dấu đọc từng thông báo/đọc tất cả, loading/error/empty state và kéo để làm mới. Khi tab đang mở, STOMP private queue nhận sự kiện `DAT_LICH`/`THONG_BAO` để tải lại REST; có refresh dự phòng mỗi 30 giây, tải lại khi resume/reconnect và dừng kết nối khi rời màn hình. Backend tiếp tục xác định ownership từ JWT.
+
 | Method | Endpoint | Description | Permission |
 |---|---|---|---|
 | `GET` | `/api/notifications` | Lấy danh sách thông báo của người dùng hiện tại (mới nhất trước) | Authenticated user (`ALL ROLES`) |
@@ -274,6 +290,9 @@ Các xe mẫu dưới đây cũng không còn được Docker tự động tạo
 | `POST` | `/api/vehicles` | Tạo xe mới bằng `maHangXe`/`maModel` (owner tự động từ JWT đối với CUSTOMER) | `SYSTEM_ADMIN`, `CUSTOMER` |
 | `PUT` | `/api/vehicles/{id}` | Cập nhật xe (ownership check) | `SYSTEM_ADMIN`, `CUSTOMER` |
 | `DELETE` | `/api/vehicles/{id}` | Xóa xe (ownership check + business constraint) | `SYSTEM_ADMIN`, `CUSTOMER` |
+| `POST` | `/api/vehicles/{id}/image` | Tải lên hoặc thay thế một ảnh hồ sơ xe (`multipart/form-data`, JPEG/PNG/WebP, tối đa 8 MB) | `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `CUSTOMER` (ownership check) |
+| `GET` | `/api/vehicles/{id}/image` | Đọc nội dung ảnh hồ sơ xe | `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `CUSTOMER` (ownership check) |
+| `DELETE` | `/api/vehicles/{id}/image` | Xóa ảnh hồ sơ xe | `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `CUSTOMER` (ownership check) |
 
 ### Customer Management Endpoints (`CustomerController`)
 | Method | Endpoint | Description | Permission |

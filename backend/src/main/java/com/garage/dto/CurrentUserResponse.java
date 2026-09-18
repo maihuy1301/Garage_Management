@@ -7,6 +7,8 @@ public class CurrentUserResponse {
     private String hoTen;
     private String email;
     private boolean hasPin;
+    private Integer maChiNhanh;
+    private String tenChiNhanh;
 
     public CurrentUserResponse() {}
 
@@ -17,6 +19,14 @@ public class CurrentUserResponse {
         this.hoTen = hoTen;
         this.email = email;
         this.hasPin = hasPin;
+    }
+
+    public CurrentUserResponse(Integer maNguoiDung, String tenDangNhap, String hoTen,
+                               String email, boolean hasPin, Integer maChiNhanh,
+                               String tenChiNhanh) {
+        this(maNguoiDung, tenDangNhap, hoTen, email, hasPin);
+        this.maChiNhanh = maChiNhanh;
+        this.tenChiNhanh = tenChiNhanh;
     }
 
     public Integer getMaNguoiDung() {
@@ -57,5 +67,21 @@ public class CurrentUserResponse {
 
     public void setHasPin(boolean hasPin) {
         this.hasPin = hasPin;
+    }
+
+    public Integer getMaChiNhanh() {
+        return maChiNhanh;
+    }
+
+    public void setMaChiNhanh(Integer maChiNhanh) {
+        this.maChiNhanh = maChiNhanh;
+    }
+
+    public String getTenChiNhanh() {
+        return tenChiNhanh;
+    }
+
+    public void setTenChiNhanh(String tenChiNhanh) {
+        this.tenChiNhanh = tenChiNhanh;
     }
 }

@@ -11,6 +11,7 @@ export interface LoginResponse {
   maNguoiDung: number;
   tenDangNhap: string;
   hoTen: string;
+  hasPin?: boolean;
 }
 
 export interface CurrentUser {
@@ -19,6 +20,8 @@ export interface CurrentUser {
   hoTen: string;
   email?: string;
   roles: RoleType[];
+  maChiNhanh?: number | null;
+  tenChiNhanh?: string | null;
 }
 
 export interface AuthState {

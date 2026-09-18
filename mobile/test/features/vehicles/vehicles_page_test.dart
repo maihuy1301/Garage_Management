@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garage_mobile/features/vehicles/data/vehicle_service.dart';
@@ -44,8 +46,10 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('vehicle-image-placeholder')));
     await tester.pumpAndSettle();
-    expect(find.text('Ảnh xe chưa thể tải lên'), findsOneWidget);
-    await tester.tap(find.text('Đã hiểu'));
+    expect(find.text('Thêm ảnh hồ sơ xe'), findsOneWidget);
+    expect(find.text('Chụp ảnh'), findsOneWidget);
+    expect(find.text('Chọn từ thư viện'), findsOneWidget);
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -118,4 +122,10 @@ class _FakeVehicleGateway implements VehicleGateway {
 
   @override
   Future<List<CustomerVehicle>> loadVehicles() async => const [];
+
+  @override
+  Future<Uint8List?> loadVehicleImage(int vehicleId) async => null;
+
+  @override
+  Future<void> uploadVehicleImage(int vehicleId, String filePath) async {}
 }

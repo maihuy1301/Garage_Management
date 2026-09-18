@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 
 import '../../../core/api/api_client.dart';
@@ -8,6 +10,8 @@ abstract interface class VehicleGateway {
   Future<List<VehicleBrand>> loadBrands();
   Future<List<VehicleModel>> loadModels(int brandId);
   Future<CustomerVehicle> createVehicle(CreateCustomerVehicle request);
+  Future<void> uploadVehicleImage(int vehicleId, String filePath);
+  Future<Uint8List?> loadVehicleImage(int vehicleId);
 }
 
 class VehicleException implements Exception {
@@ -81,6 +85,45 @@ class VehicleService implements VehicleGateway {
       throw VehicleException(_messageFor(error));
     } on Object {
       throw const VehicleException('Phản hồi thêm xe từ máy chủ không hợp lệ.');
+    }
+  }
+
+  @override
+  Future<void> uploadVehicleImage(int vehicleId, String filePath) async {
+    try {
+      final fileName = filePath.split(RegExp(r'[/\\]')).last;
+      final response = await _apiClient.dio.post<Map<String, dynamic>>(
+        '/vehicles/$vehicleId/image',
+        data: FormData.fromMap({
+          'file': await MultipartFile.fromFile(filePath, filename: fileName),
+        }),
+      );
+      if (response.data?['success'] != true) {
+        throw VehicleException(
+          response.data?['message']?.toString() ?? 'Không thể tải ảnh xe.',
+        );
+      }
+    } on VehicleException {
+      rethrow;
+    } on DioException catch (error) {
+      throw VehicleException(_messageFor(error));
+    } on Object {
+      throw const VehicleException('Không thể đọc ảnh đã chọn.');
+    }
+  }
+
+  @override
+  Future<Uint8List?> loadVehicleImage(int vehicleId) async {
+    try {
+      final response = await _apiClient.dio.get<List<int>>(
+        '/vehicles/$vehicleId/image',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = response.data;
+      return bytes == null ? null : Uint8List.fromList(bytes);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) return null;
+      throw VehicleException(_messageFor(error));
     }
   }
 

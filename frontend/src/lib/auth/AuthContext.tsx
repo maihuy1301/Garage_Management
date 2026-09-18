@@ -83,6 +83,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         hoTen: meData.hoTen,
         email: meData.email,
         roles,
+        maChiNhanh: meData.maChiNhanh,
+        tenChiNhanh: meData.tenChiNhanh,
       });
       setError(null);
     } catch (err: unknown) {
@@ -119,6 +121,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           hoTen: meData.hoTen,
           email: meData.email,
           roles,
+          maChiNhanh: meData.maChiNhanh,
+          tenChiNhanh: meData.tenChiNhanh,
         });
       } catch {
         // Fallback to login response data if /me has temporary glitch

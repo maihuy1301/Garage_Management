@@ -104,13 +104,16 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
   Future<void> _addVehicle() async {
     final vehicleGateway =
         widget.vehicleGateway ?? context.read<VehicleGateway>();
-    final created = await showVehicleFormSheet(context, vehicleGateway);
-    if (created == null || !mounted) return;
-    await _loadOptions(preferredVehicleId: created.id);
+    final result = await showVehicleFormSheet(context, vehicleGateway);
+    if (result == null || !mounted) return;
+    await _loadOptions(preferredVehicleId: result.vehicle.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã thêm xe. Bạn có thể tiếp tục đặt lịch.'),
+      SnackBar(
+        content: Text(
+          result.warning ?? 'Đã thêm xe. Bạn có thể tiếp tục đặt lịch.',
+        ),
+        backgroundColor: result.warning == null ? null : AppColors.warning,
       ),
     );
   }

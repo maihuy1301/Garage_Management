@@ -2,6 +2,7 @@ package com.garage.service;
 
 import com.garage.dto.AppointmentResponse;
 import com.garage.dto.CreateAppointmentRequest;
+import com.garage.dto.RealtimeEvent;
 import com.garage.entity.ChiNhanh;
 import com.garage.entity.DatLich;
 import com.garage.entity.KhachHang;
@@ -19,6 +20,7 @@ import com.garage.repository.NhanVienRepository;
 import com.garage.repository.XeRepository;
 import com.garage.security.BranchAuthorizationService;
 import com.garage.security.CustomUserDetails;
+import com.garage.websocket.WebSocketEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -40,6 +42,7 @@ public class AppointmentService {
     private final NguoiDungRepository nguoiDungRepository;
     private final NhanVienRepository nhanVienRepository;
     private final BranchAuthorizationService branchAuthorizationService;
+    private final WebSocketEventPublisher webSocketEventPublisher;
 
     public AppointmentService(DatLichRepository datLichRepository,
                               KhachHangRepository khachHangRepository,
@@ -47,7 +50,8 @@ public class AppointmentService {
                               ChiNhanhRepository chiNhanhRepository,
                               NguoiDungRepository nguoiDungRepository,
                               NhanVienRepository nhanVienRepository,
-                              BranchAuthorizationService branchAuthorizationService) {
+                              BranchAuthorizationService branchAuthorizationService,
+                              WebSocketEventPublisher webSocketEventPublisher) {
         this.datLichRepository = datLichRepository;
         this.khachHangRepository = khachHangRepository;
         this.xeRepository = xeRepository;
@@ -55,6 +59,7 @@ public class AppointmentService {
         this.nguoiDungRepository = nguoiDungRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.branchAuthorizationService = branchAuthorizationService;
+        this.webSocketEventPublisher = webSocketEventPublisher;
     }
 
     /**
@@ -170,7 +175,9 @@ public class AppointmentService {
         datLich.setGhiChu(request.getGhiChu());
 
         DatLich saved = datLichRepository.save(datLich);
-        return mapToAppointmentResponse(saved);
+        AppointmentResponse response = mapToAppointmentResponse(saved);
+        publishAppointmentEvent("APPOINTMENT_CREATED", response, "Có lịch hẹn mới #" + response.getMaDatLich());
+        return response;
     }
 
     /**
@@ -197,7 +204,9 @@ public class AppointmentService {
 
         datLich.setTrangThai("HUY");
         DatLich updated = datLichRepository.save(datLich);
-        return mapToAppointmentResponse(updated);
+        AppointmentResponse response = mapToAppointmentResponse(updated);
+        publishAppointmentEvent("APPOINTMENT_CANCELLED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã được hủy");
+        return response;
     }
 
     /**
@@ -236,7 +245,9 @@ public class AppointmentService {
         }
 
         DatLich updated = datLichRepository.save(datLich);
-        return mapToAppointmentResponse(updated);
+        AppointmentResponse response = mapToAppointmentResponse(updated);
+        publishAppointmentEvent("APPOINTMENT_CONFIRMED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã được xác nhận");
+        return response;
     }
 
     /**
@@ -261,7 +272,9 @@ public class AppointmentService {
 
         datLich.setTrangThai("DA_TIEP_NHAN");
         DatLich updated = datLichRepository.save(datLich);
-        return mapToAppointmentResponse(updated);
+        AppointmentResponse response = mapToAppointmentResponse(updated);
+        publishAppointmentEvent("APPOINTMENT_RECEIVED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã được tiếp nhận");
+        return response;
     }
 
     /**
@@ -282,7 +295,30 @@ public class AppointmentService {
 
         datLich.setTrangThai(newStatus.trim().toUpperCase());
         DatLich updated = datLichRepository.save(datLich);
-        return mapToAppointmentResponse(updated);
+        AppointmentResponse response = mapToAppointmentResponse(updated);
+        publishAppointmentEvent("APPOINTMENT_UPDATED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã cập nhật trạng thái");
+        return response;
+    }
+
+    private void publishAppointmentEvent(String eventType, AppointmentResponse response, String message) {
+        if (response == null) {
+            return;
+        }
+        RealtimeEvent event = RealtimeEvent.of(
+                eventType,
+                "DAT_LICH",
+                response.getMaDatLich(),
+                message,
+                response
+        );
+        webSocketEventPublisher.sendToBranch(response.getMaChiNhanh(), event);
+
+        if (response.getMaKhachHang() != null) {
+            khachHangRepository.findById(response.getMaKhachHang())
+                    .map(KhachHang::getNguoiDung)
+                    .map(NguoiDung::getTenDangNhap)
+                    .ifPresent(username -> webSocketEventPublisher.sendToUser(username, event));
+        }
     }
 
     private void validateStaffActionPermission(DatLich datLich) {

@@ -26,6 +26,10 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
+		<key>NSCameraUsageDescription</key>
+		<string>AutoCare cần camera để chụp ảnh xe hoặc giấy đăng kiểm.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>AutoCare cần truy cập thư viện để chọn ảnh hồ sơ xe.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

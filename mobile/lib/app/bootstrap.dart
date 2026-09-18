@@ -9,6 +9,9 @@ import '../core/auth/auth_repository.dart';
 import '../core/config/app_config.dart';
 import '../core/storage/secure_session_storage.dart';
 import '../features/appointments/data/appointment_service.dart';
+import '../features/notifications/data/notification_events.dart';
+import '../features/notifications/data/notification_service.dart';
+import '../features/technician/data/technician_service.dart';
 import '../features/vehicles/data/vehicle_service.dart';
 import 'app.dart';
 
@@ -34,8 +37,18 @@ Future<void> bootstrap() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authController),
+        Provider<NotificationGateway>(
+          create: (_) => NotificationService(apiClient),
+        ),
+        Provider<NotificationEvents>(
+          create: (_) =>
+              StompNotificationEvents(AppConfig.apiBaseUrl, sessionStorage),
+        ),
         Provider<AppointmentGateway>(
           create: (_) => AppointmentService(apiClient),
+        ),
+        Provider<TechnicianGateway>(
+          create: (_) => TechnicianService(apiClient),
         ),
         Provider<VehicleGateway>(create: (_) => VehicleService(apiClient)),
       ],

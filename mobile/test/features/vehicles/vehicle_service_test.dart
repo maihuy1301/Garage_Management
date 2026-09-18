@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -138,5 +140,52 @@ void main() {
     expect(payload, isNot(contains('hangXe')));
     expect(payload, isNot(contains('model')));
     expect(created.id, 8);
+  });
+
+  test('upload ảnh xe gửi multipart đúng endpoint', () async {
+    final tempDir = await Directory.systemTemp.createTemp('vehicle-image-test');
+    final image = File('${tempDir.path}${Platform.pathSeparator}car.jpg');
+    await image.writeAsBytes([0xFF, 0xD8, 0xFF, 0x00]);
+    addTearDown(() => tempDir.delete(recursive: true));
+
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          expect(options.path, '/vehicles/8/image');
+          expect(options.data, isA<FormData>());
+          final form = options.data as FormData;
+          expect(form.files.single.key, 'file');
+          handler.resolve(
+            Response<Map<String, dynamic>>(
+              requestOptions: options,
+              statusCode: 200,
+              data: {'success': true, 'data': <String, dynamic>{}},
+            ),
+          );
+        },
+      ),
+    );
+
+    await service.uploadVehicleImage(8, image.path);
+  });
+
+  test('ảnh xe không tồn tại trả null để UI dùng placeholder', () async {
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              response: Response<List<int>>(
+                requestOptions: options,
+                statusCode: 404,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    expect(await service.loadVehicleImage(8), isNull);
   });
 }

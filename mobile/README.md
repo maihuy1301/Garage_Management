@@ -10,6 +10,9 @@ Flutter app dùng chung cho khách hàng và kỹ thuật viên của hệ thố
 - Điều hướng theo role `ROLE_CUSTOMER` / `ROLE_TECHNICIAN`.
 - Các màn cá nhân được bảo vệ và quay lại đúng màn ban đầu sau login bằng `returnTo`.
 - Customer bottom navigation: Trang chủ, Đặt lịch, Theo dõi, Thông báo, Tài khoản.
+- Customer có quản lý xe, đặt/hủy lịch và theo dõi trạng thái lịch hẹn.
+- Technician có danh sách công việc được phân công, bộ lọc trạng thái, màn chi tiết phiếu sửa chữa, lịch sử tiến độ và cập nhật tiến độ/hạng mục dịch vụ.
+- Quyền sở hữu, chi nhánh và phân công luôn do backend xác thực từ JWT; mobile không gửi mã khách hàng, kỹ thuật viên hoặc chi nhánh để tự xác lập quyền.
 
 ## Chạy ứng dụng
 
@@ -40,7 +43,17 @@ Nếu AVD vẫn đen sau khi cập nhật source:
 
 Có thể kiểm tra nhanh mà không đổi source bằng `flutter run --no-enable-impeller`.
 
-## Kiểm tra
+## Ảnh hồ sơ xe
+
+Trong màn `Xe của tôi`, khách hàng có thể chụp ảnh hoặc chọn ảnh từ thư viện khi thêm xe. Camera được xin quyền tại thời điểm sử dụng; ảnh được xem trước, giới hạn 8 MB và upload sau khi hồ sơ xe được tạo. Backend phải có migration `HinhAnhXe` và thư mục lưu ảnh có quyền ghi; xem lệnh `database/apply-vehicle-image-migration.ps1` ở thư mục gốc dự án.
+
+## Thông báo khách hàng
+
+Tab `/notifications` dùng `GET /notifications`, `GET /notifications/unread-count`, `PATCH /notifications/{id}/read` và `PATCH /notifications/read-all` qua API client có JWT. Số chưa đọc được lấy từ backend; sau thao tác đọc, app tải lại dữ liệu và không tự suy diễn quyền sở hữu.
+
+Màn hình có loading, lỗi kèm thử lại, trạng thái rỗng và kéo để làm mới. Khi refresh thất bại, dữ liệu cũ vẫn được giữ và có thông báo rõ. STOMP nhận sự kiện `DAT_LICH`/`THONG_BAO` từ private queue; URL WebSocket suy ra từ `API_BASE_URL` bằng cách thay hậu tố `/api` thành `/ws`, dùng `wss` với HTTPS. Có tải lại khi reconnect/resume và polling dự phòng mỗi 30 giây; rời màn hình hoặc đưa app xuống nền sẽ dừng cập nhật.
+
+## Kiểm tra thông báo và hồi quy
 
 ```powershell
 flutter analyze

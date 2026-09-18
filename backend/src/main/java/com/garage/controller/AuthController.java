@@ -6,6 +6,8 @@ import com.garage.dto.LoginRequest;
 import com.garage.dto.LoginResponse;
 import com.garage.dto.RegisterRequest;
 import com.garage.dto.RegisterResponse;
+import com.garage.entity.NhanVien;
+import com.garage.repository.NhanVienRepository;
 import com.garage.security.CustomUserDetails;
 import com.garage.service.AuthService;
 import jakarta.validation.Valid;
@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final NhanVienRepository nhanVienRepository;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, NhanVienRepository nhanVienRepository) {
         this.authService = authService;
+        this.nhanVienRepository = nhanVienRepository;
     }
 
     @PostMapping("/login")
@@ -41,12 +45,20 @@ public class AuthController {
     public ResponseEntity<ApiResponse<CurrentUserResponse>> getCurrentUser(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         var user = userDetails.getNguoiDung();
+        NhanVien employee = nhanVienRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung())
+                .orElse(null);
         CurrentUserResponse userInfo = new CurrentUserResponse(
                 user.getMaNguoiDung(),
                 user.getTenDangNhap(),
                 user.getHoTen(),
                 user.getEmail(),
-                false
+                false,
+                employee != null && employee.getChiNhanh() != null
+                        ? employee.getChiNhanh().getMaChiNhanh()
+                        : null,
+                employee != null && employee.getChiNhanh() != null
+                        ? employee.getChiNhanh().getTenChiNhanh()
+                        : null
         );
 
         return ResponseEntity.ok(ApiResponse.success("Thông tin người dùng hiện tại", userInfo));

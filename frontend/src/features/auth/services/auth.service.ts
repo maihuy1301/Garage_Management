@@ -8,6 +8,8 @@ export interface MeResponseData {
   tenDangNhap: string;
   hoTen: string;
   email?: string;
+  maChiNhanh?: number | null;
+  tenChiNhanh?: string | null;
 }
 
 export const authService = {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +24,7 @@ class _AppointmentTrackingPageState extends State<AppointmentTrackingPage> {
   bool _isLoading = true;
   String? _error;
   List<AppointmentBookingResult> _appointments = const [];
+  Timer? _refreshTimer;
 
   @override
   void didChangeDependencies() {
@@ -30,6 +33,10 @@ class _AppointmentTrackingPageState extends State<AppointmentTrackingPage> {
     _gateway = widget.gateway ?? context.read<AppointmentGateway>();
     _initialized = true;
     _load();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _refreshSilently(),
+    );
   }
 
   Future<void> _load() async {
@@ -45,6 +52,26 @@ class _AppointmentTrackingPageState extends State<AppointmentTrackingPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _refreshSilently() async {
+    if (_isLoading) return;
+    try {
+      final appointments = await _gateway.loadMyAppointments();
+      if (!mounted) return;
+      setState(() {
+        _appointments = appointments;
+        _error = null;
+      });
+    } on AppointmentException {
+      // Giữ dữ liệu đang hiển thị; người dùng vẫn có thể kéo xuống để thấy lỗi cụ thể.
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   @override

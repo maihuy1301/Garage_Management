@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garage_mobile/features/appointments/data/appointment_service.dart';
@@ -325,4 +327,10 @@ class _FakeVehicleGateway implements VehicleGateway {
 
   @override
   Future<List<CustomerVehicle>> loadVehicles() async => const [];
+
+  @override
+  Future<Uint8List?> loadVehicleImage(int vehicleId) async => null;
+
+  @override
+  Future<void> uploadVehicleImage(int vehicleId, String filePath) async {}
 }
