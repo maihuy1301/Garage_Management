@@ -11,8 +11,8 @@ public class CreateAssignmentRequest {
     @NotNull(message = "Mã nhân viên kỹ thuật không được để trống")
     private Integer technicianId;
 
-    @Size(max = 100, message = "Vai trò trong công việc không được vượt quá 100 ký tự")
-    private String vaiTroTrongCongViec;
+    @Size(max = 500, message = "Ghi chú không được vượt quá 500 ký tự")
+    private String ghiChu;
 
     public CreateAssignmentRequest() {}
 
@@ -20,9 +20,9 @@ public class CreateAssignmentRequest {
         this.technicianId = technicianId;
     }
 
-    public CreateAssignmentRequest(Integer technicianId, String vaiTroTrongCongViec) {
+    public CreateAssignmentRequest(Integer technicianId, String ghiChu) {
         this.technicianId = technicianId;
-        this.vaiTroTrongCongViec = vaiTroTrongCongViec;
+        this.ghiChu = ghiChu;
     }
 
     public Integer getTechnicianId() {
@@ -33,11 +33,19 @@ public class CreateAssignmentRequest {
         this.technicianId = technicianId;
     }
 
+    public String getGhiChu() {
+        return ghiChu;
+    }
+
+    public void setGhiChu(String ghiChu) {
+        this.ghiChu = ghiChu;
+    }
+
     public String getVaiTroTrongCongViec() {
-        return vaiTroTrongCongViec;
+        return ghiChu;
     }
 
     public void setVaiTroTrongCongViec(String vaiTroTrongCongViec) {
-        this.vaiTroTrongCongViec = vaiTroTrongCongViec;
+        this.ghiChu = vaiTroTrongCongViec;
     }
 }

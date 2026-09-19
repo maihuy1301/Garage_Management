@@ -1,10 +1,13 @@
 package com.garage.service;
 
 import com.garage.dto.AppointmentResponse;
+import com.garage.dto.AppointmentServiceItemResponse;
 import com.garage.dto.CreateAppointmentRequest;
 import com.garage.dto.RealtimeEvent;
 import com.garage.entity.ChiNhanh;
 import com.garage.entity.DatLich;
+import com.garage.entity.DatLichDichVu;
+import com.garage.entity.DichVu;
 import com.garage.entity.KhachHang;
 import com.garage.entity.NguoiDung;
 import com.garage.entity.NhanVien;
@@ -13,7 +16,9 @@ import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.ChiNhanhRepository;
+import com.garage.repository.DatLichDichVuRepository;
 import com.garage.repository.DatLichRepository;
+import com.garage.repository.DichVuRepository;
 import com.garage.repository.KhachHangRepository;
 import com.garage.repository.NguoiDungRepository;
 import com.garage.repository.NhanVienRepository;
@@ -36,6 +41,8 @@ import java.util.stream.Collectors;
 public class AppointmentService {
 
     private final DatLichRepository datLichRepository;
+    private final DatLichDichVuRepository datLichDichVuRepository;
+    private final DichVuRepository dichVuRepository;
     private final KhachHangRepository khachHangRepository;
     private final XeRepository xeRepository;
     private final ChiNhanhRepository chiNhanhRepository;
@@ -45,6 +52,8 @@ public class AppointmentService {
     private final WebSocketEventPublisher webSocketEventPublisher;
 
     public AppointmentService(DatLichRepository datLichRepository,
+                              DatLichDichVuRepository datLichDichVuRepository,
+                              DichVuRepository dichVuRepository,
                               KhachHangRepository khachHangRepository,
                               XeRepository xeRepository,
                               ChiNhanhRepository chiNhanhRepository,
@@ -53,6 +62,8 @@ public class AppointmentService {
                               BranchAuthorizationService branchAuthorizationService,
                               WebSocketEventPublisher webSocketEventPublisher) {
         this.datLichRepository = datLichRepository;
+        this.datLichDichVuRepository = datLichDichVuRepository;
+        this.dichVuRepository = dichVuRepository;
         this.khachHangRepository = khachHangRepository;
         this.xeRepository = xeRepository;
         this.chiNhanhRepository = chiNhanhRepository;
@@ -175,6 +186,27 @@ public class AppointmentService {
         datLich.setGhiChu(request.getGhiChu());
 
         DatLich saved = datLichRepository.save(datLich);
+
+        // 5. Lưu danh sách dịch vụ đã chọn nếu có
+        if (request.getMaDichVuList() != null && !request.getMaDichVuList().isEmpty()) {
+            List<Integer> distinctServiceIds = request.getMaDichVuList().stream()
+                    .filter(java.util.Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            for (Integer maDichVu : distinctServiceIds) {
+                DichVu dichVu = dichVuRepository.findById(maDichVu)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với ID: " + maDichVu));
+
+                if (Boolean.FALSE.equals(dichVu.getTrangThai())) {
+                    throw new BadRequestException("Dịch vụ '" + dichVu.getTenDichVu() + "' hiện đang tạm ngưng hoạt động");
+                }
+
+                DatLichDichVu datLichDichVu = new DatLichDichVu(saved, dichVu);
+                datLichDichVuRepository.save(datLichDichVu);
+            }
+        }
+
         AppointmentResponse response = mapToAppointmentResponse(saved);
         publishAppointmentEvent("APPOINTMENT_CREATED", response, "Có lịch hẹn mới #" + response.getMaDatLich());
         return response;
@@ -442,6 +474,25 @@ public class AppointmentService {
 
         Integer maNhanVienXacNhan = dl.getNhanVienXacNhan() != null ? dl.getNhanVienXacNhan().getMaNhanVien() : null;
 
+        List<AppointmentServiceItemResponse> dichVuList = new java.util.ArrayList<>();
+        if (dl.getMaDatLich() != null) {
+            List<DatLichDichVu> dldvList = datLichDichVuRepository.findByDatLichMaDatLich(dl.getMaDatLich());
+            for (DatLichDichVu item : dldvList) {
+                DichVu dv = item.getDichVu();
+                if (dv != null) {
+                    dichVuList.add(new AppointmentServiceItemResponse(
+                            dv.getMaDichVu(),
+                            dv.getTenDichVu(),
+                            dv.getMoTa(),
+                            dv.getDonGia(),
+                            dv.getThoiGianDuKien(),
+                            1,
+                            item.getGhiChu()
+                    ));
+                }
+            }
+        }
+
         return new AppointmentResponse(
                 dl.getMaDatLich(),
                 kh != null ? kh.getMaKhachHang() : null,
@@ -457,7 +508,8 @@ public class AppointmentService {
                 dl.getThoiGianHen(),
                 dl.getTrangThai(),
                 dl.getGhiChu(),
-                dl.getNgayDat()
+                dl.getNgayDat(),
+                dichVuList
         );
     }
 }

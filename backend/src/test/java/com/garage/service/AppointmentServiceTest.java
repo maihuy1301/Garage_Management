@@ -40,6 +40,12 @@ class AppointmentServiceTest {
     private DatLichRepository datLichRepository;
 
     @Mock
+    private DatLichDichVuRepository datLichDichVuRepository;
+
+    @Mock
+    private DichVuRepository dichVuRepository;
+
+    @Mock
     private KhachHangRepository khachHangRepository;
 
     @Mock
@@ -421,4 +427,177 @@ class AppointmentServiceTest {
 
         assertThat(res.getTrangThai()).isEqualTo("DA_TIEP_NHAN");
     }
+
+    // ==========================================
+    // 5. Service Selection Tests
+    // ==========================================
+
+    @Test
+    void customer_createAppointment_withNoServices_success() {
+        setCustomerAuth(user1, customer1);
+
+        LocalDateTime futureTime = LocalDateTime.now().plusDays(1);
+        CreateAppointmentRequest req = new CreateAppointmentRequest(100, 1, futureTime, "Không dịch vụ", List.of());
+
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle1));
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(datLichRepository.existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn(eq(100), eq(futureTime), any()))
+                .thenReturn(false);
+
+        DatLich saved = new DatLich();
+        saved.setMaDatLich(1004);
+        saved.setKhachHang(customer1);
+        saved.setXe(vehicle1);
+        saved.setChiNhanh(branch1);
+        saved.setThoiGianHen(futureTime);
+        saved.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.save(any(DatLich.class))).thenReturn(saved);
+
+        AppointmentResponse res = appointmentService.createAppointment(req);
+
+        assertThat(res.getMaDatLich()).isEqualTo(1004);
+        verify(datLichDichVuRepository, never()).save(any(DatLichDichVu.class));
+    }
+
+    @Test
+    void customer_createAppointment_withMultipleServices_success() {
+        setCustomerAuth(user1, customer1);
+
+        LocalDateTime futureTime = LocalDateTime.now().plusDays(1);
+        CreateAppointmentRequest req = new CreateAppointmentRequest(100, 1, futureTime, "Có 2 dịch vụ", List.of(1, 2));
+
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle1));
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(datLichRepository.existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn(eq(100), eq(futureTime), any()))
+                .thenReturn(false);
+
+        DatLich saved = new DatLich();
+        saved.setMaDatLich(1005);
+        saved.setKhachHang(customer1);
+        saved.setXe(vehicle1);
+        saved.setChiNhanh(branch1);
+        saved.setThoiGianHen(futureTime);
+        saved.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.save(any(DatLich.class))).thenReturn(saved);
+
+        DichVu dv1 = new DichVu();
+        dv1.setMaDichVu(1);
+        dv1.setTenDichVu("Bảo dưỡng định kỳ");
+        dv1.setTrangThai(true);
+
+        DichVu dv2 = new DichVu();
+        dv2.setMaDichVu(2);
+        dv2.setTenDichVu("Thay dầu máy");
+        dv2.setTrangThai(true);
+
+        when(dichVuRepository.findById(1)).thenReturn(Optional.of(dv1));
+        when(dichVuRepository.findById(2)).thenReturn(Optional.of(dv2));
+
+        AppointmentResponse res = appointmentService.createAppointment(req);
+
+        assertThat(res.getMaDatLich()).isEqualTo(1005);
+        verify(datLichDichVuRepository, times(2)).save(any(DatLichDichVu.class));
+    }
+
+    @Test
+    void customer_createAppointment_withDuplicateServiceIds_deduplicatesCleanly() {
+        setCustomerAuth(user1, customer1);
+
+        LocalDateTime futureTime = LocalDateTime.now().plusDays(1);
+        CreateAppointmentRequest req = new CreateAppointmentRequest(100, 1, futureTime, "Trùng ID dịch vụ", List.of(1, 1, 2));
+
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle1));
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(datLichRepository.existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn(eq(100), eq(futureTime), any()))
+                .thenReturn(false);
+
+        DatLich saved = new DatLich();
+        saved.setMaDatLich(1006);
+        saved.setKhachHang(customer1);
+        saved.setXe(vehicle1);
+        saved.setChiNhanh(branch1);
+        saved.setThoiGianHen(futureTime);
+        saved.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.save(any(DatLich.class))).thenReturn(saved);
+
+        DichVu dv1 = new DichVu();
+        dv1.setMaDichVu(1);
+        dv1.setTenDichVu("Bảo dưỡng định kỳ");
+        dv1.setTrangThai(true);
+
+        DichVu dv2 = new DichVu();
+        dv2.setMaDichVu(2);
+        dv2.setTenDichVu("Thay dầu máy");
+        dv2.setTrangThai(true);
+
+        when(dichVuRepository.findById(1)).thenReturn(Optional.of(dv1));
+        when(dichVuRepository.findById(2)).thenReturn(Optional.of(dv2));
+
+        AppointmentResponse res = appointmentService.createAppointment(req);
+
+        assertThat(res.getMaDatLich()).isEqualTo(1006);
+        verify(datLichDichVuRepository, times(2)).save(any(DatLichDichVu.class));
+    }
+
+    @Test
+    void customer_createAppointment_withNonExistentService_throws404() {
+        setCustomerAuth(user1, customer1);
+
+        LocalDateTime futureTime = LocalDateTime.now().plusDays(1);
+        CreateAppointmentRequest req = new CreateAppointmentRequest(100, 1, futureTime, "Dịch vụ không tồn tại", List.of(999999));
+
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle1));
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(datLichRepository.existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn(eq(100), eq(futureTime), any()))
+                .thenReturn(false);
+
+        DatLich saved = new DatLich();
+        saved.setMaDatLich(1007);
+        saved.setKhachHang(customer1);
+        saved.setXe(vehicle1);
+        saved.setChiNhanh(branch1);
+        saved.setThoiGianHen(futureTime);
+        saved.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.save(any(DatLich.class))).thenReturn(saved);
+
+        when(dichVuRepository.findById(999999)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> appointmentService.createAppointment(req))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("999999");
+    }
+
+    @Test
+    void customer_createAppointment_withInactiveService_throws400() {
+        setCustomerAuth(user1, customer1);
+
+        LocalDateTime futureTime = LocalDateTime.now().plusDays(1);
+        CreateAppointmentRequest req = new CreateAppointmentRequest(100, 1, futureTime, "Dịch vụ tạm ngưng", List.of(5));
+
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle1));
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(datLichRepository.existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn(eq(100), eq(futureTime), any()))
+                .thenReturn(false);
+
+        DatLich saved = new DatLich();
+        saved.setMaDatLich(1008);
+        saved.setKhachHang(customer1);
+        saved.setXe(vehicle1);
+        saved.setChiNhanh(branch1);
+        saved.setThoiGianHen(futureTime);
+        saved.setTrangThai("CHO_XAC_NHAN");
+        when(datLichRepository.save(any(DatLich.class))).thenReturn(saved);
+
+        DichVu dvInactive = new DichVu();
+        dvInactive.setMaDichVu(5);
+        dvInactive.setTenDichVu("Dịch vụ cũ");
+        dvInactive.setTrangThai(false);
+
+        when(dichVuRepository.findById(5)).thenReturn(Optional.of(dvInactive));
+
+        assertThatThrownBy(() -> appointmentService.createAppointment(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("tạm ngưng");
+    }
 }
+

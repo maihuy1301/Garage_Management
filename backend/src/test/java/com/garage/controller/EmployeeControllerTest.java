@@ -116,16 +116,23 @@ class EmployeeControllerTest {
     }
 
     @Test
-    void getAllEmployees_Receptionist_Returns403() throws Exception {
+    void getAllEmployees_Receptionist_Returns200() throws Exception {
         NguoiDung receptionist = createMockUser(3, "receptionist");
         VaiTro recRole = createMockRole(3, "ROLE_FRONT_DESK");
         stubAuthenticatedUser(receptionist, recRole);
+
+        EmployeeResponse emp = new EmployeeResponse(
+                1, "Kỹ thuật viên", LocalDate.now(), true, 3, "tech1", "Tech FullName", "tech1@garage.com", "0900000003", List.of("ROLE_TECHNICIAN"), 1, "Chi Nhánh 1"
+        );
+        when(employeeService.getAllEmployees()).thenReturn(List.of(emp));
 
         String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
 
         mockMvc.perform(get("/api/employees")
                         .header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].maNhanVien").value(1));
     }
 
     @Test

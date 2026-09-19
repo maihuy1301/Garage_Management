@@ -17,19 +17,37 @@ public class PhanCong {
     private PhieuSuaChua phieuSuaChua;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "MaNhanVien", nullable = false)
-    private NhanVien nhanVien;
+    @JoinColumn(name = "MaNguoiPhanCong", nullable = false)
+    private NhanVien nguoiPhanCong;
 
-    @Column(name = "VaiTroTrongCongViec", length = 100)
-    private String vaiTroTrongCongViec;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaNguoiDuyet")
+    private NhanVien nguoiDuyet;
 
-    @Column(name = "ThoiGianPhanCong", insertable = false, updatable = false)
-    private LocalDateTime thoiGianPhanCong;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "MaNhanVienDuocPhanCong", nullable = false)
+    private NhanVien nhanVienDuocPhanCong;
 
-    @Column(name = "TrangThai", length = 30)
-    private String trangThai = "DA_GIAO";
+    @Column(name = "ThoiGianTao")
+    private LocalDateTime thoiGianTao;
+
+    @Column(name = "ThoiGianDuyet")
+    private LocalDateTime thoiGianDuyet;
+
+    @Column(name = "TrangThai", length = 30, nullable = false)
+    private String trangThai = "CHO_DUYET";
+
+    @Column(name = "GhiChu", length = 500)
+    private String ghiChu;
 
     public PhanCong() {}
+
+    @PrePersist
+    public void prePersist() {
+        if (thoiGianTao == null) {
+            thoiGianTao = LocalDateTime.now();
+        }
+    }
 
     public Integer getMaPhanCong() {
         return maPhanCong;
@@ -47,28 +65,44 @@ public class PhanCong {
         this.phieuSuaChua = phieuSuaChua;
     }
 
-    public NhanVien getNhanVien() {
-        return nhanVien;
+    public NhanVien getNguoiPhanCong() {
+        return nguoiPhanCong;
     }
 
-    public void setNhanVien(NhanVien nhanVien) {
-        this.nhanVien = nhanVien;
+    public void setNguoiPhanCong(NhanVien nguoiPhanCong) {
+        this.nguoiPhanCong = nguoiPhanCong;
     }
 
-    public String getVaiTroTrongCongViec() {
-        return vaiTroTrongCongViec;
+    public NhanVien getNguoiDuyet() {
+        return nguoiDuyet;
     }
 
-    public void setVaiTroTrongCongViec(String vaiTroTrongCongViec) {
-        this.vaiTroTrongCongViec = vaiTroTrongCongViec;
+    public void setNguoiDuyet(NhanVien nguoiDuyet) {
+        this.nguoiDuyet = nguoiDuyet;
     }
 
-    public LocalDateTime getThoiGianPhanCong() {
-        return thoiGianPhanCong;
+    public NhanVien getNhanVienDuocPhanCong() {
+        return nhanVienDuocPhanCong;
     }
 
-    public void setThoiGianPhanCong(LocalDateTime thoiGianPhanCong) {
-        this.thoiGianPhanCong = thoiGianPhanCong;
+    public void setNhanVienDuocPhanCong(NhanVien nhanVienDuocPhanCong) {
+        this.nhanVienDuocPhanCong = nhanVienDuocPhanCong;
+    }
+
+    public LocalDateTime getThoiGianTao() {
+        return thoiGianTao;
+    }
+
+    public void setThoiGianTao(LocalDateTime thoiGianTao) {
+        this.thoiGianTao = thoiGianTao;
+    }
+
+    public LocalDateTime getThoiGianDuyet() {
+        return thoiGianDuyet;
+    }
+
+    public void setThoiGianDuyet(LocalDateTime thoiGianDuyet) {
+        this.thoiGianDuyet = thoiGianDuyet;
     }
 
     public String getTrangThai() {
@@ -77,5 +111,38 @@ public class PhanCong {
 
     public void setTrangThai(String trangThai) {
         this.trangThai = trangThai;
+    }
+
+    public String getGhiChu() {
+        return ghiChu;
+    }
+
+    public void setGhiChu(String ghiChu) {
+        this.ghiChu = ghiChu;
+    }
+
+    // --- Helper compatibility methods ---
+    public NhanVien getNhanVien() {
+        return nhanVienDuocPhanCong;
+    }
+
+    public void setNhanVien(NhanVien nhanVien) {
+        this.nhanVienDuocPhanCong = nhanVien;
+    }
+
+    public LocalDateTime getThoiGianPhanCong() {
+        return thoiGianTao;
+    }
+
+    public void setThoiGianPhanCong(LocalDateTime thoiGianPhanCong) {
+        this.thoiGianTao = thoiGianPhanCong;
+    }
+
+    public String getVaiTroTrongCongViec() {
+        return ghiChu;
+    }
+
+    public void setVaiTroTrongCongViec(String vaiTroTrongCongViec) {
+        this.ghiChu = vaiTroTrongCongViec;
     }
 }

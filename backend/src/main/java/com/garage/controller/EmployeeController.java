@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/employees")
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
 public class EmployeeController {
 
     private final EmployeeService employeeService;
@@ -22,18 +21,21 @@ public class EmployeeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
     public ResponseEntity<ApiResponse<List<EmployeeResponse>>> getAllEmployees() {
         List<EmployeeResponse> employees = employeeService.getAllEmployees();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách nhân viên thành công", employees));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> getEmployeeById(@PathVariable Integer id) {
         EmployeeResponse employee = employeeService.getEmployeeById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhân viên thành công", employee));
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee(@Valid @RequestBody CreateEmployeeRequest request) {
         EmployeeResponse createdEmployee = employeeService.createEmployee(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -41,6 +43,7 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> updateEmployee(@PathVariable Integer id,
                                                                         @Valid @RequestBody UpdateEmployeeRequest request) {
         EmployeeResponse updatedEmployee = employeeService.updateEmployee(id, request);
@@ -48,6 +51,7 @@ public class EmployeeController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> updateEmployeeStatus(@PathVariable Integer id,
                                                                               @Valid @RequestBody UpdateEmployeeStatusRequest request) {
         EmployeeResponse updatedEmployee = employeeService.updateEmployeeStatus(id, request);

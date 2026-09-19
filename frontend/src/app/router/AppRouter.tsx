@@ -16,6 +16,7 @@ import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage';
 import { BrandModelManagementPage } from '@/features/vehicles/pages/BrandModelManagementPage';
 import { AppointmentsPage } from '@/features/appointments/pages/AppointmentsPage';
 import { ReceptionPage } from '@/features/reception/pages/ReceptionPage';
+import { RepairOrdersPage } from '@/features/repair-orders/pages/RepairOrdersPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -145,7 +146,11 @@ export const AppRouter: React.FC = () => {
         />
         <Route
           path="repair-orders"
-          element={<PlaceholderPage moduleName="Lệnh sửa chữa" taskNumber="Frontend Task Lệnh sửa chữa" />}
+          element={
+            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_TECHNICIAN']}>
+              <RepairOrdersPage />
+            </RoleGuard>
+          }
         />
         <Route
           path="vehicles"

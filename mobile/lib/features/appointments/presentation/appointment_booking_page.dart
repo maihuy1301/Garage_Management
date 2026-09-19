@@ -42,6 +42,7 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
   List<AppointmentBookingResult> _appointments = const [];
   AppointmentBookingResult? _result;
   final Set<int> _cancellingIds = {};
+  Set<int> _selectedServiceIds = {};
   int _selectedView = 0;
   int? _vehicleId;
   int? _branchId;
@@ -168,6 +169,24 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
     _setAppointmentTime(date, time);
   }
 
+  Future<void> _openServiceSelectionSheet(List<ServiceOption> services) async {
+    final result = await showModalBottomSheet<Set<int>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _ServiceSelectionSheet(
+        services: services,
+        initialSelectedIds: _selectedServiceIds,
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _selectedServiceIds = result;
+      });
+    }
+  }
+
   void _setAppointmentTime(DateTime date, TimeOfDay time) {
     final value = DateTime(
       date.year,
@@ -200,6 +219,9 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
         branchId: _branchId!,
         appointmentTime: _appointmentTime!,
         note: _noteController.text,
+        serviceIds: _selectedServiceIds.isEmpty
+            ? null
+            : _selectedServiceIds.toList(),
       );
       if (!mounted) return;
       setState(() {
@@ -517,6 +539,218 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
                       hintText: 'Mô tả nhu cầu bảo dưỡng hoặc tình trạng xe...',
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: _SectionTitle(
+                          icon: Icons.miscellaneous_services_rounded,
+                          title: 'Dịch vụ muốn thực hiện',
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Không bắt buộc',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppColors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Bạn có thể chọn trước các dịch vụ cần làm để garage chuẩn bị phụ tùng và kỹ thuật viên.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  if (options.services.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Hiện chưa có danh sách dịch vụ chọn trước.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                      ),
+                    )
+                  else if (_selectedServiceIds.isEmpty)
+                    InkWell(
+                      key: const ValueKey('appointment-select-services-button'),
+                      onTap: _isSubmitting
+                          ? null
+                          : () => _openServiceSelectionSheet(options.services),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.outlineVariant,
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.add_rounded,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Chọn dịch vụ bạn muốn làm',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Duyệt ${options.services.length} dịch vụ theo danh mục...',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppColors.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.checklist_rounded,
+                                size: 20,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Đã chọn ${_selectedServiceIds.length} dịch vụ',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleSmall
+                                      ?.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                              TextButton.icon(
+                                key: const ValueKey('appointment-select-services-button'),
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => _openServiceSelectionSheet(options.services),
+                                icon: const Icon(Icons.edit_outlined, size: 16),
+                                label: const Text('Thay đổi'),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final sId in _selectedServiceIds) ...[
+                                () {
+                                  final service = options.services.firstWhere(
+                                    (s) => s.id == sId,
+                                    orElse: () => ServiceOption(
+                                      id: sId,
+                                      name: 'Dịch vụ #$sId',
+                                    ),
+                                  );
+                                  return InputChip(
+                                    label: Text(
+                                      service.name,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    deleteIcon: const Icon(Icons.close_rounded, size: 14),
+                                    onDeleted: _isSubmitting
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _selectedServiceIds.remove(sId);
+                                            });
+                                          },
+                                  );
+                                }(),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1031,3 +1265,491 @@ class _InlineStatus extends StatelessWidget {
     );
   }
 }
+
+class _ServiceSelectionSheet extends StatefulWidget {
+  const _ServiceSelectionSheet({
+    required this.services,
+    required this.initialSelectedIds,
+  });
+
+  final List<ServiceOption> services;
+  final Set<int> initialSelectedIds;
+
+  @override
+  State<_ServiceSelectionSheet> createState() => _ServiceSelectionSheetState();
+}
+
+class _ServiceSelectionSheetState extends State<_ServiceSelectionSheet> {
+  late final Set<int> _tempSelectedIds;
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
+  String? _selectedCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelectedIds = Set<int>.from(widget.initialSelectedIds);
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<String> get _categories {
+    final categories = <String>{};
+    for (final s in widget.services) {
+      final cat = s.categoryName?.trim();
+      if (cat != null && cat.isNotEmpty) {
+        categories.add(cat);
+      }
+    }
+    return ['Tất cả', ...categories];
+  }
+
+  List<ServiceOption> get _filteredServices {
+    return widget.services.where((service) {
+      final matchesSearch = _searchQuery.isEmpty ||
+          service.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (service.description ?? '')
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase());
+
+      final matchesCategory = _selectedCategory == null ||
+          _selectedCategory == 'Tất cả' ||
+          service.categoryName == _selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final categories = _categories;
+    final filteredServices = _filteredServices;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Drag handle
+          Container(
+            margin: const EdgeInsets.only(top: 12, bottom: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.outlineVariant,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chọn dịch vụ',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Bạn có thể chọn một hoặc nhiều dịch vụ',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_tempSelectedIds.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _tempSelectedIds.clear();
+                      });
+                    },
+                    child: const Text('Bỏ chọn tất cả'),
+                  ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                  tooltip: 'Đóng',
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Search & Filter
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: TextField(
+              key: const ValueKey('service-search-input'),
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm theo tên hoặc mô tả...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                filled: true,
+                fillColor: AppColors.surfaceContainerLow,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.trim();
+                });
+              },
+            ),
+          ),
+          if (categories.length > 2)
+            SizedBox(
+              height: 42,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final cat = categories[index];
+                  final isSelected = (_selectedCategory == null && cat == 'Tất cả') ||
+                      _selectedCategory == cat;
+                  return ChoiceChip(
+                    label: Text(cat),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() {
+                        _selectedCategory = cat == 'Tất cả' ? null : cat;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 6),
+          // Service List
+          Expanded(
+            child: filteredServices.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Không tìm thấy dịch vụ phù hợp',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Thử tìm với từ khóa khác hoặc chuyển danh mục.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    itemCount: filteredServices.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final service = filteredServices[index];
+                      final isSelected = _tempSelectedIds.contains(service.id);
+                      return _ServiceOptionTile(
+                        key: ValueKey('service-option-${service.id}'),
+                        service: service,
+                        isSelected: isSelected,
+                        isDisabled: false,
+                        onToggle: () {
+                          setState(() {
+                            if (isSelected) {
+                              _tempSelectedIds.remove(service.id);
+                            } else {
+                              _tempSelectedIds.add(service.id);
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+          ),
+          // Bottom Footer Bar
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: theme.cardColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Đã chọn: ${_tempSelectedIds.length} dịch vụ',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: _tempSelectedIds.isNotEmpty
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        if (_tempSelectedIds.isNotEmpty)
+                          Text(
+                            'Chạm "Áp dụng" để lưu lựa chọn',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    key: const ValueKey('apply-selected-services-button'),
+                    onPressed: () {
+                      Navigator.pop(context, _tempSelectedIds);
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      _tempSelectedIds.isEmpty
+                          ? 'Đóng'
+                          : 'Áp dụng (${_tempSelectedIds.length})',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceOptionTile extends StatelessWidget {
+  const _ServiceOptionTile({
+    super.key,
+    required this.service,
+    required this.isSelected,
+    required this.isDisabled,
+    required this.onToggle,
+  });
+
+  final ServiceOption service;
+  final bool isSelected;
+  final bool isDisabled;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isDisabled ? null : onToggle,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppColors.primaryContainer.withValues(alpha: 0.22)
+                : AppColors.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.outlineVariant,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Icon(
+                  isSelected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            service.name,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: isSelected ? AppColors.primary : null,
+                            ),
+                          ),
+                        ),
+                        if (service.price != null && service.price! > 0) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatCurrency(service.price!),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (service.categoryName != null &&
+                        service.categoryName!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          service.categoryName!.trim(),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (service.description != null &&
+                        service.description!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        service.description!.trim(),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (service.estimatedDurationMinutes != null &&
+                        service.estimatedDurationMinutes! > 0) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.timer_outlined,
+                            size: 14,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Thời gian dự kiến: ${_formatDuration(service.estimatedDurationMinutes!)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _formatCurrency(double amount) {
+  final whole = amount.toInt();
+  final formatted = whole.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
+      );
+  return '$formatted đ';
+}
+
+String _formatDuration(int minutes) {
+  if (minutes < 60) {
+    return '$minutes phút';
+  }
+  final hours = minutes ~/ 60;
+  final remainingMinutes = minutes % 60;
+  if (remainingMinutes == 0) {
+    return '$hours giờ';
+  }
+  return '$hours giờ $remainingMinutes phút';
+}
+

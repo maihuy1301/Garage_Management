@@ -5,8 +5,7 @@ import com.garage.entity.*;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
-import com.garage.repository.PhieuSuaChuaRepository;
-import com.garage.repository.PhieuTiepNhanRepository;
+import com.garage.repository.*;
 import com.garage.security.BranchAuthorizationService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
@@ -15,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -29,13 +29,25 @@ public class RepairOrderService {
 
     private final PhieuSuaChuaRepository phieuSuaChuaRepository;
     private final PhieuTiepNhanRepository phieuTiepNhanRepository;
+    private final DatLichDichVuRepository datLichDichVuRepository;
+    private final PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
+    private final PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository;
+    private final DichVuPhuTungRepository dichVuPhuTungRepository;
     private final BranchAuthorizationService branchAuthorizationService;
 
     public RepairOrderService(PhieuSuaChuaRepository phieuSuaChuaRepository,
                               PhieuTiepNhanRepository phieuTiepNhanRepository,
+                              DatLichDichVuRepository datLichDichVuRepository,
+                              PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
+                              PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository,
+                              DichVuPhuTungRepository dichVuPhuTungRepository,
                               BranchAuthorizationService branchAuthorizationService) {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.phieuTiepNhanRepository = phieuTiepNhanRepository;
+        this.datLichDichVuRepository = datLichDichVuRepository;
+        this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
+        this.phieuSuaChuaPhuTungRepository = phieuSuaChuaPhuTungRepository;
+        this.dichVuPhuTungRepository = dichVuPhuTungRepository;
         this.branchAuthorizationService = branchAuthorizationService;
     }
 
@@ -46,6 +58,7 @@ public class RepairOrderService {
      * - Hỗ trợ maPhieuCha cho sub-repair order
      * - Branch authorization: Kiểm tra quyền truy cập chi nhánh
      * - Tự động liên kết ChiNhanh từ PhieuTiepNhan
+     * - Tự động sao chép dịch vụ từ DatLich sang PhieuSuaChua_DichVu và phụ tùng sang PhieuSuaChua_PhuTung
      */
     @Transactional
     public RepairOrderResponse createRepairOrder(CreateRepairOrderRequest request) {
@@ -85,6 +98,47 @@ public class RepairOrderService {
         order.setGhiChu(request.getGhiChu());
 
         PhieuSuaChua saved = phieuSuaChuaRepository.save(order);
+
+        // 6. Tự động sao chép dịch vụ và phụ tùng từ lịch hẹn (nếu có)
+        if (reception.getDatLich() != null) {
+            Integer maDatLich = reception.getDatLich().getMaDatLich();
+            List<DatLichDichVu> apptServices = datLichDichVuRepository.findByDatLichMaDatLich(maDatLich);
+            for (DatLichDichVu apptSvc : apptServices) {
+                DichVu dv = apptSvc.getDichVu();
+                if (dv != null) {
+                    if (!phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(saved.getMaPhieuSuaChua(), dv.getMaDichVu())) {
+                        BigDecimal price = (dv.getDonGia() != null) ? dv.getDonGia() : BigDecimal.ZERO;
+
+                        PhieuSuaChuaDichVu roService = new PhieuSuaChuaDichVu();
+                        roService.setPhieuSuaChua(saved);
+                        roService.setDichVu(dv);
+                        roService.setSoLuong(1);
+                        roService.setDonGia(price);
+                        roService.setTrangThai("CHO_XU_LY");
+                        PhieuSuaChuaDichVu savedRoService = phieuSuaChuaDichVuRepository.save(roService);
+
+                        // Sao chép phụ tùng tiêu chuẩn theo DichVu_PhuTung nếu có
+                        List<DichVuPhuTung> standardParts = dichVuPhuTungRepository.findByDichVuMaDichVu(dv.getMaDichVu());
+                        for (DichVuPhuTung standardPart : standardParts) {
+                            PhuTung pt = standardPart.getPhuTung();
+                            if (pt != null && !phieuSuaChuaPhuTungRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTungAndDichVuChiTietMaChiTiet(saved.getMaPhieuSuaChua(), pt.getMaPhuTung(), savedRoService.getMaChiTiet())) {
+                                int partQty = (standardPart.getSoLuong() != null && standardPart.getSoLuong() >= 1) ? standardPart.getSoLuong() : 1;
+                                BigDecimal partPrice = (pt.getGiaBan() != null) ? pt.getGiaBan() : BigDecimal.ZERO;
+
+                                PhieuSuaChuaPhuTung roPart = new PhieuSuaChuaPhuTung();
+                                roPart.setPhieuSuaChua(saved);
+                                roPart.setPhuTung(pt);
+                                roPart.setDichVuChiTiet(savedRoService);
+                                roPart.setSoLuong(partQty);
+                                roPart.setDonGia(partPrice);
+                                phieuSuaChuaPhuTungRepository.save(roPart);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return mapToRepairOrderResponse(saved);
     }
 

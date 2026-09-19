@@ -9,7 +9,7 @@ import 'package:garage_mobile/features/vehicles/data/vehicle_service.dart';
 import 'package:garage_mobile/features/vehicles/domain/vehicle_models.dart';
 
 void main() {
-  testWidgets('hiển thị form với xe và chi nhánh tải từ service', (
+  testWidgets('hiển thị form với xe, chi nhánh và nút chọn dịch vụ', (
     tester,
   ) async {
     final gateway = _FakeAppointmentGateway();
@@ -23,6 +23,8 @@ void main() {
     expect(find.text('Lịch hẹn dịch vụ'), findsOneWidget);
     expect(find.textContaining('51A-11111'), findsOneWidget);
     expect(find.text('Garage Trung tâm'), findsOneWidget);
+    expect(find.text('Dịch vụ muốn thực hiện'), findsOneWidget);
+    expect(find.text('Chọn dịch vụ bạn muốn làm'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('appointment-note-field')),
       findsOneWidget,
@@ -133,7 +135,9 @@ void main() {
     expect(find.textContaining('51A-11111'), findsOneWidget);
   });
 
-  testWidgets('gửi lịch và hiển thị xác nhận thành công', (tester) async {
+  testWidgets('chọn dịch vụ qua modal bottom sheet, gửi lịch và hiển thị xác nhận thành công', (
+    tester,
+  ) async {
     final gateway = _FakeAppointmentGateway();
     await tester.pumpWidget(
       MaterialApp(
@@ -156,18 +160,87 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
 
+    // Mở modal bottom sheet
+    final selectButton = find.byKey(const ValueKey('appointment-select-services-button'));
+    await tester.ensureVisible(selectButton);
+    await tester.pumpAndSettle();
+    await tester.tap(selectButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chọn dịch vụ'), findsOneWidget);
+    expect(find.byKey(const ValueKey('service-search-input')), findsOneWidget);
+
+    final serviceOption = find.byKey(const ValueKey('service-option-1'));
+    expect(serviceOption, findsOneWidget);
+    await tester.tap(serviceOption);
+    await tester.pumpAndSettle();
+
+    // Áp dụng lựa chọn
+    final applyButton = find.byKey(const ValueKey('apply-selected-services-button'));
+    await tester.tap(applyButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đã chọn 1 dịch vụ'), findsOneWidget);
+    expect(find.text('Bảo dưỡng định kỳ'), findsOneWidget);
+
     final submit = find.byKey(const ValueKey('appointment-submit-button'));
-    await tester.scrollUntilVisible(
-      submit,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
     await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(gateway.createCalls, 1);
+    expect(gateway.lastServiceIds, [1]);
     expect(find.byKey(const ValueKey('appointment-success')), findsOneWidget);
     expect(find.textContaining('Đã tạo lịch #1'), findsOneWidget);
+  });
+
+  testWidgets('tìm kiếm dịch vụ trong modal và xóa chip trực tiếp trên form', (
+    tester,
+  ) async {
+    final gateway = _FakeAppointmentGateway();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: AppointmentBookingPage(gateway: gateway)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Mở modal bottom sheet
+    final selectButton = find.byKey(const ValueKey('appointment-select-services-button'));
+    await tester.ensureVisible(selectButton);
+    await tester.pumpAndSettle();
+    await tester.tap(selectButton);
+    await tester.pumpAndSettle();
+
+    // Gõ tìm kiếm
+    await tester.enterText(
+      find.byKey(const ValueKey('service-search-input')),
+      'Thay dầu',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('service-option-2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('service-option-1')), findsNothing);
+
+    // Chọn dịch vụ 2
+    await tester.tap(find.byKey(const ValueKey('service-option-2')));
+    await tester.pumpAndSettle();
+
+    // Áp dụng
+    await tester.tap(find.byKey(const ValueKey('apply-selected-services-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đã chọn 1 dịch vụ'), findsOneWidget);
+    expect(find.text('Thay dầu động cơ'), findsOneWidget);
+
+    // Xóa chip trực tiếp trên form
+    final deleteChip = find.byIcon(Icons.close_rounded);
+    expect(deleteChip, findsOneWidget);
+    await tester.tap(deleteChip);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chọn dịch vụ bạn muốn làm'), findsOneWidget);
   });
 
   testWidgets('hiển thị lịch của tôi và chỉ cho hủy trạng thái hợp lệ', (
@@ -219,6 +292,7 @@ class _FakeAppointmentGateway implements AppointmentGateway {
 
   bool hasVehicle;
   int createCalls = 0;
+  List<int>? lastServiceIds;
   final List<int> cancelledIds = [];
 
   @override
@@ -239,8 +313,10 @@ class _FakeAppointmentGateway implements AppointmentGateway {
     required int branchId,
     required DateTime appointmentTime,
     String? note,
+    List<int>? serviceIds,
   }) async {
     createCalls += 1;
+    lastServiceIds = serviceIds;
     return AppointmentBookingResult(
       id: 1,
       status: 'CHO_XAC_NHAN',
@@ -268,6 +344,20 @@ class _FakeAppointmentGateway implements AppointmentGateway {
           id: 2,
           name: 'Garage Trung tâm',
           address: 'Quận 1, TP.HCM',
+        ),
+      ],
+      services: const [
+        ServiceOption(
+          id: 1,
+          name: 'Bảo dưỡng định kỳ',
+          price: 250000,
+          estimatedDurationMinutes: 60,
+        ),
+        ServiceOption(
+          id: 2,
+          name: 'Thay dầu động cơ',
+          price: 150000,
+          estimatedDurationMinutes: 30,
         ),
       ],
     );

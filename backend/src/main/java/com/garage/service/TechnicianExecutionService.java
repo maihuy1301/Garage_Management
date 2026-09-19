@@ -41,12 +41,12 @@ public class TechnicianExecutionService {
     }
 
     /**
-     * Kỹ thuật viên xem danh sách các phiếu sửa chữa được phân công cho mình
+     * Kỹ thuật viên xem danh sách các phiếu sửa chữa được phân công cho mình (chỉ xem các phân công DA_DUYET)
      */
     @Transactional(readOnly = true)
     public List<RepairOrderResponse> getMyRepairOrders() {
         NhanVien tech = getCurrentTechnician();
-        return phanCongRepository.findByNhanVienMaNhanVien(tech.getMaNhanVien())
+        return phanCongRepository.findByNhanVienDuocPhanCongMaNhanVienAndTrangThai(tech.getMaNhanVien(), "DA_DUYET")
                 .stream()
                 .map(PhanCong::getPhieuSuaChua)
                 .distinct()
@@ -219,13 +219,13 @@ public class TechnicianExecutionService {
             throw new AccessDeniedException("Forbidden: Phiếu sửa chữa thuộc chi nhánh khác");
         }
 
-        // Kiểm tra phân công (Technician T1 không được xem/sửa phiếu của T2)
-        boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(
-                repairOrderId, tech.getMaNhanVien()
+        // Kiểm tra phân công (Technician chỉ được truy cập nếu phân công đã được DA_DUYET)
+        boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVienAndTrangThai(
+                repairOrderId, tech.getMaNhanVien(), "DA_DUYET"
         );
 
         if (!isAssigned) {
-            throw new AccessDeniedException("Forbidden: Bạn không được phân công phụ trách phiếu sửa chữa này");
+            throw new AccessDeniedException("Forbidden: Bạn không được phân công hoặc phân công chưa được duyệt cho phiếu sửa chữa này");
         }
 
         return order;

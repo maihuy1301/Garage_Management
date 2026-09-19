@@ -367,6 +367,10 @@ input, select, textarea {
   background-color: var(--color-surface-container-low);
 }
 
+.sidebar-toggle-btn {
+  display: none;
+}
+
 .header-badge-dot {
   position: absolute;
   top: 8px;
@@ -1117,6 +1121,10 @@ input, select, textarea {
   .header {
     left: 0;
     padding: 0 16px;
+  }
+
+  .sidebar-toggle-btn {
+    display: flex;
   }
 
   .main-content {

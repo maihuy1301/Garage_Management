@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   APPOINTMENTS: '/appointments',
   RECEPTIONS: '/reception',
   REPAIR_ORDERS: '/repair-orders',
+  TECHNICIAN_REPAIR_ORDERS: '/technician/repair-orders',
   PARTS: '/parts',
   INVENTORY: '/inventory',
   QUOTATIONS: '/quotations',

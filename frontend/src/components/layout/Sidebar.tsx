@@ -65,7 +65,7 @@ const ALL_NAV_ITEMS: NavItemConfig[] = [
     label: 'Lệnh sửa chữa',
     path: '/app/repair-orders',
     icon: 'assignment',
-    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_TECHNICIAN', 'ROLE_CUSTOMER'],
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_TECHNICIAN'],
   },
   {
     label: 'Tiến độ thực hiện',

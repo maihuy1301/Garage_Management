@@ -241,4 +241,34 @@ class ReportServiceTest {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("chi nhánh khác");
     }
+
+    @Test
+    void getTechnicianReport_onlyCountsApprovedAssignments() {
+        stubAuth("admin", "ADMIN");
+
+        NhanVien tech = new NhanVien();
+        tech.setMaNhanVien(100);
+        tech.setChucVu("Kỹ thuật viên chính");
+        tech.setChiNhanh(branch1);
+
+        PhanCong approvedAssignment = new PhanCong();
+        approvedAssignment.setMaPhanCong(1);
+        approvedAssignment.setNhanVienDuocPhanCong(tech);
+        approvedAssignment.setPhieuSuaChua(repairOrder);
+        approvedAssignment.setTrangThai("DA_DUYET");
+
+        PhanCong pendingAssignment = new PhanCong();
+        pendingAssignment.setMaPhanCong(2);
+        pendingAssignment.setNhanVienDuocPhanCong(tech);
+        pendingAssignment.setPhieuSuaChua(repairOrder);
+        pendingAssignment.setTrangThai("CHO_DUYET");
+
+        when(nhanVienRepository.findAll()).thenReturn(List.of(tech));
+        when(phanCongRepository.findAll()).thenReturn(List.of(approvedAssignment, pendingAssignment));
+
+        List<TechnicianReportResponse> res = reportService.getTechnicianReport(null, null, null);
+
+        assertThat(res).hasSize(1);
+        assertThat(res.get(0).getSoPhieuPhanCong()).isEqualTo(1); // Only approved is counted
+    }
 }

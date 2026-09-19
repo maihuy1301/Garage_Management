@@ -271,8 +271,8 @@ public class RepairPartService {
             if (user != null) {
                 NhanVien tech = nhanVienRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung()).orElse(null);
                 if (tech != null) {
-                    boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(
-                            order.getMaPhieuSuaChua(), tech.getMaNhanVien()
+                    boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVienAndTrangThai(
+                            order.getMaPhieuSuaChua(), tech.getMaNhanVien(), "DA_DUYET"
                     );
                     if (!isAssigned) {
                         throw new AccessDeniedException("Forbidden: Bạn không được phân công phụ trách phiếu sửa chữa này");

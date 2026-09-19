@@ -28,6 +28,8 @@ public class CreateAppointmentRequest {
     @Size(max = 500, message = "Ghi chú không được vượt quá 500 ký tự")
     private String ghiChu;
 
+    private java.util.List<Integer> maDichVuList;
+
     public CreateAppointmentRequest() {}
 
     public CreateAppointmentRequest(Integer maXe, Integer maChiNhanh, LocalDateTime thoiGianHen, String ghiChu) {
@@ -35,6 +37,14 @@ public class CreateAppointmentRequest {
         this.maChiNhanh = maChiNhanh;
         this.thoiGianHen = thoiGianHen;
         this.ghiChu = ghiChu;
+    }
+
+    public CreateAppointmentRequest(Integer maXe, Integer maChiNhanh, LocalDateTime thoiGianHen, String ghiChu, java.util.List<Integer> maDichVuList) {
+        this.maXe = maXe;
+        this.maChiNhanh = maChiNhanh;
+        this.thoiGianHen = thoiGianHen;
+        this.ghiChu = ghiChu;
+        this.maDichVuList = maDichVuList;
     }
 
     public Integer getMaKhachHang() { return maKhachHang; }
@@ -51,4 +61,8 @@ public class CreateAppointmentRequest {
 
     public String getGhiChu() { return ghiChu; }
     public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
+
+    public java.util.List<Integer> getMaDichVuList() { return maDichVuList; }
+    public void setMaDichVuList(java.util.List<Integer> maDichVuList) { this.maDichVuList = maDichVuList; }
 }
+

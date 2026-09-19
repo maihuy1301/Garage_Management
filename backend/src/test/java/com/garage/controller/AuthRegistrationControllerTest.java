@@ -52,6 +52,9 @@ class AuthRegistrationControllerTest {
     @MockBean
     private JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
+    @MockBean
+    private com.garage.repository.NhanVienRepository nhanVienRepository;
+
     @Test
     void login_UnauthenticatedValidRequest_ReturnsPinStateWithoutHashes() throws Exception {
         LoginRequest request = new LoginRequest("0901234567", "SecurePass123");

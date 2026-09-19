@@ -26,6 +26,7 @@ public class AppointmentResponse {
     private String trangThai;
     private String ghiChu;
     private LocalDateTime ngayDat;
+    private java.util.List<AppointmentServiceItemResponse> dichVu = new java.util.ArrayList<>();
 
     public AppointmentResponse() {}
 
@@ -38,7 +39,7 @@ public class AppointmentResponse {
         this(maDatLich, maKhachHang, tenKhachHang, soDienThoaiKhachHang, null,
                 maXe, bienSoXe, hangXe, modelXe,
                 maChiNhanh, tenChiNhanh,
-                thoiGianHen, trangThai, ghiChu, ngayDat);
+                thoiGianHen, trangThai, ghiChu, ngayDat, new java.util.ArrayList<>());
     }
 
     public AppointmentResponse(Integer maDatLich, Integer maKhachHang,
@@ -48,6 +49,20 @@ public class AppointmentResponse {
                                Integer maChiNhanh, String tenChiNhanh,
                                LocalDateTime thoiGianHen, String trangThai, String ghiChu,
                                LocalDateTime ngayDat) {
+        this(maDatLich, maKhachHang, tenKhachHang, soDienThoaiKhachHang, maNhanVienXacNhan,
+                maXe, bienSoXe, hangXe, modelXe,
+                maChiNhanh, tenChiNhanh,
+                thoiGianHen, trangThai, ghiChu, ngayDat, new java.util.ArrayList<>());
+    }
+
+    public AppointmentResponse(Integer maDatLich, Integer maKhachHang,
+                               String tenKhachHang, String soDienThoaiKhachHang,
+                               Integer maNhanVienXacNhan,
+                               Integer maXe, String bienSoXe, String hangXe, String modelXe,
+                               Integer maChiNhanh, String tenChiNhanh,
+                               LocalDateTime thoiGianHen, String trangThai, String ghiChu,
+                               LocalDateTime ngayDat,
+                               java.util.List<AppointmentServiceItemResponse> dichVu) {
         this.maDatLich = maDatLich;
         this.maKhachHang = maKhachHang;
         this.tenKhachHang = tenKhachHang;
@@ -63,6 +78,7 @@ public class AppointmentResponse {
         this.trangThai = trangThai;
         this.ghiChu = ghiChu;
         this.ngayDat = ngayDat;
+        this.dichVu = (dichVu != null) ? dichVu : new java.util.ArrayList<>();
     }
 
     public Integer getMaDatLich() { return maDatLich; }
@@ -109,4 +125,9 @@ public class AppointmentResponse {
 
     public LocalDateTime getNgayDat() { return ngayDat; }
     public void setNgayDat(LocalDateTime ngayDat) { this.ngayDat = ngayDat; }
+
+    public java.util.List<AppointmentServiceItemResponse> getDichVu() { return dichVu; }
+    public void setDichVu(java.util.List<AppointmentServiceItemResponse> dichVu) {
+        this.dichVu = (dichVu != null) ? dichVu : new java.util.ArrayList<>();
+    }
 }

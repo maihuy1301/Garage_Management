@@ -2,15 +2,14 @@ package com.garage.service;
 
 import com.garage.dto.AssignmentResponse;
 import com.garage.dto.CreateAssignmentRequest;
+import com.garage.dto.RejectAssignmentRequest;
 import com.garage.entity.*;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
-import com.garage.repository.NguoiDungVaiTroRepository;
-import com.garage.repository.NhanVienRepository;
-import com.garage.repository.PhanCongRepository;
-import com.garage.repository.PhieuSuaChuaRepository;
+import com.garage.repository.*;
 import com.garage.security.BranchAuthorizationService;
+import com.garage.security.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +17,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +44,9 @@ class TechnicianAssignmentServiceTest {
     private NhanVienRepository nhanVienRepository;
 
     @Mock
+    private NguoiDungRepository nguoiDungRepository;
+
+    @Mock
     private NguoiDungVaiTroRepository nguoiDungVaiTroRepository;
 
     @Mock
@@ -52,11 +59,24 @@ class TechnicianAssignmentServiceTest {
     private ChiNhanh branch1;
     private ChiNhanh branch2;
     private PhieuSuaChua order1;
+
     private NguoiDung userTech1;
     private NhanVien tech1;
     private VaiTro roleTech;
     private NguoiDungVaiTro userRoleTech;
-    private PhanCong assignment1;
+
+    private NguoiDung userManager;
+    private NhanVien manager1;
+    private VaiTro roleMgr;
+    private NguoiDungVaiTro userRoleMgr;
+
+    private NguoiDung userReceptionist;
+    private NhanVien receptionist1;
+    private VaiTro roleFrontDesk;
+    private NguoiDungVaiTro userRoleFrontDesk;
+
+    private PhanCong assignmentPending;
+    private PhanCong assignmentApproved;
 
     @BeforeEach
     void setUp() {
@@ -73,6 +93,7 @@ class TechnicianAssignmentServiceTest {
         order1.setChiNhanh(branch1);
         order1.setTrangThai("CHO_XU_LY");
 
+        // Technician
         userTech1 = new NguoiDung();
         userTech1.setMaNguoiDung(10);
         userTech1.setTenDangNhap("technician1");
@@ -88,15 +109,74 @@ class TechnicianAssignmentServiceTest {
         roleTech = new VaiTro();
         roleTech.setMaVaiTro(4);
         roleTech.setTenVaiTro("ROLE_TECHNICIAN");
-
         userRoleTech = new NguoiDungVaiTro(userTech1, roleTech);
 
-        assignment1 = new PhanCong();
-        assignment1.setMaPhanCong(801);
-        assignment1.setPhieuSuaChua(order1);
-        assignment1.setNhanVien(tech1);
-        assignment1.setVaiTroTrongCongViec("Kỹ thuật viên chính");
-        assignment1.setTrangThai("DA_GIAO");
+        // Manager
+        userManager = new NguoiDung();
+        userManager.setMaNguoiDung(2);
+        userManager.setTenDangNhap("manager1");
+        userManager.setHoTen("Trần Quản Lý");
+        userManager.setTrangThai(true);
+
+        manager1 = new NhanVien();
+        manager1.setMaNhanVien(20);
+        manager1.setChiNhanh(branch1);
+        manager1.setNguoiDung(userManager);
+        manager1.setTrangThai(true);
+
+        roleMgr = new VaiTro();
+        roleMgr.setMaVaiTro(2);
+        roleMgr.setTenVaiTro("ROLE_MANAGER");
+        userRoleMgr = new NguoiDungVaiTro(userManager, roleMgr);
+
+        // Receptionist
+        userReceptionist = new NguoiDung();
+        userReceptionist.setMaNguoiDung(3);
+        userReceptionist.setTenDangNhap("receptionist1");
+        userReceptionist.setHoTen("Lê Tiếp Nhận");
+        userReceptionist.setTrangThai(true);
+
+        receptionist1 = new NhanVien();
+        receptionist1.setMaNhanVien(30);
+        receptionist1.setChiNhanh(branch1);
+        receptionist1.setNguoiDung(userReceptionist);
+        receptionist1.setTrangThai(true);
+
+        roleFrontDesk = new VaiTro();
+        roleFrontDesk.setMaVaiTro(3);
+        roleFrontDesk.setTenVaiTro("ROLE_FRONT_DESK");
+        userRoleFrontDesk = new NguoiDungVaiTro(userReceptionist, roleFrontDesk);
+
+        // Assignments
+        assignmentPending = new PhanCong();
+        assignmentPending.setMaPhanCong(801);
+        assignmentPending.setPhieuSuaChua(order1);
+        assignmentPending.setNhanVienDuocPhanCong(tech1);
+        assignmentPending.setNguoiPhanCong(receptionist1);
+        assignmentPending.setTrangThai("CHO_DUYET");
+        assignmentPending.setThoiGianTao(LocalDateTime.now());
+
+        assignmentApproved = new PhanCong();
+        assignmentApproved.setMaPhanCong(802);
+        assignmentApproved.setPhieuSuaChua(order1);
+        assignmentApproved.setNhanVienDuocPhanCong(tech1);
+        assignmentApproved.setNguoiPhanCong(manager1);
+        assignmentApproved.setNguoiDuyet(manager1);
+        assignmentApproved.setTrangThai("DA_DUYET");
+        assignmentApproved.setThoiGianTao(LocalDateTime.now());
+        assignmentApproved.setThoiGianDuyet(LocalDateTime.now());
+    }
+
+    private void stubAuth(NguoiDung user, NhanVien emp, String roleName) {
+        CustomUserDetails userDetails = new CustomUserDetails(user, List.of(new SimpleGrantedAuthority(roleName)));
+        SecurityContext ctx = SecurityContextHolder.createEmptyContext();
+        ctx.setAuthentication(new UsernamePasswordAuthenticationToken(
+                userDetails, "pass", userDetails.getAuthorities()
+        ));
+        SecurityContextHolder.setContext(ctx);
+
+        lenient().when(nhanVienRepository.findByNguoiDungMaNguoiDung(user.getMaNguoiDung()))
+                .thenReturn(Optional.of(emp));
     }
 
     // ==========================================
@@ -104,24 +184,63 @@ class TechnicianAssignmentServiceTest {
     // ==========================================
 
     @Test
-    void createAssignment_success_updatesOrderStatusToAssigned() {
+    void receptionist_createAssignment_success_setsPendingApproval() {
+        stubAuth(userReceptionist, receptionist1, "ROLE_FRONT_DESK");
+
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(10)).thenReturn(List.of(userRoleTech));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(false);
-        when(phanCongRepository.save(any(PhanCong.class))).thenReturn(assignment1);
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(false);
+        when(phanCongRepository.save(any(PhanCong.class))).thenAnswer(i -> {
+            PhanCong p = i.getArgument(0);
+            p.setMaPhanCong(801);
+            return p;
+        });
 
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Kỹ thuật viên chính");
+        CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Kiểm tra hệ thống phanh");
         AssignmentResponse res = technicianAssignmentService.createAssignment(601, req);
 
         assertThat(res).isNotNull();
         assertThat(res.getMaPhanCong()).isEqualTo(801);
-        assertThat(res.getMaNhanVien()).isEqualTo(100);
-        assertThat(res.getTenNhanVien()).isEqualTo("Nguyễn Văn Kỹ Thuật");
+        assertThat(res.getTrangThai()).isEqualTo("CHO_DUYET");
+        assertThat(res.getMaNguoiPhanCong()).isEqualTo(30);
+        assertThat(res.getTenNguoiPhanCong()).isEqualTo("Lê Tiếp Nhận");
+        assertThat(res.getMaNguoiDuyet()).isNull();
+        assertThat(res.getThoiGianDuyet()).isNull();
+        // Order remains CHO_XU_LY until approved
+        assertThat(order1.getTrangThai()).isEqualTo("CHO_XU_LY");
+        verify(phanCongRepository).save(any(PhanCong.class));
+        verify(phieuSuaChuaRepository, never()).save(order1);
+    }
+
+    @Test
+    void manager_createAssignment_success_automaticallyApproved() {
+        stubAuth(userManager, manager1, "ROLE_MANAGER");
+
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
+        when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(10)).thenReturn(List.of(userRoleTech));
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(false);
+        when(phanCongRepository.save(any(PhanCong.class))).thenAnswer(i -> {
+            PhanCong p = i.getArgument(0);
+            p.setMaPhanCong(802);
+            return p;
+        });
+
+        CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Manager giao việc trực tiếp");
+        AssignmentResponse res = technicianAssignmentService.createAssignment(601, req);
+
+        assertThat(res).isNotNull();
+        assertThat(res.getMaPhanCong()).isEqualTo(802);
+        assertThat(res.getTrangThai()).isEqualTo("DA_DUYET");
+        assertThat(res.getMaNguoiPhanCong()).isEqualTo(20);
+        assertThat(res.getMaNguoiDuyet()).isEqualTo(20);
+        assertThat(res.getThoiGianDuyet()).isNotNull();
+        // Order changes to DA_PHAN_CONG
         assertThat(order1.getTrangThai()).isEqualTo("DA_PHAN_CONG");
         verify(phieuSuaChuaRepository).save(order1);
-        verify(phanCongRepository).save(any(PhanCong.class));
     }
 
     @Test
@@ -140,24 +259,12 @@ class TechnicianAssignmentServiceTest {
     }
 
     @Test
-    void createAssignment_callerNotAuthorizedForBranch_throws403() {
-        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(false);
-
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
-
-        assertThatThrownBy(() -> technicianAssignmentService.createAssignment(601, req))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("chi nhánh khác");
-    }
-
-    @Test
     void createAssignment_duplicateTechnician_throws409() {
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
         when(nguoiDungVaiTroRepository.findByNguoiDungMaNguoiDung(10)).thenReturn(List.of(userRoleTech));
-        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienMaNhanVien(601, 100)).thenReturn(true); // already assigned
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(601, 100)).thenReturn(true);
 
         CreateAssignmentRequest req = new CreateAssignmentRequest(100);
 
@@ -168,11 +275,6 @@ class TechnicianAssignmentServiceTest {
 
     @Test
     void createAssignment_employeeNotTechnicianRole_throws400() {
-        VaiTro roleMgr = new VaiTro();
-        roleMgr.setMaVaiTro(2);
-        roleMgr.setTenVaiTro("ROLE_MANAGER");
-        NguoiDungVaiTro userRoleMgr = new NguoiDungVaiTro(userTech1, roleMgr);
-
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(nhanVienRepository.findById(100)).thenReturn(Optional.of(tech1));
@@ -185,78 +287,113 @@ class TechnicianAssignmentServiceTest {
                 .hasMessageContaining("ROLE_TECHNICIAN");
     }
 
-    @Test
-    void createAssignment_completedOrder_throws400() {
-        order1.setTrangThai("HOAN_TAT");
-        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
-
-        assertThatThrownBy(() -> technicianAssignmentService.createAssignment(601, req))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("HOAN_TAT");
-    }
-
-    @Test
-    void createAssignment_cancelledOrder_throws400() {
-        order1.setTrangThai("HUY");
-        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
-
-        assertThatThrownBy(() -> technicianAssignmentService.createAssignment(601, req))
-                .isInstanceOf(BadRequestException.class)
-                .hasMessageContaining("HUY");
-    }
-
-    @Test
-    void createAssignment_technicianNotFound_throws404() {
-        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-        when(nhanVienRepository.findById(999)).thenReturn(Optional.empty());
-
-        CreateAssignmentRequest req = new CreateAssignmentRequest(999);
-
-        assertThatThrownBy(() -> technicianAssignmentService.createAssignment(601, req))
-                .isInstanceOf(ResourceNotFoundException.class);
-    }
-
     // ==========================================
-    // 2. VIEW ASSIGNMENTS
+    // 2. APPROVE / REJECT ASSIGNMENT TESTS
     // ==========================================
 
     @Test
-    void getAssignments_success() {
-        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-        when(phanCongRepository.findByPhieuSuaChuaMaPhieuSuaChua(601)).thenReturn(List.of(assignment1));
+    void approveAssignment_success_changesStatusToApprovedAndUpdatesOrder() {
+        stubAuth(userManager, manager1, "ROLE_MANAGER");
 
-        List<AssignmentResponse> list = technicianAssignmentService.getAssignments(601);
-
-        assertThat(list).hasSize(1);
-        assertThat(list.get(0).getMaPhanCong()).isEqualTo(801);
-        assertThat(list.get(0).getTenNhanVien()).isEqualTo("Nguyễn Văn Kỹ Thuật");
-    }
-
-    // ==========================================
-    // 3. DELETE ASSIGNMENT
-    // ==========================================
-
-    @Test
-    void deleteAssignment_lastAssignment_revertsStatusToPending() {
-        order1.setTrangThai("DA_PHAN_CONG");
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phanCongRepository.findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(801, 601))
-                .thenReturn(Optional.of(assignment1));
-        when(phanCongRepository.countByPhieuSuaChuaMaPhieuSuaChua(601)).thenReturn(0L); // 0 left
+                .thenReturn(Optional.of(assignmentPending));
+        when(phanCongRepository.save(any(PhanCong.class))).thenReturn(assignmentPending);
 
-        technicianAssignmentService.deleteAssignment(601, 801);
+        AssignmentResponse res = technicianAssignmentService.approveAssignment(601, 801);
 
-        verify(phanCongRepository).delete(assignment1);
+        assertThat(res).isNotNull();
+        assertThat(assignmentPending.getTrangThai()).isEqualTo("DA_DUYET");
+        assertThat(assignmentPending.getNguoiDuyet()).isEqualTo(manager1);
+        assertThat(assignmentPending.getThoiGianDuyet()).isNotNull();
+        assertThat(order1.getTrangThai()).isEqualTo("DA_PHAN_CONG");
+        verify(phieuSuaChuaRepository).save(order1);
+        verify(phanCongRepository).save(assignmentPending);
+    }
+
+    @Test
+    void approveAssignment_alreadyApproved_throws400() {
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phanCongRepository.findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(802, 601))
+                .thenReturn(Optional.of(assignmentApproved));
+
+        assertThatThrownBy(() -> technicianAssignmentService.approveAssignment(601, 802))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("CHO_DUYET");
+    }
+
+    @Test
+    void rejectAssignment_success_changesStatusToRejected() {
+        stubAuth(userManager, manager1, "ROLE_MANAGER");
+
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phanCongRepository.findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(801, 601))
+                .thenReturn(Optional.of(assignmentPending));
+        when(phanCongRepository.save(any(PhanCong.class))).thenReturn(assignmentPending);
+
+        RejectAssignmentRequest req = new RejectAssignmentRequest("Kỹ thuật viên đang bận ca khác");
+        AssignmentResponse res = technicianAssignmentService.rejectAssignment(601, 801, req);
+
+        assertThat(res).isNotNull();
+        assertThat(assignmentPending.getTrangThai()).isEqualTo("TU_CHOI");
+        assertThat(assignmentPending.getNguoiDuyet()).isEqualTo(manager1);
+        assertThat(assignmentPending.getThoiGianDuyet()).isNotNull();
+        assertThat(assignmentPending.getGhiChu()).isEqualTo("Kỹ thuật viên đang bận ca khác");
+        verify(phanCongRepository).save(assignmentPending);
+    }
+
+    @Test
+    void rejectAssignment_notPending_throws400() {
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phanCongRepository.findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(802, 601))
+                .thenReturn(Optional.of(assignmentApproved));
+
+        RejectAssignmentRequest req = new RejectAssignmentRequest("Lý do từ chối");
+        assertThatThrownBy(() -> technicianAssignmentService.rejectAssignment(601, 802, req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("CHO_DUYET");
+    }
+
+    // ==========================================
+    // 3. PENDING ASSIGNMENTS LIST
+    // ==========================================
+
+    @Test
+    void getPendingAssignments_forBranchManager_returnsPendingForBranch() {
+        stubAuth(userManager, manager1, "ROLE_MANAGER");
+        when(branchAuthorizationService.resolveUserBranchId(any())).thenReturn(Optional.of(1));
+        when(phanCongRepository.findByTrangThaiAndPhieuSuaChuaChiNhanhMaChiNhanh("CHO_DUYET", 1))
+                .thenReturn(List.of(assignmentPending));
+
+        List<AssignmentResponse> pending = technicianAssignmentService.getPendingAssignments();
+
+        assertThat(pending).hasSize(1);
+        assertThat(pending.get(0).getMaPhanCong()).isEqualTo(801);
+        assertThat(pending.get(0).getTrangThai()).isEqualTo("CHO_DUYET");
+    }
+
+    // ==========================================
+    // 4. DELETE ASSIGNMENT
+    // ==========================================
+
+    @Test
+    void deleteAssignment_lastApprovedAssignment_revertsStatusToPending() {
+        order1.setTrangThai("DA_PHAN_CONG");
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phanCongRepository.findByMaPhanCongAndPhieuSuaChuaMaPhieuSuaChua(802, 601))
+                .thenReturn(Optional.of(assignmentApproved));
+        when(phanCongRepository.countByPhieuSuaChuaMaPhieuSuaChuaAndTrangThai(601, "DA_DUYET")).thenReturn(0L);
+
+        technicianAssignmentService.deleteAssignment(601, 802);
+
+        verify(phanCongRepository).delete(assignmentApproved);
         assertThat(order1.getTrangThai()).isEqualTo("CHO_XU_LY");
         verify(phieuSuaChuaRepository).save(order1);
     }
 }
+

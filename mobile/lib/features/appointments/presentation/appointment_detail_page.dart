@@ -253,6 +253,115 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
           ),
         ),
       ),
+      const SizedBox(height: 16),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.miscellaneous_services_rounded,
+                    size: 22,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Dịch vụ đã chọn',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (appointment.services.isEmpty)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Chưa chọn dịch vụ',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                )
+              else ...[
+                for (var i = 0; i < appointment.services.length; i++) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              appointment.services[i].name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                            if (appointment.services[i].price != null &&
+                                appointment.services[i].price! > 0) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _formatCurrency(appointment.services[i].price!),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                            if (appointment.services[i].description != null &&
+                                appointment.services[i].description!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                appointment.services[i].description!.trim(),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: AppColors.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (i < appointment.services.length - 1)
+                    const Divider(height: 16),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
     ];
   }
 }
@@ -486,3 +595,13 @@ String _formatDateTime(DateTime value) {
   return '${twoDigits(value.hour)}:${twoDigits(value.minute)} · '
       '${twoDigits(value.day)}/${twoDigits(value.month)}/${value.year}';
 }
+
+String _formatCurrency(double amount) {
+  final whole = amount.toInt();
+  final formatted = whole.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+        (Match m) => '${m[1]}.',
+      );
+  return '$formatted đ';
+}
+

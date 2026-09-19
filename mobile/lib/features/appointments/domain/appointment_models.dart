@@ -47,14 +47,84 @@ class BranchOption {
   final String address;
 }
 
+class ServiceOption {
+  const ServiceOption({
+    required this.id,
+    required this.name,
+    this.categoryName,
+    this.description,
+    this.price,
+    this.estimatedDurationMinutes,
+    this.isActive = true,
+  });
+
+  factory ServiceOption.fromJson(Map<String, dynamic> json) {
+    return ServiceOption(
+      id: (json['maDichVu'] as num).toInt(),
+      name: json['tenDichVu']?.toString() ?? '',
+      categoryName: json['tenLoaiDichVu']?.toString(),
+      description: json['moTa']?.toString(),
+      price: json['donGia'] != null ? (json['donGia'] as num).toDouble() : null,
+      estimatedDurationMinutes: json['thoiGianDuKien'] != null
+          ? (json['thoiGianDuKien'] as num).toInt()
+          : null,
+      isActive: json['trangThai'] != false,
+    );
+  }
+
+  final int id;
+  final String name;
+  final String? categoryName;
+  final String? description;
+  final double? price;
+  final int? estimatedDurationMinutes;
+  final bool isActive;
+}
+
+class AppointmentServiceItem {
+  const AppointmentServiceItem({
+    required this.id,
+    required this.name,
+    this.description,
+    this.price,
+    this.estimatedDurationMinutes,
+    this.quantity = 1,
+    this.note,
+  });
+
+  factory AppointmentServiceItem.fromJson(Map<String, dynamic> json) {
+    return AppointmentServiceItem(
+      id: (json['maDichVu'] as num).toInt(),
+      name: json['tenDichVu']?.toString() ?? '',
+      description: json['moTa']?.toString(),
+      price: json['donGia'] != null ? (json['donGia'] as num).toDouble() : null,
+      estimatedDurationMinutes: json['thoiGianDuKien'] != null
+          ? (json['thoiGianDuKien'] as num).toInt()
+          : null,
+      quantity: json['soLuong'] != null ? (json['soLuong'] as num).toInt() : 1,
+      note: json['ghiChu']?.toString(),
+    );
+  }
+
+  final int id;
+  final String name;
+  final String? description;
+  final double? price;
+  final int? estimatedDurationMinutes;
+  final int quantity;
+  final String? note;
+}
+
 class AppointmentBookingOptions {
   const AppointmentBookingOptions({
     required this.vehicles,
     required this.branches,
+    this.services = const [],
   });
 
   final List<VehicleOption> vehicles;
   final List<BranchOption> branches;
+  final List<ServiceOption> services;
 }
 
 class AppointmentBookingResult {
@@ -68,6 +138,7 @@ class AppointmentBookingResult {
     this.vehicleModel = '',
     this.note,
     this.createdAt,
+    this.services = const [],
   });
 
   factory AppointmentBookingResult.fromJson(Map<String, dynamic> json) {
@@ -83,6 +154,11 @@ class AppointmentBookingResult {
       createdAt: json['ngayDat'] == null
           ? null
           : DateTime.tryParse(json['ngayDat'].toString()),
+      services: (json['dichVu'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(AppointmentServiceItem.fromJson)
+              .toList(growable: false) ??
+          const [],
     );
   }
 
@@ -95,6 +171,7 @@ class AppointmentBookingResult {
   final String vehicleModel;
   final String? note;
   final DateTime? createdAt;
+  final List<AppointmentServiceItem> services;
 
   bool get canCancel => status == 'CHO_XAC_NHAN' || status == 'DA_XAC_NHAN';
 

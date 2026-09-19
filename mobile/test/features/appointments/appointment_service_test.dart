@@ -20,7 +20,7 @@ void main() {
     service = AppointmentService(ApiClient(dio, storage));
   });
 
-  test('tải xe thuộc customer và chi nhánh qua API tập trung', () async {
+  test('tải xe thuộc customer, chi nhánh và dịch vụ qua API tập trung', () async {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
@@ -54,6 +54,22 @@ void main() {
                 },
               ],
             },
+            '/services' => {
+              'success': true,
+              'data': [
+                {
+                  'maDichVu': 1,
+                  'tenDichVu': 'Bảo dưỡng định kỳ',
+                  'donGia': 250000.0,
+                  'thoiGianDuKien': 60,
+                },
+                {
+                  'maDichVu': 2,
+                  'tenDichVu': 'Dịch vụ ngưng hoạt động',
+                  'trangThai': false,
+                },
+              ],
+            },
             _ => <String, dynamic>{},
           };
           handler.resolve(
@@ -69,12 +85,14 @@ void main() {
 
     final options = await service.loadBookingOptions();
 
-    expect(requests.map((request) => request.path), {'/vehicles', '/branches'});
+    expect(requests.map((request) => request.path), {'/vehicles', '/branches', '/services'});
     expect(options.vehicles.single.licensePlate, '51A-11111');
     expect(options.branches.single.id, 2);
+    expect(options.services.single.id, 1);
+    expect(options.services.single.name, 'Bảo dưỡng định kỳ');
   });
 
-  test('payload tạo lịch không gửi mã khách hàng từ client', () async {
+  test('payload tạo lịch không gửi mã khách hàng từ client và gửi maDichVuList nếu có', () async {
     Map<String, dynamic>? submittedData;
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -92,6 +110,12 @@ void main() {
                   'thoiGianHen': '2026-09-10T08:30:00',
                   'bienSoXe': '51A-11111',
                   'tenChiNhanh': 'Garage Trung tâm',
+                  'dichVu': [
+                    {
+                      'maDichVu': 1,
+                      'tenDichVu': 'Bảo dưỡng định kỳ',
+                    }
+                  ],
                 },
               },
             ),
@@ -105,13 +129,16 @@ void main() {
       branchId: 2,
       appointmentTime: DateTime(2026, 9, 10, 8, 30),
       note: '  Bảo dưỡng định kỳ  ',
+      serviceIds: [1, 3],
     );
 
     expect(submittedData, isNot(contains('maKhachHang')));
     expect(submittedData?['maXe'], 7);
     expect(submittedData?['maChiNhanh'], 2);
     expect(submittedData?['ghiChu'], 'Bảo dưỡng định kỳ');
+    expect(submittedData?['maDichVuList'], [1, 3]);
     expect(result.id, 15);
+    expect(result.services.single.name, 'Bảo dưỡng định kỳ');
   });
 
   test('tải lịch của customer và ánh xạ quyền hủy theo trạng thái', () async {
@@ -135,6 +162,12 @@ void main() {
                     'modelXe': 'Camry',
                     'tenChiNhanh': 'Garage Trung tâm',
                     'ghiChu': 'Kiểm tra phanh',
+                    'dichVu': [
+                      {
+                        'maDichVu': 2,
+                        'tenDichVu': 'Kiểm tra phanh',
+                      }
+                    ],
                   },
                   {
                     'maDatLich': 15,
@@ -142,6 +175,7 @@ void main() {
                     'thoiGianHen': '2026-09-10T08:30:00',
                     'bienSoXe': '51A-11111',
                     'tenChiNhanh': 'Garage Trung tâm',
+                    'dichVu': [],
                   },
                 ],
               },
@@ -155,8 +189,10 @@ void main() {
 
     expect(appointments.first.id, 15);
     expect(appointments.first.canCancel, isTrue);
+    expect(appointments.first.services, isEmpty);
     expect(appointments.last.canCancel, isFalse);
     expect(appointments.last.vehicleDescription, 'Toyota Camry');
+    expect(appointments.last.services.single.name, 'Kiểm tra phanh');
   });
 
   test('tải chi tiết lịch hẹn bằng endpoint ownership backend', () async {
@@ -179,6 +215,13 @@ void main() {
                   'hangXe': 'Toyota',
                   'modelXe': 'Camry',
                   'tenChiNhanh': 'Garage Trung tâm',
+                  'dichVu': [
+                    {
+                      'maDichVu': 1,
+                      'tenDichVu': 'Bảo dưỡng định kỳ',
+                      'donGia': 300000,
+                    }
+                  ],
                 },
               },
             ),
@@ -192,6 +235,8 @@ void main() {
     expect(appointment.id, 16);
     expect(appointment.status, 'DA_TIEP_NHAN');
     expect(appointment.progressStep, 2);
+    expect(appointment.services.single.name, 'Bảo dưỡng định kỳ');
+    expect(appointment.services.single.price, 300000);
   });
 
   test(

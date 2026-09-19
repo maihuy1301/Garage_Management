@@ -315,7 +315,9 @@ public class ReportService {
         return technicians.stream()
                 .map(tech -> {
                     List<PhanCong> myAssigns = assignments.stream()
-                            .filter(a -> a.getNhanVien() != null && tech.getMaNhanVien().equals(a.getNhanVien().getMaNhanVien()))
+                            .filter(a -> "DA_DUYET".equalsIgnoreCase(a.getTrangThai())
+                                    && a.getNhanVienDuocPhanCong() != null
+                                    && tech.getMaNhanVien().equals(a.getNhanVienDuocPhanCong().getMaNhanVien()))
                             .collect(Collectors.toList());
 
                     long totalAssign = myAssigns.size();

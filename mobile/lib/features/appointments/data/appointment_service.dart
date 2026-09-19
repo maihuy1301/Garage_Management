@@ -15,6 +15,7 @@ abstract interface class AppointmentGateway {
     required int branchId,
     required DateTime appointmentTime,
     String? note,
+    List<int>? serviceIds,
   });
 
   Future<AppointmentBookingResult> cancelAppointment(int appointmentId);
@@ -40,6 +41,7 @@ class AppointmentService implements AppointmentGateway {
       final responses = await Future.wait([
         _apiClient.dio.get<Map<String, dynamic>>('/vehicles'),
         _apiClient.dio.get<Map<String, dynamic>>('/branches'),
+        _apiClient.dio.get<Map<String, dynamic>>('/services'),
       ]);
       final vehicles = _readList(responses[0].data, 'danh sách xe')
           .map(VehicleOption.fromJson)
@@ -49,7 +51,15 @@ class AppointmentService implements AppointmentGateway {
         responses[1].data,
         'danh sách chi nhánh',
       ).map(BranchOption.fromJson).toList(growable: false);
-      return AppointmentBookingOptions(vehicles: vehicles, branches: branches);
+      final services = _readList(
+        responses[2].data,
+        'danh sách dịch vụ',
+      ).map(ServiceOption.fromJson).where((s) => s.isActive).toList(growable: false);
+      return AppointmentBookingOptions(
+        vehicles: vehicles,
+        branches: branches,
+        services: services,
+      );
     } on AppointmentException {
       rethrow;
     } on DioException catch (error) {
@@ -116,19 +126,25 @@ class AppointmentService implements AppointmentGateway {
     required int branchId,
     required DateTime appointmentTime,
     String? note,
+    List<int>? serviceIds,
   }) async {
     try {
       final normalizedNote = note?.trim();
+      final payload = <String, dynamic>{
+        'maXe': vehicleId,
+        'maChiNhanh': branchId,
+        'thoiGianHen': appointmentTime.toIso8601String(),
+        'ghiChu': normalizedNote == null || normalizedNote.isEmpty
+            ? null
+            : normalizedNote,
+      };
+      if (serviceIds != null && serviceIds.isNotEmpty) {
+        payload['maDichVuList'] = serviceIds;
+      }
+
       final response = await _apiClient.dio.post<Map<String, dynamic>>(
         '/appointments',
-        data: {
-          'maXe': vehicleId,
-          'maChiNhanh': branchId,
-          'thoiGianHen': appointmentTime.toIso8601String(),
-          'ghiChu': normalizedNote == null || normalizedNote.isEmpty
-              ? null
-              : normalizedNote,
-        },
+        data: payload,
       );
       final data = _readObject(response.data, 'lịch hẹn');
       return AppointmentBookingResult.fromJson(data);

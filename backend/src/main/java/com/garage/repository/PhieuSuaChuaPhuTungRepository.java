@@ -16,5 +16,7 @@ public interface PhieuSuaChuaPhuTungRepository extends JpaRepository<PhieuSuaChu
 
     boolean existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTung(Integer maPhieuSuaChua, Integer maPhuTung);
 
+    boolean existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTungAndDichVuChiTietMaChiTiet(Integer maPhieuSuaChua, Integer maPhuTung, Integer maChiTiet);
+
     int countByPhieuSuaChuaMaPhieuSuaChua(Integer maPhieuSuaChua);
 }

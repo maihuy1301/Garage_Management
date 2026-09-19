@@ -5,8 +5,7 @@ import com.garage.entity.*;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
-import com.garage.repository.PhieuSuaChuaRepository;
-import com.garage.repository.PhieuTiepNhanRepository;
+import com.garage.repository.*;
 import com.garage.security.BranchAuthorizationService;
 import com.garage.security.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +38,18 @@ class RepairOrderServiceTest {
 
     @Mock
     private PhieuTiepNhanRepository phieuTiepNhanRepository;
+
+    @Mock
+    private DatLichDichVuRepository datLichDichVuRepository;
+
+    @Mock
+    private PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
+
+    @Mock
+    private PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository;
+
+    @Mock
+    private DichVuPhuTungRepository dichVuPhuTungRepository;
 
     @Mock
     private BranchAuthorizationService branchAuthorizationService;
@@ -264,5 +275,141 @@ class RepairOrderServiceTest {
         assertThatThrownBy(() -> repairOrderService.updateStatus(601, req))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("kết thúc");
+    }
+
+    // ==========================================
+    // 4. AUTO-COPY SERVICES & PARTS FROM APPOINTMENT
+    // ==========================================
+
+    @Test
+    void createRepairOrder_fromReceptionWithAppointmentServices_copiesServicesAndParts() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        DatLich appointment = new DatLich();
+        appointment.setMaDatLich(1001);
+        reception1.setDatLich(appointment);
+
+        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
+
+        DichVu dv1 = new DichVu();
+        dv1.setMaDichVu(1);
+        dv1.setTenDichVu("Bảo dưỡng phanh");
+        dv1.setDonGia(java.math.BigDecimal.valueOf(200000));
+
+        DatLichDichVu dldv = new DatLichDichVu(appointment, dv1);
+
+        when(datLichDichVuRepository.findByDatLichMaDatLich(1001)).thenReturn(List.of(dldv));
+        when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 1)).thenReturn(false);
+
+        PhieuSuaChuaDichVu savedPscDv = new PhieuSuaChuaDichVu();
+        savedPscDv.setMaChiTiet(701);
+        savedPscDv.setPhieuSuaChua(repairOrder1);
+        savedPscDv.setDichVu(dv1);
+        when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(savedPscDv);
+
+        PhuTung pt1 = new PhuTung();
+        pt1.setMaPhuTung(10);
+        pt1.setTenPhuTung("Má phanh trước");
+        pt1.setGiaBan(java.math.BigDecimal.valueOf(350000));
+
+        DichVuPhuTung dvpt = new DichVuPhuTung(dv1, pt1, 2);
+        when(dichVuPhuTungRepository.findByDichVuMaDichVu(1)).thenReturn(List.of(dvpt));
+        when(phieuSuaChuaPhuTungRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTungAndDichVuChiTietMaChiTiet(601, 10, 701)).thenReturn(false);
+
+        CreateRepairOrderRequest req = new CreateRepairOrderRequest(501, "Kiểm tra động cơ");
+        RepairOrderResponse res = repairOrderService.createRepairOrder(req);
+
+        assertThat(res.getMaPhieuSuaChua()).isEqualTo(601);
+        verify(phieuSuaChuaDichVuRepository).save(any(PhieuSuaChuaDichVu.class));
+        verify(phieuSuaChuaPhuTungRepository).save(any(PhieuSuaChuaPhuTung.class));
+    }
+
+    @Test
+    void createRepairOrder_multipleServicesSharingSamePart_createsPartsForBothServices() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        DatLich appointment = new DatLich();
+        appointment.setMaDatLich(1001);
+        reception1.setDatLich(appointment);
+
+        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
+
+        DichVu dv1 = new DichVu();
+        dv1.setMaDichVu(1);
+        dv1.setTenDichVu("Bảo dưỡng định kỳ");
+
+        DichVu dv2 = new DichVu();
+        dv2.setMaDichVu(2);
+        dv2.setTenDichVu("Thay dầu động cơ");
+
+        DatLichDichVu dldv1 = new DatLichDichVu(appointment, dv1);
+        DatLichDichVu dldv2 = new DatLichDichVu(appointment, dv2);
+
+        when(datLichDichVuRepository.findByDatLichMaDatLich(1001)).thenReturn(List.of(dldv1, dldv2));
+        when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 1)).thenReturn(false);
+        when(phieuSuaChuaDichVuRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndDichVuMaDichVu(601, 2)).thenReturn(false);
+
+        PhieuSuaChuaDichVu savedPscDv1 = new PhieuSuaChuaDichVu();
+        savedPscDv1.setMaChiTiet(701);
+        savedPscDv1.setPhieuSuaChua(repairOrder1);
+        savedPscDv1.setDichVu(dv1);
+
+        PhieuSuaChuaDichVu savedPscDv2 = new PhieuSuaChuaDichVu();
+        savedPscDv2.setMaChiTiet(702);
+        savedPscDv2.setPhieuSuaChua(repairOrder1);
+        savedPscDv2.setDichVu(dv2);
+
+        when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class)))
+                .thenReturn(savedPscDv1)
+                .thenReturn(savedPscDv2);
+
+        PhuTung pt1 = new PhuTung();
+        pt1.setMaPhuTung(10);
+        pt1.setTenPhuTung("Dầu động cơ");
+        pt1.setGiaBan(java.math.BigDecimal.valueOf(180000));
+
+        DichVuPhuTung dvpt1 = new DichVuPhuTung(dv1, pt1, 4);
+        DichVuPhuTung dvpt2 = new DichVuPhuTung(dv2, pt1, 4);
+
+        when(dichVuPhuTungRepository.findByDichVuMaDichVu(1)).thenReturn(List.of(dvpt1));
+        when(dichVuPhuTungRepository.findByDichVuMaDichVu(2)).thenReturn(List.of(dvpt2));
+
+        when(phieuSuaChuaPhuTungRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTungAndDichVuChiTietMaChiTiet(601, 10, 701)).thenReturn(false);
+        when(phieuSuaChuaPhuTungRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndPhuTungMaPhuTungAndDichVuChiTietMaChiTiet(601, 10, 702)).thenReturn(false);
+
+        CreateRepairOrderRequest req = new CreateRepairOrderRequest(501, "Tạo phiếu 2 dịch vụ");
+        RepairOrderResponse res = repairOrderService.createRepairOrder(req);
+
+        assertThat(res.getMaPhieuSuaChua()).isEqualTo(601);
+        verify(phieuSuaChuaDichVuRepository, times(2)).save(any(PhieuSuaChuaDichVu.class));
+        verify(phieuSuaChuaPhuTungRepository, times(2)).save(any(PhieuSuaChuaPhuTung.class));
+    }
+
+    @Test
+    void createRepairOrder_fromReceptionWithoutAppointmentServices_doesNotCreateServices() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        DatLich appointment = new DatLich();
+        appointment.setMaDatLich(1002);
+        reception1.setDatLich(appointment);
+
+        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
+        when(datLichDichVuRepository.findByDatLichMaDatLich(1002)).thenReturn(List.of());
+
+        CreateRepairOrderRequest req = new CreateRepairOrderRequest(501, "Kiểm tra động cơ");
+        RepairOrderResponse res = repairOrderService.createRepairOrder(req);
+
+        assertThat(res.getMaPhieuSuaChua()).isEqualTo(601);
+        verify(phieuSuaChuaDichVuRepository, never()).save(any(PhieuSuaChuaDichVu.class));
+        verify(phieuSuaChuaPhuTungRepository, never()).save(any(PhieuSuaChuaPhuTung.class));
     }
 }

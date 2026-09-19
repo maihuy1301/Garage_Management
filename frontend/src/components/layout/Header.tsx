@@ -40,8 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ title = 'AutoCare Multi-Branch',
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
-            className="header-icon-btn"
-            style={{ display: 'flex' }}
+            className="header-icon-btn sidebar-toggle-btn"
             aria-label="Mở Menu Sidebar"
           >
             <span className="material-symbols-outlined">menu</span>

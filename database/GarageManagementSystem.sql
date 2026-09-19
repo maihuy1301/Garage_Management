@@ -200,13 +200,17 @@ CREATE TABLE PhieuSuaChua_DichVu (
 CREATE TABLE PhanCong (
     MaPhanCong INT IDENTITY(1,1) PRIMARY KEY,
     MaPhieuSuaChua INT NOT NULL,
-    MaQuanLy INT NOT NULL,
-	MaNhanVienDuocPhanCong INT NOT NULL,
-	ThoiGianPhanCong DATETIME2 DEFAULT SYSDATETIME(),
-    TrangThai VARCHAR(30) DEFAULT 'DA_GIAO',
+    MaNguoiPhanCong INT NOT NULL,
+    MaNguoiDuyet INT NULL,
+    MaNhanVienDuocPhanCong INT NOT NULL,
+    ThoiGianTao DATETIME2 DEFAULT SYSDATETIME(),
+    ThoiGianDuyet DATETIME2 NULL,
+    TrangThai VARCHAR(30) NOT NULL DEFAULT 'CHO_DUYET',
+    GhiChu NVARCHAR(500),
     FOREIGN KEY (MaPhieuSuaChua) REFERENCES PhieuSuaChua(MaPhieuSuaChua),
-    FOREIGN KEY (MaQuanLy) REFERENCES NhanVien(MaNhanVien),
-	FOREIGN KEY (MaNhanVienDuocPhanCong) REFERENCES NhanVien(MaNhanVien)
+    FOREIGN KEY (MaNguoiPhanCong) REFERENCES NhanVien(MaNhanVien),
+    FOREIGN KEY (MaNguoiDuyet) REFERENCES NhanVien(MaNhanVien),
+    FOREIGN KEY (MaNhanVienDuocPhanCong) REFERENCES NhanVien(MaNhanVien)
 );
 
 CREATE TABLE HinhAnhSuaChua (
@@ -391,7 +395,4 @@ CREATE TABLE TinNhan (
     FOREIGN KEY (MaCuocHoiThoai) REFERENCES CuocHoiThoai(MaCuocHoiThoai),
     FOREIGN KEY (MaNguoiGui) REFERENCES NguoiDung(MaNguoiDung)
 );
-
-
-
 

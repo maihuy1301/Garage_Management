@@ -3,6 +3,7 @@ package com.garage.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.garage.dto.AssignmentResponse;
 import com.garage.dto.CreateAssignmentRequest;
+import com.garage.dto.RejectAssignmentRequest;
 import com.garage.entity.NguoiDung;
 import com.garage.entity.NguoiDungVaiTro;
 import com.garage.entity.VaiTro;
@@ -72,11 +73,15 @@ class TechnicianAssignmentControllerTest {
                 .thenReturn(List.of(new NguoiDungVaiTro(user, role)));
     }
 
-    private AssignmentResponse sampleAssignment(Integer id, Integer orderId, Integer techId) {
+    private AssignmentResponse sampleAssignment(Integer id, Integer orderId, Integer techId, String status) {
         return new AssignmentResponse(
-                id, orderId, techId, "Nguyễn Văn Kỹ Thuật",
+                id, orderId, 20, "Manager Name", (status.equals("DA_DUYET") ? 20 : null),
+                (status.equals("DA_DUYET") ? "Manager Name" : null),
+                techId, "Nguyễn Văn Kỹ Thuật",
                 1, "Chi Nhánh 1",
-                "Kỹ thuật viên chính", LocalDateTime.now(), "DA_GIAO"
+                "Kỹ thuật viên chính", LocalDateTime.now(),
+                (status.equals("DA_DUYET") ? LocalDateTime.now() : null),
+                status
         );
     }
 
@@ -99,7 +104,7 @@ class TechnicianAssignmentControllerTest {
     }
 
     // ==========================================
-    // 2. Denied Roles (CUSTOMER, TECHNICIAN, RECEPTIONIST: 403)
+    // 2. Denied Roles (CUSTOMER, TECHNICIAN: 403)
     // ==========================================
 
     @Test
@@ -127,23 +132,54 @@ class TechnicianAssignmentControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    // ==========================================
+    // 3. ROLE_FRONT_DESK: Can Create (CHO_DUYET) & View, Cannot Approve/Reject
+    // ==========================================
+
     @Test
-    void receptionist_createAssignment_returns403() throws Exception {
+    void receptionist_createAssignment_returns201() throws Exception {
         NguoiDung rec = mockUser(3, "receptionist");
         stubUser(rec, "ROLE_FRONT_DESK");
         String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
 
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
+        CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Ghi chú phân công");
+        when(technicianAssignmentService.createAssignment(eq(601), any(CreateAssignmentRequest.class)))
+                .thenReturn(sampleAssignment(801, 601, 100, "CHO_DUYET"));
 
         mockMvc.perform(post("/api/repair-orders/601/assignments")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.maPhanCong").value(801))
+                .andExpect(jsonPath("$.data.trangThai").value("CHO_DUYET"));
+    }
+
+    @Test
+    void receptionist_approveAssignment_returns403() throws Exception {
+        NguoiDung rec = mockUser(3, "receptionist");
+        stubUser(rec, "ROLE_FRONT_DESK");
+        String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
+
+        mockMvc.perform(put("/api/repair-orders/601/assignments/801/approve")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void receptionist_rejectAssignment_returns403() throws Exception {
+        NguoiDung rec = mockUser(3, "receptionist");
+        stubUser(rec, "ROLE_FRONT_DESK");
+        String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
+
+        mockMvc.perform(put("/api/repair-orders/601/assignments/801/reject")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     // ==========================================
-    // 3. ROLE_MANAGER: Assign, View, Delete
+    // 4. ROLE_MANAGER: Assign, Approve, Reject, View, Delete
     // ==========================================
 
     @Test
@@ -154,7 +190,7 @@ class TechnicianAssignmentControllerTest {
 
         CreateAssignmentRequest req = new CreateAssignmentRequest(100, "Kỹ thuật viên chính");
         when(technicianAssignmentService.createAssignment(eq(601), any(CreateAssignmentRequest.class)))
-                .thenReturn(sampleAssignment(801, 601, 100));
+                .thenReturn(sampleAssignment(801, 601, 100, "DA_DUYET"));
 
         mockMvc.perform(post("/api/repair-orders/601/assignments")
                         .header("Authorization", "Bearer " + token)
@@ -163,38 +199,58 @@ class TechnicianAssignmentControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.maPhanCong").value(801))
-                .andExpect(jsonPath("$.data.tenNhanVien").value("Nguyễn Văn Kỹ Thuật"));
+                .andExpect(jsonPath("$.data.trangThai").value("DA_DUYET"));
     }
 
     @Test
-    void branchManager_createAssignment_crossBranch_returns403() throws Exception {
+    void branchManager_approveAssignment_returns200() throws Exception {
         NguoiDung mgr = mockUser(2, "manager");
         stubUser(mgr, "ROLE_MANAGER");
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        when(technicianAssignmentService.createAssignment(eq(602), any(CreateAssignmentRequest.class)))
-                .thenThrow(new AccessDeniedException("Forbidden: Bạn không có quyền truy cập phiếu sửa chữa của chi nhánh khác"));
+        when(technicianAssignmentService.approveAssignment(601, 801))
+                .thenReturn(sampleAssignment(801, 601, 100, "DA_DUYET"));
 
-        CreateAssignmentRequest req = new CreateAssignmentRequest(100);
+        mockMvc.perform(put("/api/repair-orders/601/assignments/801/approve")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.trangThai").value("DA_DUYET"));
+    }
 
-        mockMvc.perform(post("/api/repair-orders/602/assignments")
+    @Test
+    void branchManager_rejectAssignment_returns200() throws Exception {
+        NguoiDung mgr = mockUser(2, "manager");
+        stubUser(mgr, "ROLE_MANAGER");
+        String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
+
+        RejectAssignmentRequest req = new RejectAssignmentRequest("Bận đột xuất");
+        when(technicianAssignmentService.rejectAssignment(eq(601), eq(801), any(RejectAssignmentRequest.class)))
+                .thenReturn(sampleAssignment(801, 601, 100, "TU_CHOI"));
+
+        mockMvc.perform(put("/api/repair-orders/601/assignments/801/reject")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.trangThai").value("TU_CHOI"));
     }
 
     @Test
-    void branchManager_getAssignments_returns200() throws Exception {
+    void branchManager_getPendingAssignments_returns200() throws Exception {
         NguoiDung mgr = mockUser(2, "manager");
         stubUser(mgr, "ROLE_MANAGER");
         String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
 
-        when(technicianAssignmentService.getAssignments(601)).thenReturn(List.of(sampleAssignment(801, 601, 100)));
+        when(technicianAssignmentService.getPendingAssignments())
+                .thenReturn(List.of(sampleAssignment(801, 601, 100, "CHO_DUYET")));
 
-        mockMvc.perform(get("/api/repair-orders/601/assignments").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/repair-orders/assignments/pending")
+                        .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].trangThai").value("CHO_DUYET"));
     }
 
     @Test
@@ -209,7 +265,7 @@ class TechnicianAssignmentControllerTest {
     }
 
     // ==========================================
-    // 4. ROLE_ADMIN: Assign any branch
+    // 5. ROLE_ADMIN: Assign any branch
     // ==========================================
 
     @Test
@@ -220,7 +276,7 @@ class TechnicianAssignmentControllerTest {
 
         CreateAssignmentRequest req = new CreateAssignmentRequest(100);
         when(technicianAssignmentService.createAssignment(eq(602), any(CreateAssignmentRequest.class)))
-                .thenReturn(sampleAssignment(802, 602, 100));
+                .thenReturn(sampleAssignment(802, 602, 100, "DA_DUYET"));
 
         mockMvc.perform(post("/api/repair-orders/602/assignments")
                         .header("Authorization", "Bearer " + token)
@@ -230,3 +286,4 @@ class TechnicianAssignmentControllerTest {
                 .andExpect(jsonPath("$.data.maPhanCong").value(802));
     }
 }
+

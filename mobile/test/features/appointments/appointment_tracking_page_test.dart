@@ -103,6 +103,7 @@ class _FakeTrackingGateway implements AppointmentGateway {
     required int branchId,
     required DateTime appointmentTime,
     String? note,
+    List<int>? serviceIds,
   }) => throw UnimplementedError();
 
   @override
