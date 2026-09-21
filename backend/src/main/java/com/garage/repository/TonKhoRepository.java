@@ -13,6 +13,8 @@ public interface TonKhoRepository extends JpaRepository<TonKho, TonKhoId> {
 
     List<TonKho> findByIdMaChiNhanh(Integer maChiNhanh);
 
+    boolean existsByIdMaChiNhanh(Integer maChiNhanh);
+
     Optional<TonKho> findByIdMaChiNhanhAndIdMaPhuTung(Integer maChiNhanh, Integer maPhuTung);
 
     List<TonKho> findByIdMaChiNhanhAndPhuTungTrangThaiTrue(Integer maChiNhanh);

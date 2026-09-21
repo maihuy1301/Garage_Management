@@ -5,6 +5,7 @@ import {
   RepairOrderStatusTone,
 } from '@/types/repair-order.types';
 import { Button } from '@/components/common/Button';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 interface RepairOrderTableProps {
   orders: RepairOrderResponse[];
@@ -210,28 +211,24 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                   </td>
 
                   {/* Thao tác */}
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="table-actions">
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => onViewDetail(order)}
-                        title="Xem chi tiết lệnh sửa chữa"
-                      >
-                        <span className="material-symbols-outlined">visibility</span>
-                      </button>
-
-                      {canAssign && onAssign && (
-                        <button
-                          type="button"
-                          className="table-action-btn success"
-                          onClick={() => onAssign(order)}
-                          title="Phân công kỹ thuật viên"
-                        >
-                          <span className="material-symbols-outlined">person_add</span>
-                        </button>
-                      )}
-                    </div>
+                  <td style={{ textAlign: 'center' }}>
+                    <ActionDropdown
+                      items={[
+                        {
+                          label: 'Xem chi tiết lệnh',
+                          icon: 'visibility',
+                          onClick: () => onViewDetail(order),
+                        },
+                        canAssign && onAssign
+                          ? {
+                              label: 'Phân công kỹ thuật viên',
+                              icon: 'person_add',
+                              variant: 'primary',
+                              onClick: () => onAssign(order),
+                            }
+                          : false,
+                      ]}
+                    />
                   </td>
                 </tr>
               );

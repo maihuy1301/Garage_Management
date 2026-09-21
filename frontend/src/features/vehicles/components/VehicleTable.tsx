@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { VehicleResponse } from '@/types/vehicle.types';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 interface VehicleTableProps {
   vehicles: VehicleResponse[];
@@ -257,41 +258,28 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
                       </td>
 
                       {/* Actions */}
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            type="button"
-                            className="table-action-btn"
-                            title="Xem chi tiết phương tiện"
-                            onClick={() => onView(vehicle)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              visibility
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="table-action-btn edit"
-                            title="Chỉnh sửa thông số xe"
-                            onClick={() => onEdit(vehicle)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              edit
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="table-action-btn danger"
-                            title="Xóa phương tiện"
-                            onClick={() => onDelete(vehicle)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              delete
-                            </span>
-                          </button>
-                        </div>
+                      <td style={{ textAlign: 'center' }}>
+                        <ActionDropdown
+                          items={[
+                            {
+                              label: 'Xem chi tiết xe',
+                              icon: 'visibility',
+                              onClick: () => onView(vehicle),
+                            },
+                            {
+                              label: 'Chỉnh sửa thông số',
+                              icon: 'edit',
+                              variant: 'primary',
+                              onClick: () => onEdit(vehicle),
+                            },
+                            {
+                              label: 'Xóa phương tiện',
+                              icon: 'delete',
+                              variant: 'danger',
+                              onClick: () => onDelete(vehicle),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { EmployeeResponse } from '@/types/employee.types';
 import { RoleLabels, RoleType } from '@/types/role.types';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 interface EmployeeTableProps {
   employees: EmployeeResponse[];
@@ -214,41 +215,28 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                         </span>
                       </td>
 
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            type="button"
-                            className="table-action-btn"
-                            title="Xem chi tiết"
-                            onClick={() => onView(emp)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              visibility
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="table-action-btn edit"
-                            title="Chỉnh sửa"
-                            onClick={() => onEdit(emp)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              edit
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`table-action-btn ${emp.trangThai ? 'danger' : 'success'}`}
-                            title={emp.trangThai ? 'Khóa nhân viên' : 'Kích hoạt lại'}
-                            onClick={() => onToggleStatus(emp)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              {emp.trangThai ? 'block' : 'check_circle'}
-                            </span>
-                          </button>
-                        </div>
+                      <td style={{ textAlign: 'center' }}>
+                        <ActionDropdown
+                          items={[
+                            {
+                              label: 'Xem chi tiết',
+                              icon: 'visibility',
+                              onClick: () => onView(emp),
+                            },
+                            {
+                              label: 'Chỉnh sửa thông tin',
+                              icon: 'edit',
+                              variant: 'primary',
+                              onClick: () => onEdit(emp),
+                            },
+                            {
+                              label: emp.trangThai ? 'Khóa nhân viên' : 'Kích hoạt lại',
+                              icon: emp.trangThai ? 'block' : 'check_circle',
+                              variant: emp.trangThai ? 'danger' : 'success',
+                              onClick: () => onToggleStatus(emp),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );

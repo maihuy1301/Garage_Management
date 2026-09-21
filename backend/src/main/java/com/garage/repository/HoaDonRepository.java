@@ -16,5 +16,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
     List<HoaDon> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
 
+    boolean existsByChiNhanhMaChiNhanh(Integer maChiNhanh);
+
     List<HoaDon> findByKhachHangMaKhachHang(Integer maKhachHang);
 }

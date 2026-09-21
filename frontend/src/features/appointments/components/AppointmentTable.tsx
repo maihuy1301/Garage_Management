@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppointmentResponse, AppointmentStatusLabels, AppointmentStatusTone } from '@/types/appointment.types';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 interface AppointmentTableProps {
   appointments: AppointmentResponse[];
@@ -223,63 +224,40 @@ export const AppointmentTable: React.FC<AppointmentTableProps> = ({
                   </td>
 
                   {/* Thao tác */}
-                  <td>
-                    <div className="table-actions">
-                      {/* Xác nhận lịch hẹn (DA_XAC_NHAN) */}
-                      {isConfirmable && onConfirm && (
-                        <button
-                          type="button"
-                          className="table-action-btn success"
-                          onClick={() => onConfirm(item)}
-                          title="Xác nhận lịch hẹn"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                            check_circle
-                          </span>
-                        </button>
-                      )}
-
-                      {/* Tiếp nhận xe (DA_TIEP_NHAN) */}
-                      {isReceivable && onReceive && (
-                        <button
-                          type="button"
-                          className="table-action-btn"
-                          style={{ color: 'var(--color-primary)' }}
-                          onClick={() => onReceive(item)}
-                          title="Tiếp nhận xe vào xưởng"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                            car_repair
-                          </span>
-                        </button>
-                      )}
-
-                      {/* Xem chi tiết */}
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => onViewDetail(item)}
-                        title="Xem chi tiết lịch hẹn"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                          visibility
-                        </span>
-                      </button>
-
-                      {/* Hủy lịch hẹn */}
-                      {isCancellable && (
-                        <button
-                          type="button"
-                          className="table-action-btn danger"
-                          onClick={() => onCancel(item)}
-                          title="Hủy lịch hẹn"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                            cancel
-                          </span>
-                        </button>
-                      )}
-                    </div>
+                  <td style={{ textAlign: 'center' }}>
+                    <ActionDropdown
+                      items={[
+                        {
+                          label: 'Xem chi tiết lịch hẹn',
+                          icon: 'visibility',
+                          onClick: () => onViewDetail(item),
+                        },
+                        isConfirmable && onConfirm
+                          ? {
+                              label: 'Xác nhận lịch hẹn',
+                              icon: 'check_circle',
+                              variant: 'success',
+                              onClick: () => onConfirm(item),
+                            }
+                          : false,
+                        isReceivable && onReceive
+                          ? {
+                              label: 'Tiếp nhận xe vào xưởng',
+                              icon: 'car_repair',
+                              variant: 'primary',
+                              onClick: () => onReceive(item),
+                            }
+                          : false,
+                        isCancellable
+                          ? {
+                              label: 'Hủy lịch hẹn',
+                              icon: 'cancel',
+                              variant: 'danger',
+                              onClick: () => onCancel(item),
+                            }
+                          : false,
+                      ]}
+                    />
                   </td>
                 </tr>
               );

@@ -7,6 +7,7 @@ import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/common/Button';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 export const BrandModelManagementPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'BRANDS' | 'MODELS'>('BRANDS');
@@ -336,35 +337,28 @@ export const BrandModelManagementPage: React.FC = () => {
                               {brand.trangThai !== false ? 'Hoạt động' : 'Tạm khóa'}
                             </span>
                           </td>
-                          <td>
-                            <div className="table-actions">
-                              <button
-                                type="button"
-                                className="table-action-btn"
-                                title="Xem các Model của hãng"
-                                onClick={() => {
-                                  setSelectedBrandFilter(String(brand.maHangXe));
-                                  setActiveTab('MODELS');
-                                }}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                                  account_tree
-                                </span>
-                              </button>
-                              <button
-                                type="button"
-                                className="table-action-btn edit"
-                                title="Thêm Model cho hãng này"
-                                onClick={() => {
-                                  setModelTargetBrandId(brand.maHangXe);
-                                  setIsModelModalOpen(true);
-                                }}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                                  add_circle
-                                </span>
-                              </button>
-                            </div>
+                          <td style={{ textAlign: 'center' }}>
+                            <ActionDropdown
+                              items={[
+                                {
+                                  label: 'Xem các dòng xe (Model)',
+                                  icon: 'account_tree',
+                                  onClick: () => {
+                                    setSelectedBrandFilter(String(brand.maHangXe));
+                                    setActiveTab('MODELS');
+                                  },
+                                },
+                                {
+                                  label: 'Thêm dòng xe mới',
+                                  icon: 'add_circle',
+                                  variant: 'primary',
+                                  onClick: () => {
+                                    setModelTargetBrandId(brand.maHangXe);
+                                    setIsModelModalOpen(true);
+                                  },
+                                },
+                              ]}
+                            />
                           </td>
                         </tr>
                       );

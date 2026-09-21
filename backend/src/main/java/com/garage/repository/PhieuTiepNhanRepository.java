@@ -13,6 +13,8 @@ public interface PhieuTiepNhanRepository extends JpaRepository<PhieuTiepNhan, In
     /** Lấy danh sách phiếu tiếp nhận theo chi nhánh */
     List<PhieuTiepNhan> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
 
+    boolean existsByChiNhanhMaChiNhanh(Integer maChiNhanh);
+
     /** Lấy danh sách phiếu tiếp nhận theo xe */
     List<PhieuTiepNhan> findByXeMaXe(Integer maXe);
 
