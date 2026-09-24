@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReceptionResponse, ReceptionStatusLabels, ReceptionStatusTone } from '@/types/reception.types';
 import { Button } from '@/components/common/Button';
+import { HandoverPanel } from './HandoverPanel';
 
 interface ReceptionDetailModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface ReceptionDetailModalProps {
   hasRepairOrder?: boolean;
   onClose: () => void;
   onCreateRepairOrder?: (reception: ReceptionResponse) => void;
+  onHandedOver?: () => void;
 }
 
 export const ReceptionDetailModal: React.FC<ReceptionDetailModalProps> = ({
@@ -16,6 +18,7 @@ export const ReceptionDetailModal: React.FC<ReceptionDetailModalProps> = ({
   hasRepairOrder = false,
   onClose,
   onCreateRepairOrder,
+  onHandedOver,
 }) => {
   if (!isOpen || !reception) return null;
 
@@ -250,12 +253,12 @@ export const ReceptionDetailModal: React.FC<ReceptionDetailModalProps> = ({
               {reception.yeuCauKhachHang || 'Không có yêu cầu bổ sung.'}
             </div>
           </div>
+          <HandoverPanel key={reception.maTiepNhan} receptionId={reception.maTiepNhan} onCompleted={onHandedOver} />
         </div>
-
         {/* Footer */}
         <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            {!hasRepairOrder && onCreateRepairOrder && (
+            {!hasRepairOrder && reception.trangThai !== 'DA_BAN_GIAO' && onCreateRepairOrder && (
               <Button
                 type="button"
                 variant="primary"

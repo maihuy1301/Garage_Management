@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/auth/auth_controller.dart';
+import '../../../core/auth/auth_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/brand_mark.dart';
 import '../data/technician_service.dart';
@@ -68,8 +69,16 @@ class _TechnicianHomePageState extends State<TechnicianHomePage> {
           IconButton(
             tooltip: 'Đăng xuất',
             onPressed: () async {
-              await context.read<AuthController>().logout();
-              if (context.mounted) context.go('/');
+              try {
+                await context.read<AuthController>().logout();
+                if (context.mounted) context.go('/');
+              } on AuthException catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error.message)),
+                  );
+                }
+              }
             },
             icon: const Icon(Icons.logout_rounded),
           ),

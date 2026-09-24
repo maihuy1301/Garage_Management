@@ -2,6 +2,12 @@
 .env
 .env.local
 .env.*.local
+# Firebase configuration and server credentials stay local.
+**/google-services.json
+**/GoogleService-Info.plist
+**/*firebase-adminsdk*.json
+**/service-account*.json
+secrets/
 
 # Node / Frontend
 node_modules/

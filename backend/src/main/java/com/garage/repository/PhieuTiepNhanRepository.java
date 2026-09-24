@@ -9,6 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface PhieuTiepNhanRepository extends JpaRepository<PhieuTiepNhan, Integer> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select p from PhieuTiepNhan p where p.maTiepNhan = :id")
+    Optional<PhieuTiepNhan> findForHandover(@org.springframework.data.repository.query.Param("id") Integer id);
 
     /** Lấy danh sách phiếu tiếp nhận theo chi nhánh */
     List<PhieuTiepNhan> findByChiNhanhMaChiNhanh(Integer maChiNhanh);

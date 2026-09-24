@@ -28,6 +28,9 @@ import static org.mockito.Mockito.*;
 class TechnicianExecutionServiceTest {
 
     @Mock
+    private CustomerProgressNotifier customerProgressNotifier;
+
+    @Mock
     private PhieuSuaChuaRepository phieuSuaChuaRepository;
 
     @Mock
@@ -199,6 +202,7 @@ class TechnicianExecutionServiceTest {
 
         UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("HOAN_TAT", 100, "Đã hoàn tất toàn bộ");
         RepairProgressResponse res = technicianExecutionService.updateProgress(601, req);
+        verify(customerProgressNotifier).repairChanged(order1, "DA_PHAN_CONG");
 
         assertThat(res).isNotNull();
         assertThat(order1.getTrangThai()).isEqualTo("HOAN_TAT");

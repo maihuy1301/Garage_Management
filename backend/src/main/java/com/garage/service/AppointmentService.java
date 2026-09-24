@@ -50,6 +50,7 @@ public class AppointmentService {
     private final NhanVienRepository nhanVienRepository;
     private final BranchAuthorizationService branchAuthorizationService;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final CustomerProgressNotifier customerProgressNotifier;
 
     public AppointmentService(DatLichRepository datLichRepository,
                               DatLichDichVuRepository datLichDichVuRepository,
@@ -60,7 +61,8 @@ public class AppointmentService {
                               NguoiDungRepository nguoiDungRepository,
                               NhanVienRepository nhanVienRepository,
                               BranchAuthorizationService branchAuthorizationService,
-                              WebSocketEventPublisher webSocketEventPublisher) {
+                              WebSocketEventPublisher webSocketEventPublisher,
+                              CustomerProgressNotifier customerProgressNotifier) {
         this.datLichRepository = datLichRepository;
         this.datLichDichVuRepository = datLichDichVuRepository;
         this.dichVuRepository = dichVuRepository;
@@ -71,6 +73,7 @@ public class AppointmentService {
         this.nhanVienRepository = nhanVienRepository;
         this.branchAuthorizationService = branchAuthorizationService;
         this.webSocketEventPublisher = webSocketEventPublisher;
+        this.customerProgressNotifier = customerProgressNotifier;
     }
 
     /**
@@ -236,6 +239,7 @@ public class AppointmentService {
 
         datLich.setTrangThai("HUY");
         DatLich updated = datLichRepository.save(datLich);
+        customerProgressNotifier.appointmentChanged(updated, currentStatus);
         AppointmentResponse response = mapToAppointmentResponse(updated);
         publishAppointmentEvent("APPOINTMENT_CANCELLED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã được hủy");
         return response;
@@ -279,6 +283,7 @@ public class AppointmentService {
         DatLich updated = datLichRepository.save(datLich);
         AppointmentResponse response = mapToAppointmentResponse(updated);
         publishAppointmentEvent("APPOINTMENT_CONFIRMED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã được xác nhận");
+        customerProgressNotifier.appointmentChanged(updated, currentStatus);
         return response;
     }
 
@@ -306,6 +311,7 @@ public class AppointmentService {
         DatLich updated = datLichRepository.save(datLich);
         AppointmentResponse response = mapToAppointmentResponse(updated);
         publishAppointmentEvent("APPOINTMENT_RECEIVED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã được tiếp nhận");
+        customerProgressNotifier.appointmentChanged(updated, currentStatus);
         return response;
     }
 
@@ -325,8 +331,10 @@ public class AppointmentService {
             throw new BadRequestException("Trạng thái mới không được để trống");
         }
 
+        String previousStatus = datLich.getTrangThai();
         datLich.setTrangThai(newStatus.trim().toUpperCase());
         DatLich updated = datLichRepository.save(datLich);
+        customerProgressNotifier.appointmentChanged(updated, previousStatus);
         AppointmentResponse response = mapToAppointmentResponse(updated);
         publishAppointmentEvent("APPOINTMENT_UPDATED", response, "Lịch hẹn #" + response.getMaDatLich() + " đã cập nhật trạng thái");
         return response;

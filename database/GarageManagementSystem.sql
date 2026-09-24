@@ -371,6 +371,24 @@ CREATE TABLE ThongBao (
     FOREIGN KEY (MaNguoiDung) REFERENCES NguoiDung(MaNguoiDung)
 );
 
+CREATE TABLE ThietBiPush (
+    TokenHash CHAR(64) NOT NULL PRIMARY KEY,
+    FcmToken VARCHAR(2048) NOT NULL,
+    MaNguoiDung INT NOT NULL,
+    CapNhatLuc DATETIME2 NOT NULL,
+    FOREIGN KEY (MaNguoiDung) REFERENCES NguoiDung(MaNguoiDung)
+);
+CREATE INDEX IX_ThietBiPush_NguoiDung ON ThietBiPush(MaNguoiDung);
+
+CREATE TABLE BanGiaoXe (
+    MaTiepNhan INT NOT NULL PRIMARY KEY,
+    MaNguoiBanGiao INT NOT NULL,
+    ThoiGianBanGiao DATETIME2 NOT NULL,
+    GhiChu NVARCHAR(500) NULL,
+    FOREIGN KEY (MaTiepNhan) REFERENCES PhieuTiepNhan(MaTiepNhan),
+    FOREIGN KEY (MaNguoiBanGiao) REFERENCES NguoiDung(MaNguoiDung)
+);
+
 CREATE TABLE CuocHoiThoai (
 	MaCuocHoiThoai INT IDENTITY(1,1) PRIMARY KEY,
 	MaKhachHang INT NOT NULL,

@@ -20,6 +20,7 @@ export interface ReceptionResponse {
 }
 
 export type ReceptionStatus =
+  | 'DA_BAN_GIAO'
   | 'DA_TIEP_NHAN'
   | 'TIEP_NHAN'
   | 'CHO_XU_LY'
@@ -37,6 +38,7 @@ export interface CheckInRequest {
 }
 
 export const ReceptionStatusLabels: Record<string, string> = {
+  DA_BAN_GIAO: 'Đã bàn giao',
   DA_TIEP_NHAN: 'Đã tiếp nhận',
   TIEP_NHAN: 'Đã tiếp nhận',
   CHO_XU_LY: 'Chờ xử lý',
@@ -52,6 +54,7 @@ export const ReceptionStatusTone: Record<
   string,
   'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info'
 > = {
+  DA_BAN_GIAO: 'success',
   DA_TIEP_NHAN: 'primary',
   TIEP_NHAN: 'primary',
   CHO_XU_LY: 'warning',
@@ -62,3 +65,11 @@ export const ReceptionStatusTone: Record<
   HOAN_TAT: 'success',
   HUY: 'danger',
 };
+
+export interface HandoverResponse {
+  eligible: boolean;
+  reason: string | null;
+  thoiGianBanGiao: string | null;
+  tenNguoiBanGiao: string | null;
+  ghiChu: string | null;
+}

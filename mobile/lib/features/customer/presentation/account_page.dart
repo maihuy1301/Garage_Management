@@ -79,8 +79,20 @@ class AccountPage extends StatelessWidget {
           const SizedBox(height: 22),
           OutlinedButton.icon(
             onPressed: () async {
-              await context.read<AuthController>().logout();
-              if (context.mounted) context.go('/');
+              try {
+                await context.read<AuthController>().logout();
+                if (context.mounted) context.go('/');
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Chưa thể đăng xuất. Vui lòng kiểm tra mạng và thử lại.',
+                      ),
+                    ),
+                  );
+                }
+              }
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.danger,

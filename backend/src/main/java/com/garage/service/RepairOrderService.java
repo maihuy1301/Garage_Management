@@ -34,6 +34,7 @@ public class RepairOrderService {
     private final PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository;
     private final DichVuPhuTungRepository dichVuPhuTungRepository;
     private final BranchAuthorizationService branchAuthorizationService;
+    private final CustomerProgressNotifier customerProgressNotifier;
 
     public RepairOrderService(PhieuSuaChuaRepository phieuSuaChuaRepository,
                               PhieuTiepNhanRepository phieuTiepNhanRepository,
@@ -41,7 +42,8 @@ public class RepairOrderService {
                               PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
                               PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository,
                               DichVuPhuTungRepository dichVuPhuTungRepository,
-                              BranchAuthorizationService branchAuthorizationService) {
+                              BranchAuthorizationService branchAuthorizationService,
+                              CustomerProgressNotifier customerProgressNotifier) {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.phieuTiepNhanRepository = phieuTiepNhanRepository;
         this.datLichDichVuRepository = datLichDichVuRepository;
@@ -49,6 +51,7 @@ public class RepairOrderService {
         this.phieuSuaChuaPhuTungRepository = phieuSuaChuaPhuTungRepository;
         this.dichVuPhuTungRepository = dichVuPhuTungRepository;
         this.branchAuthorizationService = branchAuthorizationService;
+        this.customerProgressNotifier = customerProgressNotifier;
     }
 
     /**
@@ -63,7 +66,7 @@ public class RepairOrderService {
     @Transactional
     public RepairOrderResponse createRepairOrder(CreateRepairOrderRequest request) {
         // 1. Tìm phiếu tiếp nhận
-        PhieuTiepNhan reception = phieuTiepNhanRepository.findById(request.getMaTiepNhan())
+        PhieuTiepNhan reception = phieuTiepNhanRepository.findForHandover(request.getMaTiepNhan())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu tiếp nhận với ID: " + request.getMaTiepNhan()));
 
         // 2. Branch Authorization
@@ -72,6 +75,9 @@ public class RepairOrderService {
         }
 
         // 3. Kiểm tra trạng thái phiếu tiếp nhận
+        if ("DA_BAN_GIAO".equals(reception.getTrangThai()) || "HOAN_TAT".equals(reception.getTrangThai())) {
+            throw new BadRequestException("Xe đã bàn giao, cần tạo lượt tiếp nhận mới để sửa chữa");
+        }
         if ("HUY".equalsIgnoreCase(reception.getTrangThai())) {
             throw new BadRequestException("Không thể tạo phiếu sửa chữa cho phiếu tiếp nhận đã bị hủy");
         }
@@ -139,6 +145,7 @@ public class RepairOrderService {
             }
         }
 
+        customerProgressNotifier.repairChanged(saved, null);
         return mapToRepairOrderResponse(saved);
     }
 
@@ -245,6 +252,7 @@ public class RepairOrderService {
         }
 
         PhieuSuaChua updated = phieuSuaChuaRepository.save(order);
+        customerProgressNotifier.repairChanged(updated, currentStatus);
         return mapToRepairOrderResponse(updated);
     }
 

@@ -189,6 +189,17 @@ Các xe mẫu dưới đây cũng được tạo bởi seed development khi data
 Appointment realtime: khi lịch hẹn được tạo, hủy, xác nhận, tiếp nhận hoặc cập nhật trạng thái, backend phát `RealtimeEvent` với `entityType = DAT_LICH` tới `/topic/branches/{maChiNhanh}` và private queue của khách hàng. Web `/app/appointments` subscribe STOMP và tự cập nhật danh sách/chi tiết đang mở; mobile `/tracking` và `/tracking/{appointmentId}` tự refresh nền mỗi 8 giây để không cần reload thủ công.
 
 ### Notification Endpoints (`NotificationController`)
+Từ 2026-09-21, backend lưu thông báo cho khách khi xác nhận/tiếp nhận/hủy/hoàn tất lịch hẹn, tạo phiếu sửa chữa, phân công và đổi giai đoạn sửa chữa. Phiếu sửa chữa chính chuyển `HOAN_TAT` sẽ gửi lời mời đến garage kiểm tra, thanh toán và nhận xe; hoàn tất phiếu con chỉ báo hoàn tất công việc bổ sung. Thông báo lấy người nhận từ dữ liệu backend, lưu cùng transaction nghiệp vụ và phát STOMP sau commit. Gửi lại cùng trạng thái không sinh thông báo mới.
+
+Android xin quyền khi đăng nhập CUSTOMER, theo dõi thông báo ở mọi tab và mở `/notifications` đúng tài khoản khi bấm. Từ 2026-09-22 đã có code FCM cho nền/đóng bình thường, đăng ký/refresh/hủy token theo JWT và tránh phát lại local alert khi resume. Cần cấu hình Firebase Android + Firebase Admin và áp migration trước khi kiểm thử thật; chưa cấu hình/gửi FCM thật trong phiên triển khai. SQL Server vẫn lưu toàn bộ nghiệp vụ. Khi thiếu Firebase, inbox REST và local notifications foreground vẫn hoạt động. Người dùng dừng/chạy lại Flutter đầy đủ vì hot reload không áp dụng native changes.
+
+Đã thêm bước bàn giao riêng trên web chi tiết tiếp nhận: chỉ cho phép khi tất cả phiếu sửa chữa không hủy đã hoàn tất và hóa đơn đã thanh toán đầy đủ. Backend ghi `BanGiaoXe`, chuyển tiếp nhận sang `DA_BAN_GIAO`, lịch liên quan sang `HOAN_TAT`, gửi thông báo đã bàn giao; request lặp trả audit cũ. Migration `database/migrations/V03__push_devices_and_vehicle_handover.sql` thêm `ThietBiPush` và `BanGiaoXe`, **chưa áp vào database đang chạy**.
+
+- [Bàn giao cho nhóm web: schema, API, trạng thái và nghiệm thu](docs/HANDOVER_WEB_HANDOFF.md).
+- [Tạo/cấu hình FCM, demo và lời thuyết trình](docs/FCM_SETUP.md).
+- API mới: `POST/DELETE /api/notifications/devices` (CUSTOMER); `GET/POST /api/reception/{id}/handover` (ADMIN/MANAGER/FRONT_DESK, đúng chi nhánh).
+- Kiểm tra 2026-09-22: 119 targeted backend tests, 71 Flutter tests, analyze sạch, build web đạt; UI panel được smoke-test với API giả lập desktop/mobile. Chưa chạy/build Flutter, SQL migration hay FCM thật; chưa có iOS/APNs và durable push outbox.
+
 Mobile CUSTOMER có tab `/notifications`: danh sách và số chưa đọc lấy từ API, đánh dấu đọc từng thông báo/đọc tất cả, loading/error/empty state và kéo để làm mới. Khi tab đang mở, STOMP private queue nhận sự kiện `DAT_LICH`/`THONG_BAO` để tải lại REST; có refresh dự phòng mỗi 30 giây, tải lại khi resume/reconnect và dừng kết nối khi rời màn hình. Backend tiếp tục xác định ownership từ JWT.
 
 | Method | Endpoint | Description | Permission |

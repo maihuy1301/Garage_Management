@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,13 +26,16 @@ public class NotificationService {
     private final ThongBaoRepository thongBaoRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final WebSocketEventPublisher webSocketEventPublisher;
+    private final PushNotificationDispatcher pushDispatcher;
 
     public NotificationService(ThongBaoRepository thongBaoRepository,
                                NguoiDungRepository nguoiDungRepository,
-                               WebSocketEventPublisher webSocketEventPublisher) {
+                               WebSocketEventPublisher webSocketEventPublisher,
+                               PushNotificationDispatcher pushDispatcher) {
         this.thongBaoRepository = thongBaoRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.webSocketEventPublisher = webSocketEventPublisher;
+        this.pushDispatcher = pushDispatcher;
     }
 
     /**
@@ -53,19 +58,37 @@ public class NotificationService {
 
         ThongBao saved = thongBaoRepository.save(tb);
         NotificationResponse response = mapToResponse(saved);
+        String account = recipient.getTenDangNhap();
 
-        // Push WebSocket realtime event to recipient (offline-safe)
-        try {
-            RealtimeEvent event = RealtimeEvent.of(
-                    type != null ? type : "NOTIFICATION_NEW",
-                    "THONG_BAO",
-                    saved.getMaThongBao(),
-                    title,
-                    response
-            );
-            webSocketEventPublisher.sendToUser(recipient.getTenDangNhap(), event);
-        } catch (Exception ignored) {
-            // Safe offline fallback: notification is already persisted in DB
+        // Clients reload REST on this event, so publish only after the row commits.
+        Runnable publish = () -> {
+            try {
+                RealtimeEvent event = RealtimeEvent.of(
+                        type != null ? type : "NOTIFICATION_NEW",
+                        "THONG_BAO",
+                        saved.getMaThongBao(),
+                        title,
+                        response
+                );
+                webSocketEventPublisher.sendToUser(recipient.getTenDangNhap(), event);
+            } catch (Exception ignored) {
+                // Safe offline fallback: notification is already persisted in DB
+            }
+            try {
+                pushDispatcher.send(account, response);
+            } catch (Exception ignored) {
+                // A full push queue must not fail a committed business operation.
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    publish.run();
+                }
+            });
+        } else {
+            publish.run();
         }
 
         return response;

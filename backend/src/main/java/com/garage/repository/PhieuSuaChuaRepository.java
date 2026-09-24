@@ -9,6 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface PhieuSuaChuaRepository extends JpaRepository<PhieuSuaChua, Integer> {
+    List<PhieuSuaChua> findAllByPhieuTiepNhanMaTiepNhan(Integer maTiepNhan);
 
     /** Lấy danh sách phiếu sửa chữa theo chi nhánh */
     List<PhieuSuaChua> findByChiNhanhMaChiNhanh(Integer maChiNhanh);

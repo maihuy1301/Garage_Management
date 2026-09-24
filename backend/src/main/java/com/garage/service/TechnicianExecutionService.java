@@ -25,19 +25,22 @@ public class TechnicianExecutionService {
     private final NhanVienRepository nhanVienRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final NguoiDungVaiTroRepository nguoiDungVaiTroRepository;
+    private final CustomerProgressNotifier customerProgressNotifier;
 
     public TechnicianExecutionService(PhieuSuaChuaRepository phieuSuaChuaRepository,
                                       PhanCongRepository phanCongRepository,
                                       PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
                                       NhanVienRepository nhanVienRepository,
                                       NguoiDungRepository nguoiDungRepository,
-                                      NguoiDungVaiTroRepository nguoiDungVaiTroRepository) {
+                                      NguoiDungVaiTroRepository nguoiDungVaiTroRepository,
+                                      CustomerProgressNotifier customerProgressNotifier) {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.phanCongRepository = phanCongRepository;
         this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.nguoiDungVaiTroRepository = nguoiDungVaiTroRepository;
+        this.customerProgressNotifier = customerProgressNotifier;
     }
 
     /**
@@ -90,6 +93,7 @@ public class TechnicianExecutionService {
         PhieuSuaChua order = validateTechnicianAssignment(tech, repairOrderId);
         validateOrderNotCompletedOrCancelled(order, "cập nhật tiến độ");
 
+        String previousStatus = order.getTrangThai();
         String newStatus = request.getTrangThai();
         if ("DANG_SUA".equalsIgnoreCase(newStatus)) {
             if (order.getThoiGianBatDau() == null) {
@@ -109,6 +113,7 @@ public class TechnicianExecutionService {
         }
 
         PhieuSuaChua saved = phieuSuaChuaRepository.save(order);
+        customerProgressNotifier.repairChanged(saved, previousStatus);
 
         String techName = (tech.getNguoiDung() != null && tech.getNguoiDung().getHoTen() != null)
                 ? tech.getNguoiDung().getHoTen()

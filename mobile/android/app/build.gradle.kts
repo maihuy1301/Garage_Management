@@ -39,6 +39,11 @@ android {
     }
 }
 
+// The app remains usable without Firebase configuration during local setup.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 flutter {
     source = "../.."
 }

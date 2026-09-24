@@ -35,6 +35,9 @@ import static org.mockito.Mockito.*;
 class TechnicianAssignmentServiceTest {
 
     @Mock
+    private CustomerProgressNotifier customerProgressNotifier;
+
+    @Mock
     private PhanCongRepository phanCongRepository;
 
     @Mock
@@ -234,6 +237,7 @@ class TechnicianAssignmentServiceTest {
 
         assertThat(res).isNotNull();
         assertThat(res.getMaPhanCong()).isEqualTo(802);
+        verify(customerProgressNotifier).repairChanged(order1, "CHO_XU_LY");
         assertThat(res.getTrangThai()).isEqualTo("DA_DUYET");
         assertThat(res.getMaNguoiPhanCong()).isEqualTo(20);
         assertThat(res.getMaNguoiDuyet()).isEqualTo(20);

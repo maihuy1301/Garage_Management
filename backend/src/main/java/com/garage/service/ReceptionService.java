@@ -29,19 +29,22 @@ public class ReceptionService {
     private final NguoiDungRepository nguoiDungRepository;
     private final XeRepository xeRepository;
     private final BranchAuthorizationService branchAuthorizationService;
+    private final CustomerProgressNotifier customerProgressNotifier;
 
     public ReceptionService(PhieuTiepNhanRepository phieuTiepNhanRepository,
                             DatLichRepository datLichRepository,
                             NhanVienRepository nhanVienRepository,
                             NguoiDungRepository nguoiDungRepository,
                             XeRepository xeRepository,
-                            BranchAuthorizationService branchAuthorizationService) {
+                            BranchAuthorizationService branchAuthorizationService,
+                            CustomerProgressNotifier customerProgressNotifier) {
         this.phieuTiepNhanRepository = phieuTiepNhanRepository;
         this.datLichRepository = datLichRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.xeRepository = xeRepository;
         this.branchAuthorizationService = branchAuthorizationService;
+        this.customerProgressNotifier = customerProgressNotifier;
     }
 
     /**
@@ -119,6 +122,7 @@ public class ReceptionService {
         datLichRepository.save(datLich);
 
         PhieuTiepNhan saved = phieuTiepNhanRepository.save(slip);
+        customerProgressNotifier.appointmentChanged(datLich, currentStatus);
         return mapToReceptionResponse(saved);
     }
 

@@ -1,10 +1,18 @@
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { ApiResponse } from '@/types/api.types';
-import { ReceptionResponse, CheckInRequest } from '@/types/reception.types';
+import { ReceptionResponse, CheckInRequest, HandoverResponse } from '@/types/reception.types';
 import { RepairOrderResponse } from '@/types/repair-order.types';
 
 export const receptionService = {
+  getHandover: async (id: number): Promise<HandoverResponse> => {
+    const response = await apiClient.get<ApiResponse<HandoverResponse>>(`${API_ENDPOINTS.RECEPTIONS}/${id}/handover`);
+    return response.data.data;
+  },
+  handover: async (id: number, ghiChu: string): Promise<HandoverResponse> => {
+    const response = await apiClient.post<ApiResponse<HandoverResponse>>(`${API_ENDPOINTS.RECEPTIONS}/${id}/handover`, { ghiChu });
+    return response.data.data;
+  },
   /**
    * Lấy danh sách tất cả phiếu tiếp nhận xe
    */

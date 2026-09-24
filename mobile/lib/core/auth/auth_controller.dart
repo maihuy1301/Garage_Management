@@ -5,7 +5,8 @@ import 'auth_repository.dart';
 import 'auth_session.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController(this._repository);
+  AuthController(this._repository, {this.beforeLogout});
+  final Future<void> Function()? beforeLogout;
 
   final AuthRepository _repository;
   AuthSession? _session;
@@ -93,6 +94,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await beforeLogout?.call();
     await _repository.logout();
     _session = null;
     _errorMessage = null;

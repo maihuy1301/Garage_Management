@@ -37,6 +37,9 @@ import static org.mockito.Mockito.*;
 class AppointmentServiceTest {
 
     @Mock
+    private CustomerProgressNotifier customerProgressNotifier;
+
+    @Mock
     private DatLichRepository datLichRepository;
 
     @Mock
@@ -411,6 +414,7 @@ class AppointmentServiceTest {
         when(datLichRepository.save(any(DatLich.class))).thenAnswer(i -> i.getArgument(0));
 
         AppointmentResponse res = appointmentService.confirmAppointment(1001);
+        verify(customerProgressNotifier).appointmentChanged(appointment1, "CHO_XAC_NHAN");
 
         assertThat(res.getTrangThai()).isEqualTo("DA_XAC_NHAN");
     }
@@ -424,6 +428,7 @@ class AppointmentServiceTest {
         when(datLichRepository.save(any(DatLich.class))).thenAnswer(i -> i.getArgument(0));
 
         AppointmentResponse res = appointmentService.receiveAppointment(1001);
+        verify(customerProgressNotifier).appointmentChanged(appointment1, "DA_XAC_NHAN");
 
         assertThat(res.getTrangThai()).isEqualTo("DA_TIEP_NHAN");
     }

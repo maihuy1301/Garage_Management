@@ -11,6 +11,8 @@ import '../core/storage/secure_session_storage.dart';
 import '../features/appointments/data/appointment_service.dart';
 import '../features/notifications/data/notification_events.dart';
 import '../features/notifications/data/notification_service.dart';
+import '../features/notifications/data/fcm_client.dart';
+import '../features/notifications/data/push_registration.dart';
 import '../features/technician/data/technician_service.dart';
 import '../features/vehicles/data/vehicle_service.dart';
 import 'app.dart';
@@ -29,13 +31,18 @@ Future<void> bootstrap() async {
     ),
     sessionStorage,
   );
+  final fcm = FcmClient();
+  await fcm.initialize();
+  final push = PushRegistration(fcm, PushRegistrationApi(apiClient));
   final authController = AuthController(
     AuthRepository(apiClient, sessionStorage),
+    beforeLogout: push.logout,
   );
 
   runApp(
     MultiProvider(
       providers: [
+        Provider<PushRegistration>.value(value: push),
         ChangeNotifierProvider.value(value: authController),
         Provider<NotificationGateway>(
           create: (_) => NotificationService(apiClient),

@@ -35,19 +35,22 @@ public class TechnicianAssignmentService {
     private final NguoiDungRepository nguoiDungRepository;
     private final NguoiDungVaiTroRepository nguoiDungVaiTroRepository;
     private final BranchAuthorizationService branchAuthorizationService;
+    private final CustomerProgressNotifier customerProgressNotifier;
 
     public TechnicianAssignmentService(PhanCongRepository phanCongRepository,
                                        PhieuSuaChuaRepository phieuSuaChuaRepository,
                                        NhanVienRepository nhanVienRepository,
                                        NguoiDungRepository nguoiDungRepository,
                                        NguoiDungVaiTroRepository nguoiDungVaiTroRepository,
-                                       BranchAuthorizationService branchAuthorizationService) {
+                                       BranchAuthorizationService branchAuthorizationService,
+                                       CustomerProgressNotifier customerProgressNotifier) {
         this.phanCongRepository = phanCongRepository;
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.nguoiDungVaiTroRepository = nguoiDungVaiTroRepository;
         this.branchAuthorizationService = branchAuthorizationService;
+        this.customerProgressNotifier = customerProgressNotifier;
     }
 
     /**
@@ -160,6 +163,7 @@ public class TechnicianAssignmentService {
             if ("CHO_XU_LY".equalsIgnoreCase(order.getTrangThai())) {
                 order.setTrangThai("DA_PHAN_CONG");
                 phieuSuaChuaRepository.save(order);
+                customerProgressNotifier.repairChanged(order, "CHO_XU_LY");
             }
         } else {
             // FLOW 1: Receptionist tạo -> CHO_DUYET
@@ -202,6 +206,7 @@ public class TechnicianAssignmentService {
         if ("CHO_XU_LY".equalsIgnoreCase(order.getTrangThai())) {
             order.setTrangThai("DA_PHAN_CONG");
             phieuSuaChuaRepository.save(order);
+            customerProgressNotifier.repairChanged(order, "CHO_XU_LY");
         }
 
         return mapToAssignmentResponse(updated);
@@ -257,6 +262,7 @@ public class TechnicianAssignmentService {
         if (remainingApproved == 0 && "DA_PHAN_CONG".equalsIgnoreCase(order.getTrangThai())) {
             order.setTrangThai("CHO_XU_LY");
             phieuSuaChuaRepository.save(order);
+            customerProgressNotifier.repairChanged(order, "DA_PHAN_CONG");
         }
     }
 

@@ -34,6 +34,9 @@ import static org.mockito.Mockito.*;
 class RepairOrderServiceTest {
 
     @Mock
+    private CustomerProgressNotifier customerProgressNotifier;
+
+    @Mock
     private PhieuSuaChuaRepository phieuSuaChuaRepository;
 
     @Mock
@@ -120,9 +123,22 @@ class RepairOrderServiceTest {
     // ==========================================
 
     @Test
+    void createRepairOrder_afterHandover_rejectedBeforeCreatingChild() {
+        reception1.setTrangThai("DA_BAN_GIAO");
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        var request = new CreateRepairOrderRequest();
+        request.setMaTiepNhan(501);
+        request.setMaPhieuCha(601);
+        assertThatThrownBy(() -> repairOrderService.createRepairOrder(request))
+                .isInstanceOf(BadRequestException.class);
+        verifyNoInteractions(phieuSuaChuaRepository, customerProgressNotifier);
+    }
+
+    @Test
     void createRepairOrder_ownBranch_success() {
         setStaffAuth(managerUser, "ROLE_MANAGER");
-        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
         when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
@@ -138,7 +154,7 @@ class RepairOrderServiceTest {
     @Test
     void createRepairOrder_crossBranch_throws403() {
         setStaffAuth(managerUser, "ROLE_MANAGER");
-        when(phieuTiepNhanRepository.findById(502)).thenReturn(Optional.of(reception2)); // reception is branch 2
+        when(phieuTiepNhanRepository.findForHandover(502)).thenReturn(Optional.of(reception2)); // reception is branch 2
         when(branchAuthorizationService.isAllowedBranch(2)).thenReturn(false);
 
         CreateRepairOrderRequest req = new CreateRepairOrderRequest(502, "Kiểm tra");
@@ -151,7 +167,7 @@ class RepairOrderServiceTest {
     @Test
     void createRepairOrder_duplicate_throws409() {
         setStaffAuth(managerUser, "ROLE_MANAGER");
-        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(true); // already exists
 
@@ -166,7 +182,7 @@ class RepairOrderServiceTest {
     void createRepairOrder_cancelledReception_throws400() {
         setStaffAuth(managerUser, "ROLE_MANAGER");
         reception1.setTrangThai("HUY");
-        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
 
         CreateRepairOrderRequest req = new CreateRepairOrderRequest(501, "Kiểm tra");
@@ -179,7 +195,7 @@ class RepairOrderServiceTest {
     @Test
     void createRepairOrder_receptionNotFound_throws404() {
         setStaffAuth(managerUser, "ROLE_MANAGER");
-        when(phieuTiepNhanRepository.findById(999)).thenReturn(Optional.empty());
+        when(phieuTiepNhanRepository.findForHandover(999)).thenReturn(Optional.empty());
 
         CreateRepairOrderRequest req = new CreateRepairOrderRequest(999, "Kiểm tra");
 
@@ -245,6 +261,7 @@ class RepairOrderServiceTest {
 
         UpdateRepairOrderStatusRequest req = new UpdateRepairOrderStatusRequest("DANG_SUA");
         RepairOrderResponse res = repairOrderService.updateStatus(601, req);
+        verify(customerProgressNotifier).repairChanged(repairOrder1, "CHO_XU_LY");
 
         assertThat(res).isNotNull();
         assertThat(repairOrder1.getTrangThai()).isEqualTo("DANG_SUA");
@@ -261,6 +278,35 @@ class RepairOrderServiceTest {
         assertThatThrownBy(() -> repairOrderService.updateStatus(601, req))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("không hợp lệ");
+        verifyNoInteractions(customerProgressNotifier);
+    }
+
+    @Test
+    void webCompletionNotifiesCustomerAndRecordsCompletionTime() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+        repairOrder1.setTrangThai("DANG_SUA");
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(repairOrder1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
+
+        repairOrderService.updateStatus(601, new UpdateRepairOrderStatusRequest("HOAN_TAT"));
+
+        assertThat(repairOrder1.getThoiGianHoanTat()).isNotNull();
+        verify(customerProgressNotifier).repairChanged(repairOrder1, "DANG_SUA");
+    }
+
+    @Test
+    void crossBranchStatusChangeDoesNotSendNotification() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(repairOrder1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(false);
+
+        assertThatThrownBy(() -> repairOrderService.updateStatus(601,
+                new UpdateRepairOrderStatusRequest("HOAN_TAT")))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verifyNoInteractions(customerProgressNotifier);
+        verify(phieuSuaChuaRepository, never()).save(any());
     }
 
     @Test
@@ -289,7 +335,7 @@ class RepairOrderServiceTest {
         appointment.setMaDatLich(1001);
         reception1.setDatLich(appointment);
 
-        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
         when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
@@ -335,7 +381,7 @@ class RepairOrderServiceTest {
         appointment.setMaDatLich(1001);
         reception1.setDatLich(appointment);
 
-        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
         when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
@@ -399,7 +445,7 @@ class RepairOrderServiceTest {
         appointment.setMaDatLich(1002);
         reception1.setDatLich(appointment);
 
-        when(phieuTiepNhanRepository.findById(501)).thenReturn(Optional.of(reception1));
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
         when(phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(501)).thenReturn(false);
         when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);

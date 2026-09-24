@@ -35,6 +35,9 @@ import static org.mockito.Mockito.*;
 class ReceptionServiceTest {
 
     @Mock
+    private CustomerProgressNotifier customerProgressNotifier;
+
+    @Mock
     private PhieuTiepNhanRepository phieuTiepNhanRepository;
 
     @Mock
@@ -157,6 +160,7 @@ class ReceptionServiceTest {
 
         CheckInRequest req = new CheckInRequest(15500, "Xước cản trước", "Thay dầu");
         ReceptionResponse res = receptionService.checkIn(1001, req);
+        verify(customerProgressNotifier).appointmentChanged(appointmentBranch1, "DA_XAC_NHAN");
 
         assertThat(res).isNotNull();
         assertThat(res.getMaTiepNhan()).isEqualTo(501);

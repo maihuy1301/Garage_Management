@@ -136,7 +136,7 @@ export const ReceptionPage: React.FC = () => {
       (r) => r.thoiGianTiepNhan && r.thoiGianTiepNhan.substring(0, 10) === todayStr
     ).length;
     const withRepairOrder = receptions.filter((r) => repairOrderSlipIds.has(r.maTiepNhan)).length;
-    const completed = receptions.filter((r) => r.trangThai === 'HOAN_TAT').length;
+    const completed = receptions.filter((r) => r.trangThai === 'DA_BAN_GIAO' || r.trangThai === 'HOAN_TAT').length;
 
     return { total, todayCount, withRepairOrder, completed };
   }, [receptions, repairOrderSlipIds]);
@@ -353,6 +353,7 @@ export const ReceptionPage: React.FC = () => {
             <option value="DANG_SUA_CHUA">Đang sửa chữa</option>
             <option value="DANG_SUA">Đang sửa chữa</option>
             <option value="HOAN_TAT">Hoàn tất</option>
+            <option value="DA_BAN_GIAO">Đã bàn giao</option>
             <option value="HUY">Đã hủy</option>
           </select>
 
@@ -400,6 +401,11 @@ export const ReceptionPage: React.FC = () => {
         reception={selectedDetail}
         hasRepairOrder={selectedDetail ? repairOrderSlipIds.has(selectedDetail.maTiepNhan) : false}
         onClose={() => setIsDetailOpen(false)}
+        onHandedOver={() => {
+          setSelectedDetail(value => value ? { ...value, trangThai: 'DA_BAN_GIAO' } : value);
+          setSuccessToast('Đã ghi nhận bàn giao và thông báo cho khách hàng.');
+          void fetchData();
+        }}
         onCreateRepairOrder={handleOpenCreateRepairOrder}
       />
 

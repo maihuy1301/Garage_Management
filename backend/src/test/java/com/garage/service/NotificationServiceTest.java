@@ -29,6 +29,8 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
+    @Mock
+    private PushNotificationDispatcher pushDispatcher;
 
     @Mock
     private ThongBaoRepository thongBaoRepository;
@@ -92,6 +94,40 @@ class NotificationServiceTest {
         assertThat(res.getLoaiThongBao()).isEqualTo("APPOINTMENT_CONFIRMED");
         assertThat(res.getDaDoc()).isFalse();
         verify(thongBaoRepository).save(any(ThongBao.class));
+    }
+
+    @Test
+    void notificationEventWaitsForCommitAndIsNotPublishedOnRollback() {
+        when(thongBaoRepository.save(any(ThongBao.class))).thenReturn(notif1);
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            notificationService.sendNotification(user1, "Title", "Content", "REPAIR_HOAN_TAT", 501);
+            verifyNoInteractions(webSocketEventPublisher);
+            verifyNoInteractions(pushDispatcher);
+            var synchronizations = org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations();
+            assertThat(synchronizations).hasSize(1);
+            synchronizations.forEach(s -> s.afterCompletion(
+                    org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK));
+            verifyNoInteractions(webSocketEventPublisher);
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void committedNotificationPublishesToTheRecipientQueue() {
+        when(thongBaoRepository.save(any(ThongBao.class))).thenReturn(notif1);
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        try {
+            notificationService.sendNotification(user1, "Title", "Content", "REPAIR_HOAN_TAT", 501);
+            verifyNoInteractions(webSocketEventPublisher);
+            org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
+            verify(webSocketEventPublisher).sendToUser(eq("customer1"), any(com.garage.dto.RealtimeEvent.class));
+            verify(pushDispatcher).send(eq("customer1"), any(NotificationResponse.class));
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

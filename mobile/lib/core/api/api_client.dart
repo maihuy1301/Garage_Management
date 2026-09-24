@@ -8,7 +8,9 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final token = await sessionStorage.readToken();
-          if (token != null && token.isNotEmpty) {
+          if (token != null &&
+              token.isNotEmpty &&
+              !options.headers.containsKey('Authorization')) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
