@@ -14,6 +14,8 @@ public interface PhieuSuaChuaRepository extends JpaRepository<PhieuSuaChua, Inte
     /** Lấy danh sách phiếu sửa chữa theo chi nhánh */
     List<PhieuSuaChua> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
 
+    boolean existsByChiNhanhMaChiNhanh(Integer maChiNhanh);
+
     /** Lấy phiếu sửa chữa theo phiếu tiếp nhận */
     Optional<PhieuSuaChua> findByPhieuTiepNhanMaTiepNhan(Integer maTiepNhan);
 

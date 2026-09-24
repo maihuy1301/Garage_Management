@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { UserResponse } from '@/types/user.types';
 import { RoleLabels, RoleType } from '@/types/role.types';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 import { useAuth } from '@/hooks/useAuth';
 
 interface UserTableProps {
@@ -182,41 +183,28 @@ export const UserTable: React.FC<UserTableProps> = ({
                         </span>
                       </td>
 
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            type="button"
-                            className="table-action-btn"
-                            title="Xem chi tiết tài khoản"
-                            onClick={() => onView(u)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              visibility
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="table-action-btn edit"
-                            title="Chỉnh sửa tài khoản & phân quyền"
-                            onClick={() => onEdit(u)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              edit
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`table-action-btn ${u.trangThai ? 'danger' : 'success'}`}
-                            title={u.trangThai ? 'Khóa tài khoản' : 'Kích hoạt lại'}
-                            onClick={() => onToggleStatus(u)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              {u.trangThai ? 'lock' : 'lock_open'}
-                            </span>
-                          </button>
-                        </div>
+                      <td style={{ textAlign: 'center' }}>
+                        <ActionDropdown
+                          items={[
+                            {
+                              label: 'Xem chi tiết tài khoản',
+                              icon: 'visibility',
+                              onClick: () => onView(u),
+                            },
+                            {
+                              label: 'Chỉnh sửa & phân quyền',
+                              icon: 'edit',
+                              variant: 'primary',
+                              onClick: () => onEdit(u),
+                            },
+                            {
+                              label: u.trangThai ? 'Khóa tài khoản' : 'Mở khóa / Kích hoạt',
+                              icon: u.trangThai ? 'lock' : 'lock_open',
+                              variant: u.trangThai ? 'danger' : 'success',
+                              onClick: () => onToggleStatus(u),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );

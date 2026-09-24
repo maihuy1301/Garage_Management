@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CustomerResponse } from '@/types/customer.types';
 import { EmptyState } from '@/components/common/EmptyState';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 interface CustomerTableProps {
   customers: CustomerResponse[];
@@ -159,41 +160,28 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                         </span>
                       </td>
 
-                      <td>
-                        <div className="table-actions">
-                          <button
-                            type="button"
-                            className="table-action-btn"
-                            title="Xem chi tiết & Xe"
-                            onClick={() => onView(cust)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              visibility
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="table-action-btn edit"
-                            title="Chỉnh sửa thông tin"
-                            onClick={() => onEdit(cust)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              edit
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className={`table-action-btn ${isActive ? 'danger' : 'success'}`}
-                            title={isActive ? 'Khóa tài khoản' : 'Kích hoạt lại'}
-                            onClick={() => onToggleStatus(cust)}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              {isActive ? 'lock' : 'lock_open'}
-                            </span>
-                          </button>
-                        </div>
+                      <td style={{ textAlign: 'center' }}>
+                        <ActionDropdown
+                          items={[
+                            {
+                              label: 'Xem chi tiết & Xe',
+                              icon: 'visibility',
+                              onClick: () => onView(cust),
+                            },
+                            {
+                              label: 'Chỉnh sửa thông tin',
+                              icon: 'edit',
+                              variant: 'primary',
+                              onClick: () => onEdit(cust),
+                            },
+                            {
+                              label: isActive ? 'Khóa tài khoản' : 'Mở khóa / Kích hoạt',
+                              icon: isActive ? 'lock' : 'lock_open',
+                              variant: isActive ? 'danger' : 'success',
+                              onClick: () => onToggleStatus(cust),
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );

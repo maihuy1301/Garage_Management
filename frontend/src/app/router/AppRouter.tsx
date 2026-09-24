@@ -15,6 +15,7 @@ import { UsersPage } from '@/features/users/pages/UsersPage';
 import { VehiclesPage } from '@/features/vehicles/pages/VehiclesPage';
 import { BrandModelManagementPage } from '@/features/vehicles/pages/BrandModelManagementPage';
 import { AppointmentsPage } from '@/features/appointments/pages/AppointmentsPage';
+import { BranchesPage } from '@/features/branches/pages/BranchesPage';
 import { ReceptionPage } from '@/features/reception/pages/ReceptionPage';
 import { RepairOrdersPage } from '@/features/repair-orders/pages/RepairOrdersPage';
 
@@ -44,7 +45,7 @@ export const AppRouter: React.FC = () => {
           path="branches"
           element={
             <RoleGuard roles={['ROLE_ADMIN']}>
-              <PlaceholderPage moduleName="Quản lý chi nhánh" taskNumber="Frontend Task Chi nhánh" />
+              <BranchesPage />
             </RoleGuard>
           }
         />

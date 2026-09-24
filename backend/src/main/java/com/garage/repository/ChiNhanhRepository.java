@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface ChiNhanhRepository extends JpaRepository<ChiNhanh, Integer> {
     List<ChiNhanh> findByTrangThaiTrue();
+    boolean existsByTenChiNhanh(String tenChiNhanh);
+    boolean existsByTenChiNhanhAndMaChiNhanhNot(String tenChiNhanh, Integer maChiNhanh);
 }

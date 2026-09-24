@@ -12,4 +12,5 @@ public interface NhanVienRepository extends JpaRepository<NhanVien, Integer> {
     Optional<NhanVien> findByNguoiDungMaNguoiDung(Integer maNguoiDung);
     List<NhanVien> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
     boolean existsByNguoiDungMaNguoiDung(Integer maNguoiDung);
+    boolean existsByChiNhanhMaChiNhanh(Integer maChiNhanh);
 }

@@ -1,6 +1,7 @@
 import React from 'react';
-import { ReceptionResponse, ReceptionStatusLabels, ReceptionStatusTone } from '@/types/reception.types';
+import { ReceptionResponse, ReceptionStatusTone, ReceptionStatusLabels } from '@/types/reception.types';
 import { Button } from '@/components/common/Button';
+import { ActionDropdown } from '@/components/common/ActionDropdown';
 
 interface ReceptionTableProps {
   receptions: ReceptionResponse[];
@@ -222,28 +223,24 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
                   </td>
 
                   {/* Thao tác */}
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="table-actions">
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => onViewDetail(item)}
-                        title="Xem chi tiết biên bản tiếp nhận"
-                      >
-                        <span className="material-symbols-outlined">visibility</span>
-                      </button>
-
-                      {!hasOrder && onCreateRepairOrder && (
-                        <button
-                          type="button"
-                          className="table-action-btn success"
-                          onClick={() => onCreateRepairOrder(item)}
-                          title="Tạo Lệnh Sửa Chữa"
-                        >
-                          <span className="material-symbols-outlined">construction</span>
-                        </button>
-                      )}
-                    </div>
+                  <td style={{ textAlign: 'center' }}>
+                    <ActionDropdown
+                      items={[
+                        {
+                          label: 'Xem biên bản tiếp nhận',
+                          icon: 'visibility',
+                          onClick: () => onViewDetail(item),
+                        },
+                        !hasOrder && onCreateRepairOrder
+                          ? {
+                              label: 'Tạo lệnh sửa chữa',
+                              icon: 'construction',
+                              variant: 'primary',
+                              onClick: () => onCreateRepairOrder(item),
+                            }
+                          : false,
+                      ]}
+                    />
                   </td>
                 </tr>
               );

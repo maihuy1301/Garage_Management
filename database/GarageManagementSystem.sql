@@ -414,3 +414,12 @@ CREATE TABLE TinNhan (
     FOREIGN KEY (MaNguoiGui) REFERENCES NguoiDung(MaNguoiDung)
 );
 
+
+--XÓA CÁC BẢNG LIÊN QUAN ĐỂ DỄ TEST LẠI
+Delete from PhieuSuaChua_PhuTung
+Delete from PhieuSuaChua_DichVu
+Delete from PhanCong
+Delete from PhieuSuaChua
+Delete from PhieuTiepNhan
+Delete from DatLich_DichVu
+Delete from DatLich

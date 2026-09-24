@@ -21,6 +21,8 @@ public interface DatLichRepository extends JpaRepository<DatLich, Integer> {
     /** Lấy danh sách lịch hẹn thuộc một chi nhánh */
     List<DatLich> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
 
+    boolean existsByChiNhanhMaChiNhanh(Integer maChiNhanh);
+
     /** Kiểm tra trùng lịch hẹn cho xe tại cùng thời điểm (loại trừ các trạng thái đã hủy/kết thúc) */
     boolean existsByXeMaXeAndThoiGianHenAndTrangThaiNotIn(Integer maXe, LocalDateTime thoiGianHen, Collection<String> excludedStatuses);
 }
