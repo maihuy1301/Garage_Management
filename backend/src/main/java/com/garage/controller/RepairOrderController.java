@@ -40,6 +40,16 @@ public class RepairOrderController {
                 .body(ApiResponse.success("Tạo phiếu sửa chữa thành công", response));
     }
 
+    /** POST /api/repair-orders/direct — Chủ động tạo phiếu sửa chữa (không qua đặt lịch) hoặc tạo phiếu phát sinh */
+    @PostMapping("/direct")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
+    public ResponseEntity<ApiResponse<RepairOrderResponse>> createDirectRepairOrder(
+            @Valid @RequestBody CreateDirectRepairOrderRequest request) {
+        RepairOrderResponse response = repairOrderService.createDirectRepairOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo phiếu sửa chữa chủ động thành công", response));
+    }
+
     /** GET /api/repair-orders — Danh sách phiếu sửa chữa */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")

@@ -69,6 +69,9 @@ class AppointmentServiceTest {
     @Mock
     private WebSocketEventPublisher webSocketEventPublisher;
 
+    @Mock
+    private DichVuPhuTungRepository dichVuPhuTungRepository;
+
     @InjectMocks
     private AppointmentService appointmentService;
 

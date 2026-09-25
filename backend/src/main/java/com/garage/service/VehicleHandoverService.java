@@ -96,6 +96,9 @@ public class VehicleHandoverService {
         for (var order : orders) {
             if (!"HOAN_TAT".equals(order.getTrangThai())) return "Cần hoàn tất tất cả phiếu sửa chữa trước khi bàn giao.";
             var invoice = invoices.findByPhieuSuaChuaMaPhieuSuaChua(order.getMaPhieuSuaChua());
+            if (invoice.isEmpty() && order.getPhieuCha() != null) {
+                invoice = invoices.findByPhieuSuaChuaMaPhieuSuaChua(order.getPhieuCha().getMaPhieuSuaChua());
+            }
             if (invoice.isEmpty() || !"DA_THANH_TOAN".equals(invoice.get().getTrangThai())) {
                 return "Cần lập và thanh toán đầy đủ hóa đơn của tất cả phiếu sửa chữa trước khi bàn giao.";
             }

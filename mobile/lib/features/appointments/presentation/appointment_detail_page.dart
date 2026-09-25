@@ -293,70 +293,243 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                   ],
                 )
               else ...[
-                for (var i = 0; i < appointment.services.length; i++) ...[
-                  Row(
+                () {
+                  final totalLabor = appointment.services.fold<double>(
+                    0,
+                    (sum, s) => sum + (s.price ?? 0),
+                  );
+                  final allParts = appointment.services.expand((s) => s.parts).toList();
+                  final totalParts = allParts.fold<double>(
+                    0,
+                    (sum, p) => sum + p.totalPrice,
+                  );
+                  final totalEstimated = totalLabor + totalParts;
+
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 2),
-                        child: Text(
-                          '•',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                      for (var i = 0; i < appointment.services.length; i++) ...[
+                        () {
+                          final item = appointment.services[i];
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '•',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.name,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
+                                        ),
+                                        if (item.price != null && item.price! > 0)
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 8),
+                                            child: Text(
+                                              _formatCurrency(item.price!),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                    color: AppColors.primary,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    if (item.description != null &&
+                                        item.description!.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item.description!.trim(),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: AppColors.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
+                                    if (item.parts.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceContainer,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.build_circle_outlined,
+                                                  size: 13,
+                                                  color: AppColors.primary,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Phụ tùng định mức kèm theo (${item.parts.length}):',
+                                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 11,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            for (final part in item.parts)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 2),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        '• ${part.name} (x${part.quantity}${part.unit != null && part.unit!.isNotEmpty ? ' ${part.unit}' : ''})',
+                                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                          fontSize: 11,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _formatCurrency(part.totalPrice),
+                                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                                        fontWeight: FontWeight.w600,
+                                                        fontSize: 11,
+                                                        color: AppColors.onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }(),
+                        if (i < appointment.services.length - 1)
+                          const Divider(height: 16),
+                      ],
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.outlineVariant.withValues(alpha: 0.5),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              appointment.services[i].name,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Tiền công (${appointment.services.length} dịch vụ):',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                                ),
+                                Text(
+                                  _formatCurrency(totalLabor),
+                                  style: const TextStyle(
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
+                                ),
+                              ],
                             ),
-                            if (appointment.services[i].price != null &&
-                                appointment.services[i].price! > 0) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _formatCurrency(appointment.services[i].price!),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ],
-                            if (appointment.services[i].description != null &&
-                                appointment.services[i].description!.trim().isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                appointment.services[i].description!.trim(),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
+                            if (allParts.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Phụ tùng định mức (${allParts.length} món):',
+                                    style: const TextStyle(
+                                      fontSize: 12,
                                       color: AppColors.onSurfaceVariant,
                                     ),
+                                  ),
+                                  Text(
+                                    _formatCurrency(totalParts),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: Divider(height: 1),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Tổng chi phí ước tính:',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  _formatCurrency(totalEstimated),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                  if (i < appointment.services.length - 1)
-                    const Divider(height: 16),
-                ],
+                  );
+                }(),
               ],
             ],
           ),

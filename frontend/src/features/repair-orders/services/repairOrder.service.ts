@@ -4,6 +4,7 @@ import { ApiResponse } from '@/types/api.types';
 import {
   RepairOrderResponse,
   CreateRepairOrderRequest,
+  CreateDirectRepairOrderRequest,
   UpdateRepairOrderRequest,
   UpdateRepairOrderStatusRequest,
   RepairItemResponse,
@@ -43,6 +44,17 @@ export const repairOrderService = {
   create: async (data: CreateRepairOrderRequest): Promise<RepairOrderResponse> => {
     const response = await apiClient.post<ApiResponse<RepairOrderResponse>>(
       API_ENDPOINTS.REPAIR_ORDERS,
+      data
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Chủ động tạo phiếu sửa chữa (không từ lịch hẹn) hoặc tạo phiếu phát sinh sửa chữa
+   */
+  createDirect: async (data: CreateDirectRepairOrderRequest): Promise<RepairOrderResponse> => {
+    const response = await apiClient.post<ApiResponse<RepairOrderResponse>>(
+      `${API_ENDPOINTS.REPAIR_ORDERS}/direct`,
       data
     );
     return response.data.data;

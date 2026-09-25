@@ -4,13 +4,16 @@ import com.garage.dto.AppointmentResponse;
 import com.garage.dto.AppointmentServiceItemResponse;
 import com.garage.dto.CreateAppointmentRequest;
 import com.garage.dto.RealtimeEvent;
+import com.garage.dto.ServicePartResponse;
 import com.garage.entity.ChiNhanh;
 import com.garage.entity.DatLich;
 import com.garage.entity.DatLichDichVu;
 import com.garage.entity.DichVu;
+import com.garage.entity.DichVuPhuTung;
 import com.garage.entity.KhachHang;
 import com.garage.entity.NguoiDung;
 import com.garage.entity.NhanVien;
+import com.garage.entity.PhuTung;
 import com.garage.entity.Xe;
 import com.garage.exception.BadRequestException;
 import com.garage.exception.DuplicateResourceException;
@@ -18,6 +21,7 @@ import com.garage.exception.ResourceNotFoundException;
 import com.garage.repository.ChiNhanhRepository;
 import com.garage.repository.DatLichDichVuRepository;
 import com.garage.repository.DatLichRepository;
+import com.garage.repository.DichVuPhuTungRepository;
 import com.garage.repository.DichVuRepository;
 import com.garage.repository.KhachHangRepository;
 import com.garage.repository.NguoiDungRepository;
@@ -43,6 +47,7 @@ public class AppointmentService {
     private final DatLichRepository datLichRepository;
     private final DatLichDichVuRepository datLichDichVuRepository;
     private final DichVuRepository dichVuRepository;
+    private final DichVuPhuTungRepository dichVuPhuTungRepository;
     private final KhachHangRepository khachHangRepository;
     private final XeRepository xeRepository;
     private final ChiNhanhRepository chiNhanhRepository;
@@ -55,6 +60,7 @@ public class AppointmentService {
     public AppointmentService(DatLichRepository datLichRepository,
                               DatLichDichVuRepository datLichDichVuRepository,
                               DichVuRepository dichVuRepository,
+                              DichVuPhuTungRepository dichVuPhuTungRepository,
                               KhachHangRepository khachHangRepository,
                               XeRepository xeRepository,
                               ChiNhanhRepository chiNhanhRepository,
@@ -66,6 +72,7 @@ public class AppointmentService {
         this.datLichRepository = datLichRepository;
         this.datLichDichVuRepository = datLichDichVuRepository;
         this.dichVuRepository = dichVuRepository;
+        this.dichVuPhuTungRepository = dichVuPhuTungRepository;
         this.khachHangRepository = khachHangRepository;
         this.xeRepository = xeRepository;
         this.chiNhanhRepository = chiNhanhRepository;
@@ -488,6 +495,33 @@ public class AppointmentService {
             for (DatLichDichVu item : dldvList) {
                 DichVu dv = item.getDichVu();
                 if (dv != null) {
+                    List<DichVuPhuTung> dvpts = dichVuPhuTungRepository.findByDichVuMaDichVu(dv.getMaDichVu());
+                    List<ServicePartResponse> parts = new java.util.ArrayList<>();
+                    java.math.BigDecimal totalPartPrice = java.math.BigDecimal.ZERO;
+                    if (dvpts != null) {
+                        for (DichVuPhuTung dp : dvpts) {
+                            PhuTung pt = dp.getPhuTung();
+                            if (pt != null) {
+                                int qty = dp.getSoLuong() != null ? dp.getSoLuong() : 1;
+                                java.math.BigDecimal partPrice = pt.getGiaBan() != null ? pt.getGiaBan() : java.math.BigDecimal.ZERO;
+                                java.math.BigDecimal lineTotal = partPrice.multiply(java.math.BigDecimal.valueOf(qty));
+                                totalPartPrice = totalPartPrice.add(lineTotal);
+
+                                parts.add(new ServicePartResponse(
+                                        pt.getMaPhuTung(),
+                                        pt.getTenPhuTung(),
+                                        qty,
+                                        partPrice,
+                                        lineTotal,
+                                        pt.getDonViTinh()
+                                ));
+                            }
+                        }
+                    }
+
+                    java.math.BigDecimal servicePrice = dv.getDonGia() != null ? dv.getDonGia() : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal estimatedTotal = servicePrice.add(totalPartPrice);
+
                     dichVuList.add(new AppointmentServiceItemResponse(
                             dv.getMaDichVu(),
                             dv.getTenDichVu(),
@@ -495,7 +529,10 @@ public class AppointmentService {
                             dv.getDonGia(),
                             dv.getThoiGianDuKien(),
                             1,
-                            item.getGhiChu()
+                            item.getGhiChu(),
+                            parts,
+                            totalPartPrice,
+                            estimatedTotal
                     ));
                 }
             }

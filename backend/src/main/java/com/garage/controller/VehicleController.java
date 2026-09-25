@@ -31,17 +31,20 @@ public class VehicleController {
         this.vehicleService = vehicleService;
     }
 
-    /** GET /api/vehicles — Danh sách xe (ADMIN/MANAGER: toàn bộ, CUSTOMER: xe của mình) */
+    /** GET /api/vehicles — Danh sách xe (ADMIN/MANAGER/FRONT_DESK: toàn bộ hoặc theo customerId, CUSTOMER: xe của mình) */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
-    public ResponseEntity<ApiResponse<List<VehicleResponse>>> getVehicles() {
-        List<VehicleResponse> vehicles = vehicleService.getVehicles();
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'CUSTOMER')")
+    public ResponseEntity<ApiResponse<List<VehicleResponse>>> getVehicles(
+            @RequestParam(required = false) Integer customerId) {
+        List<VehicleResponse> vehicles = (customerId != null)
+                ? vehicleService.getVehicles(customerId)
+                : vehicleService.getVehicles();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách xe thành công", vehicles));
     }
 
     /** GET /api/vehicles/{id} — Chi tiết xe */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'CUSTOMER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<VehicleResponse>> getVehicleById(@PathVariable Integer id) {
         VehicleResponse vehicle = vehicleService.getVehicleById(id);
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin xe thành công", vehicle));

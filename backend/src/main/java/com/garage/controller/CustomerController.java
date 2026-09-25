@@ -35,7 +35,7 @@ public class CustomerController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
     public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers() {
         List<CustomerResponse> response = customerService.getAllCustomers();
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách khách hàng thành công", response));

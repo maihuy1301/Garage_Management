@@ -125,13 +125,17 @@ class VehicleControllerTest {
     }
 
     @Test
-    void receptionist_getVehicles_returns403() throws Exception {
+    void receptionist_getVehicles_returns200() throws Exception {
         NguoiDung rec = mockUser(3, "receptionist");
         stubUser(rec, "ROLE_FRONT_DESK");
         String token = jwtService.generateToken("receptionist", List.of("ROLE_FRONT_DESK"));
 
+        when(vehicleService.getVehicles())
+                .thenReturn(List.of(sampleVehicle(100, 1, "51A-11111")));
+
         mockMvc.perform(get("/api/vehicles").header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test

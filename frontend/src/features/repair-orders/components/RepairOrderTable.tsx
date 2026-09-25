@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   RepairOrderResponse,
   RepairOrderStatusLabels,
@@ -23,11 +23,50 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
   onAssign,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(new Set());
   const pageSize = 10;
 
-  const totalPages = Math.ceil(orders.length / pageSize) || 1;
+  // Toggle single order accordion
+  const toggleExpand = (orderId: number) => {
+    setExpandedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
+
+  // Grouping: Root Orders vs Children Map
+  const { rootOrders, childrenMap } = useMemo(() => {
+    const map = new Map<number, RepairOrderResponse[]>();
+    const roots: RepairOrderResponse[] = [];
+    const allIds = new Set(orders.map((o) => o.maPhieuSuaChua));
+
+    // First pass: group children by parent id
+    orders.forEach((o) => {
+      if (o.maPhieuCha && allIds.has(o.maPhieuCha)) {
+        const existing = map.get(o.maPhieuCha) || [];
+        existing.push(o);
+        map.set(o.maPhieuCha, existing);
+      }
+    });
+
+    // Second pass: roots are orders that either have no parent OR whose parent is not in current dataset
+    orders.forEach((o) => {
+      if (!o.maPhieuCha || !allIds.has(o.maPhieuCha)) {
+        roots.push(o);
+      }
+    });
+
+    return { rootOrders: roots, childrenMap: map };
+  }, [orders]);
+
+  const totalPages = Math.ceil(rootOrders.length / pageSize) || 1;
   const startIndex = (currentPage - 1) * pageSize;
-  const displayedOrders = orders.slice(startIndex, startIndex + pageSize);
+  const displayedRootOrders = rootOrders.slice(startIndex, startIndex + pageSize);
 
   const formatDateTime = (dateStr?: string) => {
     if (!dateStr) return '—';
@@ -92,145 +131,353 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th style={{ width: '90px', textAlign: 'center' }}>MÃ LỆNH</th>
+              <th style={{ width: '130px', textAlign: 'left', paddingLeft: '16px' }}>MÃ LỆNH</th>
               <th>PHƯƠNG TIỆN & BIỂN SỐ</th>
               <th>KHÁCH HÀNG</th>
               <th>CHI NHÁNH</th>
               <th>THỜI GIAN BẮT ĐẦU</th>
               <th style={{ width: '150px', textAlign: 'center' }}>TRẠNG THÁI</th>
-              <th style={{ width: '140px', textAlign: 'right' }}>THAO TÁC</th>
+              <th style={{ width: '120px', textAlign: 'right', paddingRight: '16px' }}>THAO TÁC</th>
             </tr>
           </thead>
           <tbody>
-            {displayedOrders.map((order) => {
+            {displayedRootOrders.map((order) => {
               const statusLabel = RepairOrderStatusLabels[order.trangThai] || order.trangThai;
               const statusTone = RepairOrderStatusTone[order.trangThai] || 'primary';
+              const children = childrenMap.get(order.maPhieuSuaChua) || [];
+              const hasChildren = children.length > 0;
+              const isExpanded = expandedOrderIds.has(order.maPhieuSuaChua);
 
               return (
-                <tr key={order.maPhieuSuaChua}>
-                  {/* Mã Lệnh */}
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      style={{
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        fontSize: '0.8rem',
-                        backgroundColor: 'var(--color-surface-container)',
-                        color: 'var(--color-primary)',
-                        padding: '4px 8px',
-                        borderRadius: 'var(--radius-sm)',
-                        display: 'inline-block',
-                      }}
-                    >
-                      #{order.maPhieuSuaChua}
-                    </span>
-                    {order.maTiepNhan && (
-                      <div style={{ fontSize: '0.725rem', color: 'var(--color-outline)', marginTop: '2px' }}>
-                        TN #{order.maTiepNhan}
-                      </div>
-                    )}
-                  </td>
+                <React.Fragment key={order.maPhieuSuaChua}>
+                  {/* ROOT / MAIN ROW */}
+                  <tr
+                    style={{
+                      backgroundColor: isExpanded ? 'rgba(59, 130, 246, 0.04)' : undefined,
+                      transition: 'background-color 0.2s',
+                    }}
+                  >
+                    {/* Mã Lệnh & Accordion Toggle */}
+                    <td style={{ paddingLeft: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {hasChildren ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(order.maPhieuSuaChua)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '2px 4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: 'var(--radius-sm)',
+                              color: 'var(--color-primary)',
+                            }}
+                            title={isExpanded ? 'Thu gọn phiếu phát sinh' : 'Xem các phiếu phát sinh'}
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                fontSize: '20px',
+                                transition: 'transform 0.2s',
+                                transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                              }}
+                            >
+                              chevron_right
+                            </span>
+                          </button>
+                        ) : (
+                          <span style={{ width: '20px', display: 'inline-block' }} />
+                        )}
 
-                  {/* Phương tiện & Biển số */}
-                  <td>
-                    <div>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          fontFamily: 'monospace',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          backgroundColor: '#fef3c7',
-                          color: '#92400e',
-                          padding: '2px 8px',
-                          borderRadius: 'var(--radius-sm)',
-                          border: '1px solid #fde68a',
-                        }}
-                      >
-                        {order.bienSoXe}
-                      </span>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', marginTop: '2px' }}>
-                        {order.hangXe || order.tenHangXe || ''} {order.modelXe || order.tenModel || ''}
-                      </div>
-                    </div>
-                  </td>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span
+                              style={{
+                                fontFamily: 'monospace',
+                                fontWeight: 700,
+                                fontSize: '0.825rem',
+                                backgroundColor: 'var(--color-surface-container)',
+                                color: 'var(--color-primary)',
+                                padding: '3px 8px',
+                                borderRadius: 'var(--radius-sm)',
+                                display: 'inline-block',
+                              }}
+                            >
+                              #{order.maPhieuSuaChua}
+                            </span>
+                          </div>
 
-                  {/* Khách hàng */}
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="data-table-avatar">
-                        {order.tenKhachHang ? order.tenKhachHang.charAt(0).toUpperCase() : 'KH'}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>
-                          {order.tenKhachHang}
+                          {order.maPhieuCha ? (
+                            <div style={{ fontSize: '0.7rem', color: '#7c3aed', fontWeight: 600, marginTop: '2px' }}>
+                              ↳ Gốc #{order.maPhieuCha}
+                            </div>
+                          ) : (
+                            order.maTiepNhan && (
+                              <div style={{ fontSize: '0.725rem', color: 'var(--color-outline)', marginTop: '2px' }}>
+                                TN #{order.maTiepNhan}
+                              </div>
+                            )
+                          )}
                         </div>
-                        <div
+                      </div>
+                    </td>
+
+                    {/* Phương tiện & Biển số */}
+                    <td>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              fontSize: '0.8rem',
+                              backgroundColor: '#fef3c7',
+                              color: '#92400e',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: '1px solid #fde68a',
+                            }}
+                          >
+                            {order.bienSoXe}
+                          </span>
+
+                          {hasChildren && (
+                            <span
+                              onClick={() => toggleExpand(order.maPhieuSuaChua)}
+                              style={{
+                                fontSize: '0.725rem',
+                                fontWeight: 600,
+                                backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                                color: '#7c3aed',
+                                padding: '2px 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                              }}
+                              title={`Có ${children.length} phiếu sửa chữa phát sinh liên kết`}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>
+                                alt_route
+                              </span>
+                              +{children.length} phát sinh
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', marginTop: '3px' }}>
+                          {order.hangXe || order.tenHangXe || ''} {order.modelXe || order.tenModel || ''}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Khách hàng */}
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="data-table-avatar">
+                          {order.tenKhachHang ? order.tenKhachHang.charAt(0).toUpperCase() : 'KH'}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--color-on-surface)' }}>
+                            {order.tenKhachHang}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '0.775rem',
+                              color: 'var(--color-outline)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              marginTop: '2px',
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                              call
+                            </span>
+                            <span>{order.soDienThoaiKhachHang || '—'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Chi nhánh */}
+                    <td>
+                      <div style={{ fontWeight: 500, fontSize: '0.85rem', color: 'var(--color-on-surface)' }}>
+                        {order.tenChiNhanh}
+                      </div>
+                    </td>
+
+                    {/* Thời gian bắt đầu */}
+                    <td>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--color-on-surface)' }}>
+                        {formatDateTime(order.thoiGianBatDau)}
+                      </div>
+                      {order.thoiGianHoanTat && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '2px' }}>
+                          Xong: {formatDateTime(order.thoiGianHoanTat)}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Trạng thái */}
+                    <td style={{ textAlign: 'center' }}>
+                      <span className={`status-badge ${statusTone}`}>
+                        {statusLabel}
+                      </span>
+                    </td>
+
+                    {/* Thao tác */}
+                    <td style={{ textAlign: 'right', paddingRight: '16px' }}>
+                      <ActionDropdown
+                        items={[
+                          {
+                            label: 'Xem chi tiết lệnh',
+                            icon: 'visibility',
+                            onClick: () => onViewDetail(order),
+                          },
+                          canAssign && onAssign
+                            ? {
+                                label: 'Phân công kỹ thuật viên',
+                                icon: 'person_add',
+                                variant: 'primary',
+                                onClick: () => onAssign(order),
+                              }
+                            : false,
+                        ]}
+                      />
+                    </td>
+                  </tr>
+
+                  {/* EXPANDED CHILD ROWS (ACCORDION) */}
+                  {hasChildren && isExpanded && (
+                    children.map((child, idx) => {
+                      const childStatusLabel = RepairOrderStatusLabels[child.trangThai] || child.trangThai;
+                      const childStatusTone = RepairOrderStatusTone[child.trangThai] || 'primary';
+                      const isLastChild = idx === children.length - 1;
+
+                      return (
+                        <tr
+                          key={child.maPhieuSuaChua}
                           style={{
-                            fontSize: '0.775rem',
-                            color: 'var(--color-outline)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            marginTop: '2px',
+                            backgroundColor: 'rgba(243, 244, 246, 0.7)',
+                            borderLeft: '4px solid #7c3aed',
+                            borderBottom: isLastChild ? '2px solid rgba(124, 58, 237, 0.2)' : undefined,
                           }}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                            call
-                          </span>
-                          <span>{order.soDienThoaiKhachHang || '—'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
+                          {/* Child Code & Tree Branch Icon */}
+                          <td style={{ paddingLeft: '28px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ color: '#7c3aed', fontWeight: 700, fontSize: '1.1rem' }}>
+                                ↳
+                              </span>
+                              <div>
+                                <span
+                                  style={{
+                                    fontFamily: 'monospace',
+                                    fontWeight: 700,
+                                    fontSize: '0.8rem',
+                                    backgroundColor: 'rgba(124, 58, 237, 0.12)',
+                                    color: '#7c3aed',
+                                    padding: '2px 6px',
+                                    borderRadius: 'var(--radius-sm)',
+                                    border: '1px solid rgba(124, 58, 237, 0.25)',
+                                    display: 'inline-block',
+                                  }}
+                                >
+                                  #{child.maPhieuSuaChua}
+                                </span>
+                                <div style={{ fontSize: '0.675rem', color: '#7c3aed', fontWeight: 600, marginTop: '2px' }}>
+                                  (Phát sinh)
+                                </div>
+                              </div>
+                            </div>
+                          </td>
 
-                  {/* Chi nhánh */}
-                  <td>
-                    <div style={{ fontWeight: 500, fontSize: '0.85rem', color: 'var(--color-on-surface)' }}>
-                      {order.tenChiNhanh}
-                    </div>
-                  </td>
+                          {/* Phương tiện */}
+                          <td>
+                            <div>
+                              <span style={{ fontSize: '0.8rem', color: 'var(--color-on-surface-variant)', fontWeight: 500 }}>
+                                {child.bienSoXe}
+                              </span>
+                              {child.ghiChu && (
+                                <div
+                                  style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--color-outline)',
+                                    marginTop: '2px',
+                                    maxWidth: '220px',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                  title={child.ghiChu}
+                                >
+                                  📝 {child.ghiChu}
+                                </div>
+                              )}
+                            </div>
+                          </td>
 
-                  {/* Thời gian bắt đầu */}
-                  <td>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-on-surface)' }}>
-                      {formatDateTime(order.thoiGianBatDau)}
-                    </div>
-                    {order.thoiGianHoanTat && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '2px' }}>
-                        Xong: {formatDateTime(order.thoiGianHoanTat)}
-                      </div>
-                    )}
-                  </td>
+                          {/* Khách hàng */}
+                          <td>
+                            <div style={{ fontSize: '0.825rem', color: 'var(--color-on-surface)' }}>
+                              {child.tenKhachHang}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-outline)' }}>
+                              {child.soDienThoaiKhachHang || '—'}
+                            </div>
+                          </td>
 
-                  {/* Trạng thái */}
-                  <td style={{ textAlign: 'center' }}>
-                    <span className={`status-badge ${statusTone}`}>
-                      {statusLabel}
-                    </span>
-                  </td>
+                          {/* Chi nhánh */}
+                          <td>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--color-outline)' }}>
+                              {child.tenChiNhanh}
+                            </div>
+                          </td>
 
-                  {/* Thao tác */}
-                  <td style={{ textAlign: 'center' }}>
-                    <ActionDropdown
-                      items={[
-                        {
-                          label: 'Xem chi tiết lệnh',
-                          icon: 'visibility',
-                          onClick: () => onViewDetail(order),
-                        },
-                        canAssign && onAssign
-                          ? {
-                              label: 'Phân công kỹ thuật viên',
-                              icon: 'person_add',
-                              variant: 'primary',
-                              onClick: () => onAssign(order),
-                            }
-                          : false,
-                      ]}
-                    />
-                  </td>
-                </tr>
+                          {/* Thời gian */}
+                          <td>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--color-on-surface)' }}>
+                              {formatDateTime(child.thoiGianBatDau)}
+                            </div>
+                          </td>
+
+                          {/* Trạng thái */}
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`status-badge ${childStatusTone}`} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                              {childStatusLabel}
+                            </span>
+                          </td>
+
+                          {/* Thao tác */}
+                          <td style={{ textAlign: 'right', paddingRight: '16px' }}>
+                            <ActionDropdown
+                              items={[
+                                {
+                                  label: 'Xem chi tiết lệnh phát sinh',
+                                  icon: 'visibility',
+                                  onClick: () => onViewDetail(child),
+                                },
+                                canAssign && onAssign
+                                  ? {
+                                      label: 'Phân công kỹ thuật viên',
+                                      icon: 'person_add',
+                                      variant: 'primary',
+                                      onClick: () => onAssign(child),
+                                    }
+                                  : false,
+                              ]}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
@@ -250,7 +497,7 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
           }}
         >
           <div style={{ fontSize: '0.85rem', color: 'var(--color-outline)' }}>
-            Hiển thị {startIndex + 1} - {Math.min(startIndex + pageSize, orders.length)} / {orders.length} lệnh
+            Hiển thị {startIndex + 1} - {Math.min(startIndex + pageSize, rootOrders.length)} / {rootOrders.length} lệnh chính (tổng {orders.length} lệnh)
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <Button

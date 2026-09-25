@@ -13,6 +13,7 @@ import { RepairOrderTable } from '../components/RepairOrderTable';
 import { RepairOrderDetailModal } from '../components/RepairOrderDetailModal';
 import { AssignTechnicianModal } from '../components/AssignTechnicianModal';
 import { PendingAssignmentsTable } from '../components/PendingAssignmentsTable';
+import { CreateDirectRepairOrderModal } from '../components/CreateDirectRepairOrderModal';
 
 export const RepairOrdersPage: React.FC = () => {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export const RepairOrdersPage: React.FC = () => {
   const [isDetailOpen, setIsDetailOpen] = useState<boolean>(false);
   const [selectedOrderForAssign, setSelectedOrderForAssign] = useState<RepairOrderResponse | null>(null);
   const [isAssignOpen, setIsAssignOpen] = useState<boolean>(false);
+  const [isCreateDirectOpen, setIsCreateDirectOpen] = useState<boolean>(false);
 
   // Auto clear toast
   useEffect(() => {
@@ -228,6 +230,19 @@ export const RepairOrdersPage: React.FC = () => {
             </span>
             Làm mới
           </Button>
+
+          {canAssign && (
+            <Button
+              variant="primary"
+              onClick={() => setIsCreateDirectOpen(true)}
+              title="Tạo phiếu sửa chữa chủ động hoặc phiếu phát sinh"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '6px' }}>
+                add_circle
+              </span>
+              Tạo Phiếu Chủ Động
+            </Button>
+          )}
         </div>
       </div>
 
@@ -464,6 +479,16 @@ export const RepairOrdersPage: React.FC = () => {
         onClose={() => setIsAssignOpen(false)}
         onSuccess={() => {
           setToast('Đã tạo phân công kỹ thuật viên thành công!');
+          fetchData();
+        }}
+      />
+
+      {/* Create Direct Repair Order Modal */}
+      <CreateDirectRepairOrderModal
+        isOpen={isCreateDirectOpen}
+        onClose={() => setIsCreateDirectOpen(false)}
+        onSuccess={(newOrder) => {
+          setToast(`Đã tạo lệnh sửa chữa #${newOrder.maPhieuSuaChua} thành công!`);
           fetchData();
         }}
       />

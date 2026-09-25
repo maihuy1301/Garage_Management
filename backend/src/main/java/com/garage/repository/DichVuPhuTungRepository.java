@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface DichVuPhuTungRepository extends JpaRepository<DichVuPhuTung, DichVuPhuTungId> {
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"phuTung"})
     List<DichVuPhuTung> findByDichVuMaDichVu(Integer maDichVu);
 
     List<DichVuPhuTung> findByPhuTungMaPhuTung(Integer maPhuTung);

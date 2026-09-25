@@ -13,8 +13,9 @@ export const vehicleService = {
    * - ROLE_ADMIN: Lấy toàn bộ xe trong hệ thống
    * - ROLE_CUSTOMER: Lấy danh sách xe thuộc sở hữu của chính mình
    */
-  async getAll(): Promise<VehicleResponse[]> {
-    const response = await apiClient.get<ApiResponse<VehicleResponse[]>>(API_ENDPOINTS.VEHICLES);
+  async getAll(customerId?: number): Promise<VehicleResponse[]> {
+    const params = customerId ? { customerId } : undefined;
+    const response = await apiClient.get<ApiResponse<VehicleResponse[]>>(API_ENDPOINTS.VEHICLES, { params });
     return response.data.data || [];
   },
 

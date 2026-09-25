@@ -47,6 +47,35 @@ class BranchOption {
   final String address;
 }
 
+class ServicePartOption {
+  const ServicePartOption({
+    required this.id,
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+    required this.totalPrice,
+    this.unit,
+  });
+
+  factory ServicePartOption.fromJson(Map<String, dynamic> json) {
+    return ServicePartOption(
+      id: (json['maPhuTung'] as num).toInt(),
+      name: json['tenPhuTung']?.toString() ?? '',
+      quantity: json['soLuong'] != null ? (json['soLuong'] as num).toInt() : 1,
+      unitPrice: json['donGia'] != null ? (json['donGia'] as num).toDouble() : 0.0,
+      totalPrice: json['thanhTien'] != null ? (json['thanhTien'] as num).toDouble() : 0.0,
+      unit: json['donViTinh']?.toString(),
+    );
+  }
+
+  final int id;
+  final String name;
+  final int quantity;
+  final double unitPrice;
+  final double totalPrice;
+  final String? unit;
+}
+
 class ServiceOption {
   const ServiceOption({
     required this.id,
@@ -56,19 +85,38 @@ class ServiceOption {
     this.price,
     this.estimatedDurationMinutes,
     this.isActive = true,
+    this.parts = const [],
+    this.estimatedPartsCost,
+    this.estimatedTotalCost,
   });
 
   factory ServiceOption.fromJson(Map<String, dynamic> json) {
+    final rawParts = json['parts'] as List<dynamic>?;
+    final parts = rawParts != null
+        ? rawParts
+            .whereType<Map<String, dynamic>>()
+            .map(ServicePartOption.fromJson)
+            .toList(growable: false)
+        : const <ServicePartOption>[];
+
+    final laborPrice = json['donGia'] != null ? (json['donGia'] as num).toDouble() : null;
+    final partsCost = json['tienPhuTungDuKien'] != null ? (json['tienPhuTungDuKien'] as num).toDouble() : null;
+    final totalCost = json['tongGiaDuKien'] != null ? (json['tongGiaDuKien'] as num).toDouble() : null;
+
     return ServiceOption(
       id: (json['maDichVu'] as num).toInt(),
       name: json['tenDichVu']?.toString() ?? '',
       categoryName: json['tenLoaiDichVu']?.toString(),
       description: json['moTa']?.toString(),
-      price: json['donGia'] != null ? (json['donGia'] as num).toDouble() : null,
+      price: laborPrice,
       estimatedDurationMinutes: json['thoiGianDuKien'] != null
           ? (json['thoiGianDuKien'] as num).toInt()
           : null,
       isActive: json['trangThai'] != false,
+      parts: parts,
+      estimatedPartsCost: partsCost,
+      estimatedTotalCost: totalCost ??
+          (laborPrice != null && partsCost != null ? laborPrice + partsCost : laborPrice),
     );
   }
 
@@ -79,6 +127,9 @@ class ServiceOption {
   final double? price;
   final int? estimatedDurationMinutes;
   final bool isActive;
+  final List<ServicePartOption> parts;
+  final double? estimatedPartsCost;
+  final double? estimatedTotalCost;
 }
 
 class AppointmentServiceItem {
@@ -90,19 +141,38 @@ class AppointmentServiceItem {
     this.estimatedDurationMinutes,
     this.quantity = 1,
     this.note,
+    this.parts = const [],
+    this.estimatedPartsCost,
+    this.estimatedTotalCost,
   });
 
   factory AppointmentServiceItem.fromJson(Map<String, dynamic> json) {
+    final rawParts = json['parts'] as List<dynamic>?;
+    final parts = rawParts != null
+        ? rawParts
+            .whereType<Map<String, dynamic>>()
+            .map(ServicePartOption.fromJson)
+            .toList(growable: false)
+        : const <ServicePartOption>[];
+
+    final laborPrice = json['donGia'] != null ? (json['donGia'] as num).toDouble() : null;
+    final partsCost = json['tienPhuTungDuKien'] != null ? (json['tienPhuTungDuKien'] as num).toDouble() : null;
+    final totalCost = json['tongGiaDuKien'] != null ? (json['tongGiaDuKien'] as num).toDouble() : null;
+
     return AppointmentServiceItem(
       id: (json['maDichVu'] as num).toInt(),
       name: json['tenDichVu']?.toString() ?? '',
       description: json['moTa']?.toString(),
-      price: json['donGia'] != null ? (json['donGia'] as num).toDouble() : null,
+      price: laborPrice,
       estimatedDurationMinutes: json['thoiGianDuKien'] != null
           ? (json['thoiGianDuKien'] as num).toInt()
           : null,
       quantity: json['soLuong'] != null ? (json['soLuong'] as num).toInt() : 1,
       note: json['ghiChu']?.toString(),
+      parts: parts,
+      estimatedPartsCost: partsCost,
+      estimatedTotalCost: totalCost ??
+          (laborPrice != null && partsCost != null ? laborPrice + partsCost : laborPrice),
     );
   }
 
@@ -113,6 +183,9 @@ class AppointmentServiceItem {
   final int? estimatedDurationMinutes;
   final int quantity;
   final String? note;
+  final List<ServicePartOption> parts;
+  final double? estimatedPartsCost;
+  final double? estimatedTotalCost;
 }
 
 class AppointmentBookingOptions {

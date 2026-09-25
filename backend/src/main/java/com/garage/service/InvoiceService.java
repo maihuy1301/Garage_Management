@@ -94,8 +94,17 @@ public class InvoiceService {
         // Lấy nhân viên thu ngân từ tài khoản đang đăng nhập
         NhanVien cashier = getCurrentEmployee();
 
-        List<PhieuSuaChuaDichVu> repairServices = phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId);
-        List<PhieuSuaChuaPhuTung> repairParts = phieuSuaChuaPhuTungRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId);
+        List<PhieuSuaChuaDichVu> repairServices = new ArrayList<>(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId));
+        List<PhieuSuaChuaPhuTung> repairParts = new ArrayList<>(phieuSuaChuaPhuTungRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId));
+
+        // Tự động gộp dịch vụ và phụ tùng từ các phiếu phát sinh con (nếu có)
+        List<PhieuSuaChua> childOrders = phieuSuaChuaRepository.findAll().stream()
+                .filter(o -> o.getPhieuCha() != null && repairOrderId.equals(o.getPhieuCha().getMaPhieuSuaChua()) && !"HUY".equalsIgnoreCase(o.getTrangThai()))
+                .toList();
+        for (PhieuSuaChua child : childOrders) {
+            repairServices.addAll(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(child.getMaPhieuSuaChua()));
+            repairParts.addAll(phieuSuaChuaPhuTungRepository.findByPhieuSuaChuaMaPhieuSuaChua(child.getMaPhieuSuaChua()));
+        }
 
         BigDecimal totalServiceAmount = BigDecimal.ZERO;
         for (PhieuSuaChuaDichVu s : repairServices) {

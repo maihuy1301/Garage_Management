@@ -50,15 +50,28 @@ public class VehicleService {
     // =========================================================
 
     /**
-     * Lấy danh sách xe thuộc customer đang đăng nhập.
-     * SYSTEM_ADMIN → toàn bộ xe.
-     * CUSTOMER → chỉ xe của chính mình.
+     * Lấy danh sách xe không filter.
      */
     @Transactional(readOnly = true)
     public List<VehicleResponse> getVehicles() {
+        return getVehicles(null);
+    }
+
+    /**
+     * Lấy danh sách xe.
+     * STAFF (ADMIN, MANAGER, FRONT_DESK) → toàn bộ xe hoặc lọc theo customerId nếu có.
+     * CUSTOMER → chỉ xe của chính mình.
+     */
+    @Transactional(readOnly = true)
+    public List<VehicleResponse> getVehicles(Integer customerId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        if (isSystemAdmin(auth)) {
+        if (isStaff(auth)) {
+            if (customerId != null) {
+                return xeRepository.findByKhachHangMaKhachHang(customerId).stream()
+                        .map(this::mapToVehicleResponse)
+                        .collect(Collectors.toList());
+            }
             return xeRepository.findAll().stream()
                     .map(this::mapToVehicleResponse)
                     .collect(Collectors.toList());
@@ -244,6 +257,13 @@ public class VehicleService {
         String username = auth.getName();
         return nguoiDungRepository.findByTenDangNhapOrEmail(username, username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin tài khoản: " + username));
+    }
+
+    private boolean isStaff(Authentication auth) {
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(r -> "ROLE_ADMIN".equals(r) || "ROLE_MANAGER".equals(r) || "ROLE_FRONT_DESK".equals(r));
     }
 
     private boolean isSystemAdmin(Authentication auth) {

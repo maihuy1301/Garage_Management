@@ -55,6 +55,24 @@ class RepairOrderServiceTest {
     private DichVuPhuTungRepository dichVuPhuTungRepository;
 
     @Mock
+    private KhachHangRepository khachHangRepository;
+
+    @Mock
+    private XeRepository xeRepository;
+
+    @Mock
+    private DichVuRepository dichVuRepository;
+
+    @Mock
+    private NhanVienRepository nhanVienRepository;
+
+    @Mock
+    private NguoiDungRepository nguoiDungRepository;
+
+    @Mock
+    private ChiNhanhRepository chiNhanhRepository;
+
+    @Mock
     private BranchAuthorizationService branchAuthorizationService;
 
     @InjectMocks
@@ -457,5 +475,160 @@ class RepairOrderServiceTest {
         assertThat(res.getMaPhieuSuaChua()).isEqualTo(601);
         verify(phieuSuaChuaDichVuRepository, never()).save(any(PhieuSuaChuaDichVu.class));
         verify(phieuSuaChuaPhuTungRepository, never()).save(any(PhieuSuaChuaPhuTung.class));
+    }
+
+    // ==========================================
+    // 5. CREATE DIRECT REPAIR ORDER (NEW FLOW)
+    // ==========================================
+
+    @Test
+    void createDirectRepairOrder_independent_success() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        KhachHang customer = new KhachHang();
+        customer.setMaKhachHang(10);
+        customer.setNguoiDung(managerUser);
+        vehicle.setKhachHang(customer);
+
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(customer));
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle));
+        when(branchAuthorizationService.resolveUserBranchId(any())).thenReturn(Optional.of(1));
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+
+        NhanVien receptionist = new NhanVien();
+        receptionist.setMaNhanVien(55);
+        receptionist.setChiNhanh(branch1);
+        when(nhanVienRepository.findByNguoiDungMaNguoiDung(2)).thenReturn(Optional.of(receptionist));
+
+        when(phieuTiepNhanRepository.save(any(PhieuTiepNhan.class))).thenAnswer(i -> {
+            PhieuTiepNhan p = i.getArgument(0);
+            p.setMaTiepNhan(999);
+            return p;
+        });
+
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(repairOrder1);
+
+        DichVu dv = new DichVu();
+        dv.setMaDichVu(1);
+        dv.setTenDichVu("Thay dầu");
+        dv.setDonGia(java.math.BigDecimal.valueOf(150000));
+        when(dichVuRepository.findById(1)).thenReturn(Optional.of(dv));
+
+        PhieuSuaChuaDichVu roSvc = new PhieuSuaChuaDichVu();
+        roSvc.setMaChiTiet(777);
+        when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(roSvc);
+
+        PhuTung pt = new PhuTung();
+        pt.setMaPhuTung(20);
+        pt.setTenPhuTung("Dầu Castrol");
+        pt.setGiaBan(java.math.BigDecimal.valueOf(250000));
+        DichVuPhuTung dvpt = new DichVuPhuTung(dv, pt, 4);
+        when(dichVuPhuTungRepository.findByDichVuMaDichVu(1)).thenReturn(List.of(dvpt));
+
+        CreateDirectRepairOrderRequest req = new CreateDirectRepairOrderRequest(10, 100, null, List.of(1), "Khách vào kiểm tra");
+        RepairOrderResponse res = repairOrderService.createDirectRepairOrder(req);
+
+        assertThat(res).isNotNull();
+        assertThat(res.getMaPhieuSuaChua()).isEqualTo(601);
+        verify(phieuTiepNhanRepository).save(any(PhieuTiepNhan.class));
+        verify(phieuSuaChuaDichVuRepository).save(any(PhieuSuaChuaDichVu.class));
+        verify(phieuSuaChuaPhuTungRepository).save(any(PhieuSuaChuaPhuTung.class));
+        verify(customerProgressNotifier).repairChanged(repairOrder1, null);
+    }
+
+    @Test
+    void createDirectRepairOrder_childOrder_success() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        KhachHang customer = new KhachHang();
+        customer.setMaKhachHang(10);
+        customer.setNguoiDung(managerUser);
+        vehicle.setKhachHang(customer);
+        reception1.setXe(vehicle);
+
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(customer));
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle));
+
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(repairOrder1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+
+        PhieuSuaChua childOrder = new PhieuSuaChua();
+        childOrder.setMaPhieuSuaChua(602);
+        childOrder.setPhieuCha(repairOrder1);
+        childOrder.setPhieuTiepNhan(reception1);
+        childOrder.setChiNhanh(branch1);
+        childOrder.setTrangThai("CHO_XU_LY");
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(childOrder);
+
+        DichVu dv = new DichVu();
+        dv.setMaDichVu(2);
+        dv.setTenDichVu("Bảo dưỡng phanh");
+        when(dichVuRepository.findById(2)).thenReturn(Optional.of(dv));
+        when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(new PhieuSuaChuaDichVu());
+        when(dichVuPhuTungRepository.findByDichVuMaDichVu(2)).thenReturn(List.of());
+
+        CreateDirectRepairOrderRequest req = new CreateDirectRepairOrderRequest(10, 100, 601, List.of(2), "Phát sinh thêm phanh");
+        RepairOrderResponse res = repairOrderService.createDirectRepairOrder(req);
+
+        assertThat(res).isNotNull();
+        assertThat(res.getMaPhieuSuaChua()).isEqualTo(602);
+        assertThat(res.getMaPhieuCha()).isEqualTo(601);
+        verify(phieuTiepNhanRepository, never()).save(any(PhieuTiepNhan.class)); // Reuses parent reception
+    }
+
+    @Test
+    void createDirectRepairOrder_vehicleNotOwnedByCustomer_throws400() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        KhachHang customer1 = new KhachHang();
+        customer1.setMaKhachHang(10);
+
+        KhachHang customer2 = new KhachHang();
+        customer2.setMaKhachHang(20);
+
+        vehicle.setKhachHang(customer2);
+
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(customer1));
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle));
+
+        CreateDirectRepairOrderRequest req = new CreateDirectRepairOrderRequest(10, 100, List.of(1), "Kiểm tra");
+
+        assertThatThrownBy(() -> repairOrderService.createDirectRepairOrder(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("không thuộc sở hữu");
+    }
+
+    @Test
+    void createDirectRepairOrder_parentOrderWrongVehicle_throws400() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        KhachHang customer = new KhachHang();
+        customer.setMaKhachHang(10);
+        vehicle.setKhachHang(customer);
+
+        Xe otherVehicle = new Xe();
+        otherVehicle.setMaXe(200);
+        otherVehicle.setKhachHang(customer);
+
+        PhieuTiepNhan otherReception = new PhieuTiepNhan();
+        otherReception.setXe(otherVehicle);
+        otherReception.setChiNhanh(branch1);
+
+        PhieuSuaChua otherOrder = new PhieuSuaChua();
+        otherOrder.setMaPhieuSuaChua(990);
+        otherOrder.setPhieuTiepNhan(otherReception);
+        otherOrder.setChiNhanh(branch1);
+
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(customer));
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle));
+        when(phieuSuaChuaRepository.findById(990)).thenReturn(Optional.of(otherOrder));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+
+        CreateDirectRepairOrderRequest req = new CreateDirectRepairOrderRequest(10, 100, 990, List.of(1), "Phát sinh");
+
+        assertThatThrownBy(() -> repairOrderService.createDirectRepairOrder(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("không thuộc xe đã chọn");
     }
 }

@@ -747,6 +747,111 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
                               ],
                             ],
                           ),
+                          if (_selectedServiceIds.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            () {
+                              double totalLabor = 0;
+                              double totalParts = 0;
+                              final List<ServicePartOption> allSelectedParts = [];
+                              for (final sId in _selectedServiceIds) {
+                                final s = options.services.cast<ServiceOption?>().firstWhere(
+                                      (srv) => srv?.id == sId,
+                                      orElse: () => null,
+                                    );
+                                if (s != null) {
+                                  totalLabor += s.price ?? 0;
+                                  totalParts += s.estimatedPartsCost ?? 0;
+                                  allSelectedParts.addAll(s.parts);
+                                }
+                              }
+                              final grandTotal = totalLabor + totalParts;
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainer,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Tiền công (${_selectedServiceIds.length} dịch vụ):', style: const TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                                        Text(_formatCurrency(totalLabor), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                    if (allSelectedParts.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.build_circle_outlined, size: 13, color: AppColors.primary),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Phụ tùng định mức (${allSelectedParts.length} món):',
+                                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primary),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            for (final part in allSelectedParts)
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 2),
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        '• ${part.name} (x${part.quantity}${part.unit != null && part.unit!.isNotEmpty ? ' ${part.unit}' : ''})',
+                                                        style: const TextStyle(fontSize: 10),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      _formatCurrency(part.totalPrice),
+                                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                    if (totalParts > 0) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text('Tổng tiền phụ tùng dự kiến:', style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                                          Text(_formatCurrency(totalParts), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ],
+                                    const Divider(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text('Tổng chi phí ước tính:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                                        Text(_formatCurrency(grandTotal), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }(),
+                          ],
                         ],
                       ),
                     ),
@@ -1719,6 +1824,102 @@ class _ServiceOptionTile extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                    ],
+                    if (service.parts.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.build_circle_outlined,
+                                  size: 14,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Phụ tùng định mức kèm theo (${service.parts.length}):',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            for (final part in service.parts)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '• ${part.name} (x${part.quantity}${part.unit != null && part.unit!.isNotEmpty ? ' ${part.unit}' : ''})',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontSize: 11,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Text(
+                                      _formatCurrency(part.totalPrice),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (service.estimatedTotalCost != null &&
+                        service.estimatedTotalCost! > 0 &&
+                        service.parts.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '💰 Tổng dự kiến (Công + Phụ tùng):',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            Text(
+                              _formatCurrency(service.estimatedTotalCost!),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ],

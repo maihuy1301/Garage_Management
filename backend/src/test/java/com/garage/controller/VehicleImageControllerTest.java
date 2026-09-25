@@ -31,6 +31,11 @@ class VehicleImageControllerTest {
         imageService = mock(VehicleImageService.class);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new VehicleImageController(imageService))
+                .setMessageConverters(
+                        new org.springframework.http.converter.ByteArrayHttpMessageConverter(),
+                        new org.springframework.http.converter.StringHttpMessageConverter(),
+                        new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter()
+                )
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }

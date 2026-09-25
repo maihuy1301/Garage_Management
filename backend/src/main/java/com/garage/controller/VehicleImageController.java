@@ -29,7 +29,7 @@ public class VehicleImageController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<VehicleImageResponse>> upload(
             @PathVariable Integer vehicleId,
-            @RequestPart("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file) {
         VehicleImageResponse response = vehicleImageService.upload(vehicleId, file);
         return ResponseEntity.ok(ApiResponse.success("Tải ảnh xe thành công", response));
     }

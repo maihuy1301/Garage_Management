@@ -61,6 +61,17 @@ export interface CreateRepairOrderRequest {
   ghiChu?: string;
 }
 
+export interface CreateDirectRepairOrderRequest {
+  maKhachHang: number;
+  maXe: number;
+  maPhieuCha?: number;
+  serviceIds: number[];
+  thoiGianBatDau?: string;
+  ghiChu?: string;
+  soKm?: number;
+  yeuCauKhachHang?: string;
+}
+
 export interface UpdateRepairOrderRequest {
   thoiGianBatDau?: string;
   thoiGianHoanTat?: string;

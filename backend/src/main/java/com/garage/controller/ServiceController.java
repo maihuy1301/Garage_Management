@@ -1,33 +1,43 @@
 package com.garage.controller;
 
 import com.garage.dto.ApiResponse;
+import com.garage.dto.ServicePartResponse;
 import com.garage.dto.ServiceResponse;
 import com.garage.entity.DichVu;
+import com.garage.entity.DichVuPhuTung;
+import com.garage.entity.PhuTung;
 import com.garage.exception.ResourceNotFoundException;
+import com.garage.repository.DichVuPhuTungRepository;
 import com.garage.repository.DichVuRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * Service Catalog REST Controller — /api/services
  *
- * Cho phép xem danh mục dịch vụ đang hoạt động.
+ * Cho phép xem danh mục dịch vụ đang hoạt động kèm phụ tùng định mức và tổng giá ước tính.
  * RBAC:
  *   ADMIN, MANAGER, FRONT_DESK, TECHNICIAN, CUSTOMER đều có thể xem danh mục dịch vụ.
  */
 @RestController
 @RequestMapping("/api/services")
 @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'TECHNICIAN', 'CUSTOMER')")
+@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class ServiceController {
 
     private final DichVuRepository dichVuRepository;
+    private final DichVuPhuTungRepository dichVuPhuTungRepository;
 
-    public ServiceController(DichVuRepository dichVuRepository) {
+    public ServiceController(DichVuRepository dichVuRepository,
+                             DichVuPhuTungRepository dichVuPhuTungRepository) {
         this.dichVuRepository = dichVuRepository;
+        this.dichVuPhuTungRepository = dichVuPhuTungRepository;
     }
 
     /** GET /api/services — Lấy danh mục dịch vụ đang hoạt động */
@@ -51,6 +61,34 @@ public class ServiceController {
         Integer maLoai = dv.getLoaiDichVu() != null ? dv.getLoaiDichVu().getMaLoaiDichVu() : null;
         String tenLoai = dv.getLoaiDichVu() != null ? dv.getLoaiDichVu().getTenLoai() : null;
 
+        List<DichVuPhuTung> dichVuPhuTungs = dichVuPhuTungRepository.findByDichVuMaDichVu(dv.getMaDichVu());
+        List<ServicePartResponse> parts = new ArrayList<>();
+        BigDecimal totalPartPrice = BigDecimal.ZERO;
+
+        if (dichVuPhuTungs != null) {
+            for (DichVuPhuTung dp : dichVuPhuTungs) {
+                PhuTung pt = dp.getPhuTung();
+                if (pt != null) {
+                    int qty = dp.getSoLuong() != null ? dp.getSoLuong() : 1;
+                    BigDecimal partPrice = pt.getGiaBan() != null ? pt.getGiaBan() : BigDecimal.ZERO;
+                    BigDecimal lineTotal = partPrice.multiply(BigDecimal.valueOf(qty));
+                    totalPartPrice = totalPartPrice.add(lineTotal);
+
+                    parts.add(new ServicePartResponse(
+                            pt.getMaPhuTung(),
+                            pt.getTenPhuTung(),
+                            qty,
+                            partPrice,
+                            lineTotal,
+                            pt.getDonViTinh()
+                    ));
+                }
+            }
+        }
+
+        BigDecimal servicePrice = dv.getDonGia() != null ? dv.getDonGia() : BigDecimal.ZERO;
+        BigDecimal estimatedTotal = servicePrice.add(totalPartPrice);
+
         return new ServiceResponse(
                 dv.getMaDichVu(),
                 maLoai,
@@ -59,7 +97,10 @@ public class ServiceController {
                 dv.getMoTa(),
                 dv.getDonGia(),
                 dv.getThoiGianDuKien(),
-                dv.getTrangThai()
+                dv.getTrangThai(),
+                parts,
+                totalPartPrice,
+                estimatedTotal
         );
     }
 }

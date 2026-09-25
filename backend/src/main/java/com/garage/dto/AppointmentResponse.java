@@ -1,6 +1,9 @@
 package com.garage.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Response DTO cho DatLich — không expose trực tiếp JPA Entity.
@@ -26,7 +29,11 @@ public class AppointmentResponse {
     private String trangThai;
     private String ghiChu;
     private LocalDateTime ngayDat;
-    private java.util.List<AppointmentServiceItemResponse> dichVu = new java.util.ArrayList<>();
+    private List<AppointmentServiceItemResponse> dichVu = new ArrayList<>();
+
+    private BigDecimal tongTienDichVuDuKien = BigDecimal.ZERO;
+    private BigDecimal tongTienPhuTungDuKien = BigDecimal.ZERO;
+    private BigDecimal tongChiPhiDuKien = BigDecimal.ZERO;
 
     public AppointmentResponse() {}
 
@@ -39,7 +46,7 @@ public class AppointmentResponse {
         this(maDatLich, maKhachHang, tenKhachHang, soDienThoaiKhachHang, null,
                 maXe, bienSoXe, hangXe, modelXe,
                 maChiNhanh, tenChiNhanh,
-                thoiGianHen, trangThai, ghiChu, ngayDat, new java.util.ArrayList<>());
+                thoiGianHen, trangThai, ghiChu, ngayDat, new ArrayList<>());
     }
 
     public AppointmentResponse(Integer maDatLich, Integer maKhachHang,
@@ -52,7 +59,7 @@ public class AppointmentResponse {
         this(maDatLich, maKhachHang, tenKhachHang, soDienThoaiKhachHang, maNhanVienXacNhan,
                 maXe, bienSoXe, hangXe, modelXe,
                 maChiNhanh, tenChiNhanh,
-                thoiGianHen, trangThai, ghiChu, ngayDat, new java.util.ArrayList<>());
+                thoiGianHen, trangThai, ghiChu, ngayDat, new ArrayList<>());
     }
 
     public AppointmentResponse(Integer maDatLich, Integer maKhachHang,
@@ -62,7 +69,7 @@ public class AppointmentResponse {
                                Integer maChiNhanh, String tenChiNhanh,
                                LocalDateTime thoiGianHen, String trangThai, String ghiChu,
                                LocalDateTime ngayDat,
-                               java.util.List<AppointmentServiceItemResponse> dichVu) {
+                               List<AppointmentServiceItemResponse> dichVu) {
         this.maDatLich = maDatLich;
         this.maKhachHang = maKhachHang;
         this.tenKhachHang = tenKhachHang;
@@ -78,7 +85,21 @@ public class AppointmentResponse {
         this.trangThai = trangThai;
         this.ghiChu = ghiChu;
         this.ngayDat = ngayDat;
-        this.dichVu = (dichVu != null) ? dichVu : new java.util.ArrayList<>();
+        this.dichVu = (dichVu != null) ? dichVu : new ArrayList<>();
+
+        BigDecimal totalLabor = BigDecimal.ZERO;
+        BigDecimal totalParts = BigDecimal.ZERO;
+        for (AppointmentServiceItemResponse item : this.dichVu) {
+            if (item.getDonGia() != null) {
+                totalLabor = totalLabor.add(item.getDonGia());
+            }
+            if (item.getTienPhuTungDuKien() != null) {
+                totalParts = totalParts.add(item.getTienPhuTungDuKien());
+            }
+        }
+        this.tongTienDichVuDuKien = totalLabor;
+        this.tongTienPhuTungDuKien = totalParts;
+        this.tongChiPhiDuKien = totalLabor.add(totalParts);
     }
 
     public Integer getMaDatLich() { return maDatLich; }
@@ -126,8 +147,17 @@ public class AppointmentResponse {
     public LocalDateTime getNgayDat() { return ngayDat; }
     public void setNgayDat(LocalDateTime ngayDat) { this.ngayDat = ngayDat; }
 
-    public java.util.List<AppointmentServiceItemResponse> getDichVu() { return dichVu; }
-    public void setDichVu(java.util.List<AppointmentServiceItemResponse> dichVu) {
-        this.dichVu = (dichVu != null) ? dichVu : new java.util.ArrayList<>();
+    public List<AppointmentServiceItemResponse> getDichVu() { return dichVu; }
+    public void setDichVu(List<AppointmentServiceItemResponse> dichVu) {
+        this.dichVu = (dichVu != null) ? dichVu : new ArrayList<>();
     }
+
+    public BigDecimal getTongTienDichVuDuKien() { return tongTienDichVuDuKien; }
+    public void setTongTienDichVuDuKien(BigDecimal tongTienDichVuDuKien) { this.tongTienDichVuDuKien = tongTienDichVuDuKien; }
+
+    public BigDecimal getTongTienPhuTungDuKien() { return tongTienPhuTungDuKien; }
+    public void setTongTienPhuTungDuKien(BigDecimal tongTienPhuTungDuKien) { this.tongTienPhuTungDuKien = tongTienPhuTungDuKien; }
+
+    public BigDecimal getTongChiPhiDuKien() { return tongChiPhiDuKien; }
+    public void setTongChiPhiDuKien(BigDecimal tongChiPhiDuKien) { this.tongChiPhiDuKien = tongChiPhiDuKien; }
 }
