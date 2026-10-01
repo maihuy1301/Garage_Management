@@ -22,20 +22,22 @@ class VehicleFormResult {
 
 Future<VehicleFormResult?> showVehicleFormSheet(
   BuildContext context,
-  VehicleGateway gateway,
-) {
+  VehicleGateway gateway, {
+  CustomerVehicle? vehicle,
+}) {
   return showModalBottomSheet<VehicleFormResult>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => _VehicleFormSheet(gateway: gateway),
+    builder: (_) => _VehicleFormSheet(gateway: gateway, vehicle: vehicle),
   );
 }
 
 class _VehicleFormSheet extends StatefulWidget {
-  const _VehicleFormSheet({required this.gateway});
+  const _VehicleFormSheet({required this.gateway, this.vehicle});
   final VehicleGateway gateway;
+  final CustomerVehicle? vehicle;
 
   @override
   State<_VehicleFormSheet> createState() => _VehicleFormSheetState();
@@ -61,10 +63,19 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
   String? _catalogError;
   String? _error;
   XFile? _selectedImage;
+  bool get _isEditing => widget.vehicle != null;
 
   @override
   void initState() {
     super.initState();
+    final vehicle = widget.vehicle;
+    if (vehicle != null) {
+      _plate.text = vehicle.licensePlate;
+      _year.text = vehicle.year?.toString() ?? '';
+      _color.text = vehicle.color;
+      _odometer.text = vehicle.odometer?.toString() ?? '';
+      _vin.text = vehicle.vin;
+    }
     _loadBrands();
   }
 
@@ -94,6 +105,15 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
           _catalogError = 'Garage chưa cấu hình hãng xe đang hoạt động.';
         }
       });
+      final vehicle = widget.vehicle;
+      if (vehicle != null &&
+          brands.any((brand) => brand.id == vehicle.brandId)) {
+        await _selectBrand(vehicle.brandId);
+        if (!mounted) return;
+        if (_models.any((model) => model.id == vehicle.modelId)) {
+          setState(() => _selectedModelId = vehicle.modelId);
+        }
+      }
     } on VehicleException catch (error) {
       if (mounted) setState(() => _catalogError = error.message);
     } finally {
@@ -146,17 +166,30 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     try {
-      final vehicle = await widget.gateway.createVehicle(
-        CreateCustomerVehicle(
-          licensePlate: _plate.text,
-          brandId: _selectedBrandId!,
-          modelId: _selectedModelId!,
-          year: int.tryParse(_year.text),
-          color: _color.text,
-          odometer: int.tryParse(_odometer.text),
-          vin: _vin.text,
-        ),
-      );
+      final vehicle = _isEditing
+          ? await widget.gateway.updateVehicle(
+              widget.vehicle!.id,
+              UpdateCustomerVehicle(
+                brandId: _selectedBrandId!,
+                modelId: _selectedModelId!,
+                year: int.tryParse(_year.text) ?? widget.vehicle!.year,
+                color: _color.text,
+                odometer:
+                    int.tryParse(_odometer.text) ?? widget.vehicle!.odometer,
+                vin: _vin.text,
+              ),
+            )
+          : await widget.gateway.createVehicle(
+              CreateCustomerVehicle(
+                licensePlate: _plate.text,
+                brandId: _selectedBrandId!,
+                modelId: _selectedModelId!,
+                year: int.tryParse(_year.text),
+                color: _color.text,
+                odometer: int.tryParse(_odometer.text),
+                vin: _vin.text,
+              ),
+            );
       String? warning;
       var imageUploaded = false;
       if (_selectedImage != null) {
@@ -167,7 +200,8 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
           );
           imageUploaded = true;
         } on VehicleException catch (error) {
-          warning = 'Xe đã được tạo nhưng ảnh chưa tải lên: ${error.message}';
+          warning =
+              'Đã lưu thông tin xe nhưng ảnh chưa tải lên: ${error.message}';
         }
       }
       if (mounted) {
@@ -345,21 +379,25 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Đăng ký xe mới',
-                            style: TextStyle(
+                            _isEditing
+                                ? 'Chỉnh sửa thông tin xe'
+                                : 'Đăng ký xe mới',
+                            style: const TextStyle(
                               color: Color(0xFF0F172A),
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
-                            'Thêm phương tiện để tự động nhận lịch định kỳ',
-                            style: TextStyle(
+                            _isEditing
+                                ? 'Cập nhật thông tin phương tiện của bạn'
+                                : 'Thêm phương tiện để tự động nhận lịch định kỳ',
+                            style: const TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 11,
                             ),
@@ -429,6 +467,7 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
                       child: TextFormField(
                         key: const ValueKey('vehicle-license-plate-field'),
                         controller: _plate,
+                        readOnly: _isEditing,
                         enabled: !_isSubmitting,
                         textCapitalization: TextCapitalization.characters,
                         style: const TextStyle(
@@ -486,6 +525,14 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
                   ),
                 ],
               ),
+              if (_isEditing)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Biển số được giữ nguyên. Liên hệ garage nếu cần đổi biển số.',
+                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                ),
               const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,7 +546,7 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
                         key: const ValueKey('vehicle-model-field'),
                         child: DropdownButtonFormField<int>(
                           key: ValueKey(
-                            'vehicle-model-dropdown-${_selectedBrandId ?? 0}',
+                            'vehicle-model-dropdown-${_selectedBrandId ?? 0}-${_selectedModelId ?? 0}',
                           ),
                           initialValue: _selectedModelId,
                           isExpanded: true,
@@ -648,7 +695,9 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
               const SizedBox(height: 16),
               FilledButton.icon(
                 key: const ValueKey('vehicle-submit-button'),
-                onPressed: _isSubmitting ? null : _submit,
+                onPressed: _isSubmitting || _isLoadingBrands || _isLoadingModels
+                    ? null
+                    : _submit,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primaryContainer,
                   foregroundColor: Colors.white,
@@ -659,9 +708,15 @@ class _VehicleFormSheetState extends State<_VehicleFormSheet> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.add_circle_outline_rounded),
+                    : Icon(
+                        _isEditing
+                            ? Icons.save_outlined
+                            : Icons.add_circle_outline_rounded,
+                      ),
                 label: Text(
-                  _isSubmitting ? 'Đang thêm xe...' : 'Thêm xe vào danh sách',
+                  _isSubmitting
+                      ? (_isEditing ? 'Đang lưu...' : 'Đang thêm xe...')
+                      : (_isEditing ? 'Lưu thay đổi' : 'Thêm xe vào danh sách'),
                 ),
               ),
               const SizedBox(height: 18),

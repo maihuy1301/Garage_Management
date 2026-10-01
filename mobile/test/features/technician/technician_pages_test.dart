@@ -54,6 +54,63 @@ void main() {
     expect(find.text('Cập nhật tiến độ'), findsOneWidget);
   });
 
+  testWidgets(
+    'tiến độ tự đổi theo trạng thái và không gửi nhầm 100% khi chờ duyệt',
+    (tester) async {
+      final gateway = _FakeTechnicianGateway();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TechnicianRepairDetailPage(repairOrderId: 11, gateway: gateway),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cập nhật tiến độ'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(Slider), findsNothing);
+      expect(find.text('Tiến độ theo trạng thái: 50%'), findsOneWidget);
+      for (final choice in [
+        ('Hoàn tất', 100),
+        ('Đã phân công', 0),
+        ('Đang sửa', 50),
+        ('Tạm dừng', 0),
+        ('Hoàn tất', 100),
+        ('Chờ khách duyệt', 0),
+      ]) {
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(choice.$1).last);
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Tiến độ theo trạng thái: ${choice.$2}%'),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<LinearProgressIndicator>(
+                find.byType(LinearProgressIndicator),
+              )
+              .value,
+          choice.$2 / 100,
+        );
+      }
+      await tester.enterText(
+        find.byType(TextField),
+        'Cần xác nhận hạng mục phát sinh',
+      );
+      await tester.ensureVisible(find.text('Lưu tiến độ'));
+      await tester.tap(find.text('Lưu tiến độ'));
+      await tester.pumpAndSettle();
+      expect(gateway.savedProgress?.status, 'CHO_KH_DUYET');
+      expect(gateway.savedProgress?.percent, 0);
+      expect(
+        gateway.savedProgress?.description,
+        'Cần xác nhận hạng mục phát sinh',
+      );
+      expect(find.text('Đã cập nhật tiến độ sửa chữa.'), findsOneWidget);
+    },
+  );
+
   testWidgets('phiếu hoàn tất không còn nút cập nhật tiến độ', (tester) async {
     final gateway = _FakeTechnicianGateway(completedDetail: true);
     await tester.pumpWidget(
@@ -79,6 +136,7 @@ class _FakeTechnicianGateway implements TechnicianGateway {
   _FakeTechnicianGateway({this.completedDetail = false});
 
   final bool completedDetail;
+  TechnicianRepairProgress? savedProgress;
 
   List<TechnicianRepairOrder> get orders => const [
     TechnicianRepairOrder(
@@ -138,5 +196,11 @@ class _FakeTechnicianGateway implements TechnicianGateway {
     required String status,
     required int percent,
     String? description,
-  }) => throw UnimplementedError();
+  }) async {
+    return savedProgress = TechnicianRepairProgress(
+      status: status,
+      percent: percent,
+      description: description,
+    );
+  }
 }

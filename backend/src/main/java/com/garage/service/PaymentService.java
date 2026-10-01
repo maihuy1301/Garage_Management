@@ -49,10 +49,14 @@ public class PaymentService {
      */
     @Transactional
     public PaymentResponse createPayment(Integer invoiceId, CreatePaymentRequest request) {
-        HoaDon invoice = hoaDonRepository.findById(invoiceId)
+        HoaDon invoice = hoaDonRepository.findForUpdate(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hóa đơn ID: " + invoiceId));
 
         validateStaffAccessAuthorization(invoice.getChiNhanh().getMaChiNhanh());
+
+        if (request.getMaGiaoDich() != null && request.getMaGiaoDich().trim().toUpperCase(java.util.Locale.ROOT).startsWith("SEPAY:")) {
+            throw new BadRequestException("Mã giao dịch SePay chỉ được ghi nhận từ ngân hàng");
+        }
 
         String status = invoice.getTrangThai();
         if ("DA_THANH_TOAN".equalsIgnoreCase(status)) {

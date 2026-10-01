@@ -10,6 +10,10 @@ import java.util.Optional;
 @Repository
 public interface HoaDonRepository extends JpaRepository<HoaDon, Integer> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select h from HoaDon h where h.maHoaDon = :id")
+    Optional<HoaDon> findForUpdate(@org.springframework.data.repository.query.Param("id") Integer id);
+
     Optional<HoaDon> findByPhieuSuaChuaMaPhieuSuaChua(Integer maPhieuSuaChua);
 
     boolean existsByPhieuSuaChuaMaPhieuSuaChua(Integer maPhieuSuaChua);

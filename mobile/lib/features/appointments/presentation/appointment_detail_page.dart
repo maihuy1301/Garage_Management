@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_colors.dart';
+import 'preliminary_estimate_card.dart';
 import '../data/appointment_service.dart';
 import '../domain/appointment_models.dart';
 
@@ -294,17 +295,6 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                 )
               else ...[
                 () {
-                  final totalLabor = appointment.services.fold<double>(
-                    0,
-                    (sum, s) => sum + (s.price ?? 0),
-                  );
-                  final allParts = appointment.services.expand((s) => s.parts).toList();
-                  final totalParts = allParts.fold<double>(
-                    0,
-                    (sum, p) => sum + p.totalPrice,
-                  );
-                  final totalEstimated = totalLabor + totalParts;
-
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -448,84 +438,10 @@ class _AppointmentDetailPageState extends State<AppointmentDetailPage> {
                           const Divider(height: 16),
                       ],
                       const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Tiền công (${appointment.services.length} dịch vụ):',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.onSurfaceVariant,
-                                  ),
-                                ),
-                                Text(
-                                  _formatCurrency(totalLabor),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (allParts.isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Phụ tùng định mức (${allParts.length} món):',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatCurrency(totalParts),
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8),
-                              child: Divider(height: 1),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Tổng chi phí ước tính:',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  _formatCurrency(totalEstimated),
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                      PreliminaryEstimateCard(
+                        labor: appointment.estimatedLaborCost,
+                        parts: appointment.estimatedPartsCost,
+                        total: appointment.estimatedTotalCost,
                       ),
                     ],
                   );

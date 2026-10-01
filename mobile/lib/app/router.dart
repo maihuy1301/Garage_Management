@@ -8,6 +8,7 @@ import '../features/appointments/presentation/appointment_tracking_page.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/register_page.dart';
 import '../features/customer/presentation/account_page.dart';
+import '../features/customer/presentation/profile_page.dart';
 import '../features/customer/presentation/customer_shell.dart';
 import '../features/notifications/presentation/notifications_page.dart';
 import '../features/public/presentation/home_page.dart';
@@ -15,6 +16,8 @@ import '../features/public/presentation/splash_page.dart';
 import '../features/technician/presentation/technician_home_page.dart';
 import '../features/technician/presentation/technician_repair_detail_page.dart';
 import '../features/vehicles/presentation/vehicles_page.dart';
+import '../features/invoices/presentation/invoices_page.dart';
+import '../features/invoices/presentation/invoice_payment_page.dart';
 
 class AppRouter {
   AppRouter(AuthController authController)
@@ -77,10 +80,63 @@ class AppRouter {
               GoRoute(
                 path: '/account',
                 builder: (context, state) => const AccountPage(),
+                routes: [
+                  GoRoute(
+                    path: 'profile',
+                    builder: (context, state) {
+                      final token = authController.session?.accessToken ?? '';
+                      return ProfilePage(
+                        key: ValueKey(token),
+                        onSaved: (profile) => authController.updateProfileName(
+                          token,
+                          profile.name,
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
               GoRoute(
                 path: '/vehicles',
                 builder: (context, state) => const VehiclesPage(),
+              ),
+              GoRoute(
+                path: '/invoices',
+                builder: (context, state) =>
+                    InvoicesPage(key: ObjectKey(authController.session)),
+                routes: [
+                  GoRoute(
+                    path: ':invoiceId',
+                    routes: [
+                      GoRoute(
+                        path: 'payment',
+                        builder: (context, state) => InvoicePaymentPage(
+                          key: ValueKey((
+                            authController.session,
+                            state.pathParameters['invoiceId'],
+                            'payment',
+                          )),
+                          invoiceId:
+                              int.tryParse(
+                                state.pathParameters['invoiceId'] ?? '',
+                              ) ??
+                              -1,
+                        ),
+                      ),
+                    ],
+                    builder: (context, state) => InvoicesPage(
+                      key: ValueKey((
+                        authController.session,
+                        state.pathParameters['invoiceId'],
+                      )),
+                      invoiceId:
+                          int.tryParse(
+                            state.pathParameters['invoiceId'] ?? '',
+                          ) ??
+                          -1,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -111,6 +167,7 @@ class AppRouter {
     '/notifications',
     '/account',
     '/vehicles',
+    '/invoices',
   };
 
   static String? _redirect(AuthController auth, GoRouterState state) {

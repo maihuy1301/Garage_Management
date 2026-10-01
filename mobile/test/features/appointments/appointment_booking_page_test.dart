@@ -395,6 +395,14 @@ class _FakeAppointmentGateway implements AppointmentGateway {
 class _FakeVehicleGateway implements VehicleGateway {
   _FakeVehicleGateway(this.appointmentGateway);
 
+  @override
+  Future<CustomerVehicle> updateVehicle(
+    int vehicleId,
+    UpdateCustomerVehicle request,
+  ) async {
+    throw UnimplementedError('Booking does not edit vehicles');
+  }
+
   final _FakeAppointmentGateway appointmentGateway;
   int createCalls = 0;
 

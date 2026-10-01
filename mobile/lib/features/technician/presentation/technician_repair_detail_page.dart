@@ -470,7 +470,12 @@ class _ProgressSheet extends StatefulWidget {
 
 class _ProgressSheetState extends State<_ProgressSheet> {
   late String _status;
-  late double _percent;
+  // Keep the same status milestones as the backend progress response.
+  int get _percent => switch (_status) {
+    'HOAN_TAT' => 100,
+    'DANG_SUA' => 50,
+    _ => 0,
+  };
   final _descriptionController = TextEditingController();
 
   static const _statuses = [
@@ -487,11 +492,6 @@ class _ProgressSheetState extends State<_ProgressSheet> {
     _status = _statuses.any((item) => item.$1 == widget.currentStatus)
         ? widget.currentStatus
         : 'DA_PHAN_CONG';
-    _percent = switch (_status) {
-      'HOAN_TAT' => 100,
-      'DANG_SUA' => 50,
-      _ => 0,
-    };
   }
 
   @override
@@ -503,7 +503,7 @@ class _ProgressSheetState extends State<_ProgressSheet> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
           20,
           20,
@@ -528,28 +528,26 @@ class _ProgressSheetState extends State<_ProgressSheet> {
               ],
               onChanged: (value) {
                 if (value == null) return;
-                setState(() {
-                  _status = value;
-                  if (value == 'HOAN_TAT') {
-                    _percent = 100;
-                  } else if (_percent == 100) {
-                    _percent = 95;
-                  }
-                });
+                setState(() => _status = value);
               },
             ),
             const SizedBox(height: 18),
-            Text('Hoàn thành ${_percent.round()}%'),
-            Slider(
-              value: _percent,
-              max: _status == 'HOAN_TAT' ? 100 : 95,
-              divisions: _status == 'HOAN_TAT' ? 20 : 19,
-              label: '${_percent.round()}%',
-              onChanged: _status == 'HOAN_TAT'
-                  ? null
-                  : (value) => setState(() => _percent = value),
+            Text('Tiến độ theo trạng thái: $_percent%'),
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              value: _percent / 100,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(999),
+              semanticsLabel: 'Tiến độ theo trạng thái',
+              semanticsValue: '$_percent%',
             ),
             const SizedBox(height: 8),
+            Text(
+              'Tự động cập nhật theo trạng thái đã chọn. '
+              'Đây là mức quy đổi, không phải tỷ lệ hạng mục đã làm.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
               maxLength: 1000,
@@ -567,7 +565,7 @@ class _ProgressSheetState extends State<_ProgressSheet> {
                   context,
                   _ProgressInput(
                     status: _status,
-                    percent: _percent.round(),
+                    percent: _percent,
                     description: _descriptionController.text,
                   ),
                 ),

@@ -212,6 +212,9 @@ class AppointmentBookingResult {
     this.note,
     this.createdAt,
     this.services = const [],
+    this.estimatedLaborCost,
+    this.estimatedPartsCost,
+    this.estimatedTotalCost,
   });
 
   factory AppointmentBookingResult.fromJson(Map<String, dynamic> json) {
@@ -227,6 +230,9 @@ class AppointmentBookingResult {
       createdAt: json['ngayDat'] == null
           ? null
           : DateTime.tryParse(json['ngayDat'].toString()),
+      estimatedLaborCost: (json['tongTienDichVuDuKien'] as num?)?.toDouble(),
+      estimatedPartsCost: (json['tongTienPhuTungDuKien'] as num?)?.toDouble(),
+      estimatedTotalCost: (json['tongChiPhiDuKien'] as num?)?.toDouble(),
       services: (json['dichVu'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(AppointmentServiceItem.fromJson)
@@ -245,6 +251,11 @@ class AppointmentBookingResult {
   final String? note;
   final DateTime? createdAt;
   final List<AppointmentServiceItem> services;
+
+  // These totals belong to the backend; missing values are not zero-cost quotes.
+  final double? estimatedLaborCost;
+  final double? estimatedPartsCost;
+  final double? estimatedTotalCost;
 
   bool get canCancel => status == 'CHO_XAC_NHAN' || status == 'DA_XAC_NHAN';
 

@@ -82,6 +82,33 @@ class VehicleModel {
   final String name;
 }
 
+class UpdateCustomerVehicle {
+  const UpdateCustomerVehicle({
+    required this.brandId,
+    required this.modelId,
+    this.year,
+    this.color = '',
+    this.vin = '',
+    this.odometer,
+  });
+
+  final int brandId;
+  final int modelId;
+  final int? year;
+  final String color;
+  final String vin;
+  final int? odometer;
+
+  Map<String, dynamic> toJson() => {
+    'maHangXe': brandId,
+    'maModel': modelId,
+    'namSanXuat': year,
+    'mauXe': color.trim(),
+    'soVIN': vin.trim().toUpperCase(),
+    'soKmHienTai': odometer,
+  };
+}
+
 class CreateCustomerVehicle {
   const CreateCustomerVehicle({
     required this.licensePlate,

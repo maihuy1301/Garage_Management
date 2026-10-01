@@ -64,6 +64,11 @@ AUTO_GARAGE/
 | Git | 2.51.0 |
 
 ## 4.1 Running the Project
+
+Rà soát payment ngày 01/10/2026: receipt SePay chỉ INSERT để bảo vệ mã giao dịch không bị ghi đè; mobile bỏ hiển thị số dư giả khi chưa tải và xóa thông tin thanh toán khi mất quyền. 30 test backend payment (gồm 3 SQL integration), 33 test Flutter hóa đơn/thanh toán đạt; analyze sạch. Hóa đơn mẫu #1 vẫn chưa thanh toán. Các kết quả full suite bên dưới là lần chạy 30/09.
+
+**Thanh toán ngân hàng mobile + backend SePay (30/09/2026):** khách mở Tài khoản → Hóa đơn của tôi → chi tiết → Thanh toán ngân hàng. Có API payment-options/payment-sessions và webhook SePay, QR theo phiên 15 phút, sao chép thông tin, kiểm tra trạng thái khi resume/polling. Mặc định tích hợp tắt đến khi cấu hình tài khoản nhận và webhook key; xem [cấu hình SePay](docs/SEPAY_SETUP.md) và [bàn giao web](docs/PAYMENT_SEPAY_WEB_HANDOFF.md). Schema thêm `PhienThanhToan`/`GiaoDichSePay`, migration `V04__sepay_payment_sessions.sql` đã được duyệt và áp local. Local có hóa đơn mẫu #1 của khách #1001, 1.190.000đ chưa thanh toán. Backend tests 492/492 (gồm 2 SQL integration rollback), Flutter 119/119, analyze sạch. Chưa kết nối SePay thật, chưa chạy/build Flutter, chưa làm giao diện web hoặc luồng khách duyệt phát sinh.
+
 - **Backend (Spring Boot)**:
   - Port: `8080`
   - Base API URL: `http://localhost:8080/api`
@@ -82,7 +87,14 @@ AUTO_GARAGE/
   - Thiết bị Android thật qua USB: chạy `adb reverse tcp:8080 tcp:8080`, sau đó `flutter run -d <device-id> --dart-define=API_BASE_URL=http://127.0.0.1:8080/api`.
   - Customer/guest foundation: guest home, đăng ký khách hàng công khai, JWT login, secure token storage, role routing và protected navigation với `returnTo`; CUSTOMER có màn `/vehicles` để xem/thêm xe và chuyển thẳng sang `/appointments?vehicleId=...` để đặt lịch với xe đã chọn, xem lịch của mình, hủy lịch khi backend cho phép. Form thêm xe tải hãng qua `GET /api/brands`, tải model phụ thuộc qua `GET /api/brands/{brandId}/models` và gửi `maHangXe`/`maModel` theo schema mới; không gửi owner từ mobile. Tab `/tracking` tải lịch hẹn thuộc customer và mở `/tracking/{appointmentId}` qua `GET /api/appointments/{id}` để hiển thị chi tiết cùng tiến trình `CHO_XAC_NHAN -> DA_XAC_NHAN -> DA_TIEP_NHAN -> HOAN_TAT`; hỗ trợ pull-to-refresh, loading/error/empty state và không cho mobile tự đổi trạng thái. TECHNICIAN có danh sách công việc `/technician`, bộ lọc trạng thái, chi tiết `/technician/repair-orders/{id}`, danh sách hạng mục/lịch sử tiến độ và thao tác cập nhật tiến độ hoặc trạng thái hạng mục qua các endpoint assigned-only. Mobile không gửi mã kỹ thuật viên hay chi nhánh; backend xác định quyền từ JWT và phân công. Các màn dùng header/banner AutoCare theo tham khảo Stitch.
 
+Mobile CUSTOMER có mục **Tài khoản → Hóa đơn của tôi** (2026-09-25): `/invoices` gọi `GET /api/invoices`, `/invoices/{id}` gọi `GET /api/invoices/{id}` để xem dịch vụ/phụ tùng, tạm tính/giảm giá/thuế/tổng thanh toán/đã thanh toán/còn lại, trạng thái và lịch sử `payments` trong cùng phản hồi. Có loading/error/retry/empty và pull-to-refresh, giữ tab Tài khoản trong customer shell. Backend xác định ownership/RBAC qua JWT; mobile không gửi owner/branch/role và không có thao tác thanh toán online. Kiểm tra: `flutter analyze` sạch, `flutter test` đạt 93/93 (22 test hóa đơn mới); chưa kiểm thử app với backend thật trên thiết bị.
+
 ## 4.2 Infrastructure & Development Workflow
+
+Mobile CUSTOMER — 2026-09-29: trong **Xe của tôi**, nút bánh răng cạnh **Đặt lịch ngay** mở form chỉnh sửa điền sẵn hãng/model, năm sản xuất, màu, VIN và số km. Lưu qua `PUT /api/vehicles/{id}`, có thể thay ảnh qua API ảnh hiện hữu; biển số chỉ đọc theo contract backend. Không gửi owner/branch/role. Flutter analyze sạch, 109/109 tests đạt; chưa chạy/build app hoặc kiểm thử lưu với API thật.
+
+Mobile CUSTOMER: trang chủ được sắp xếp lại ngày 2026-09-26 theo bố cục tham khảo DatXE, giữ nền sáng và xanh–cam AutoCare. Có banner ảnh xe, 6 tiện ích (đặt lịch, xe, theo dõi, hóa đơn, thông báo, tài khoản), thẻ mở lịch hẹn và các thẻ dẫn tới chức năng hiện có; thanh điều hướng vẫn giữ 5 mục. Không hiển thị lịch hẹn/dịch vụ/ưu đãi giả trên trang chủ.
+
 Chi tiết đầy đủ xem tại [docs/DOCKER.md](docs/DOCKER.md).
 
 ```bash
@@ -220,7 +232,13 @@ Mobile CUSTOMER có tab `/notifications`: danh sách và số chưa đọc lấy
 | `POST` | `/api/invoices/{invoiceId}/payments` | Thực hiện thanh toán hóa đơn (Full / Partial payment) | `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `RECEPTIONIST` |
 | `GET` | `/api/invoices/{invoiceId}/payments` | Xem lịch sử thanh toán của hóa đơn | `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `RECEPTIONIST`, `TECHNICIAN`, `CUSTOMER` (own order) |
 
-### Additional Quotation Endpoints (`QuotationController`)
+### Additional Quotation — mô tả cũ, chưa có API trong source hiện tại
+
+> Đối chiếu `main`/remote `8832f5f` ngày 2026-09-27: không có `QuotationController`, `QuotationService` hay route `/quotations` trong backend hiện tại. Bảng dưới là tài liệu lịch sử, không phải API có thể gọi. CUSTOMER chưa được xem phiếu phát sinh riêng hoặc duyệt/từ chối báo giá qua app. Các mục TASK 14/Quotation trong tổng quan và cây thư mục phía trên cũng là mô tả cũ.
+
+Luồng sẵn sàng: CUSTOMER đọc `/api/services`, lịch hẹn chính chủ tại `/api/appointments` và `/api/appointments/{id}`, hóa đơn chính chủ tại `/api/invoices` và `/api/invoices/{id}`. Tạo phiếu phát sinh dùng `POST /api/repair-orders/direct` với `maPhieuCha`, chỉ cho `ADMIN`, `MANAGER`, `FRONT_DESK`; backend kiểm tra chi nhánh và quan hệ khách/xe/phiếu cha. Hóa đơn phiếu cha gộp hạng mục phiếu con trực tiếp không hủy, nhưng DTO không đánh dấu nguồn từng dòng.
+
+Mobile ngày 2026-09-27: chi tiết lịch hẹn đọc `tongTienDichVuDuKien`, `tongTienPhuTungDuKien`, `tongChiPhiDuKien` từ backend; thiếu trường hiển thị “Chưa có dự toán”. Màn đặt lịch và chi tiết nêu rõ báo giá sơ bộ, không phải số tiền thanh toán cuối cùng. Dự toán được backend tính từ danh mục hiện tại khi đọc lịch, chưa phải bản báo giá chốt giá. Module hóa đơn CUSTOMER đang có được giữ nguyên; không thêm thao tác duyệt/từ chối khi chưa có API.
 | Method | Endpoint | Description | Permission |
 |---|---|---|---|
 | `GET` | `/api/repair-orders/{repairOrderId}/quotations` | Xem danh sách báo giá phát sinh của phiếu sửa chữa | `SYSTEM_ADMIN`, `BRANCH_MANAGER`, `RECEPTIONIST`, `TECHNICIAN`, `CUSTOMER` (own order) |
@@ -385,3 +403,23 @@ Mobile CUSTOMER có tab `/notifications`: danh sách và số chưa đọc lấy
 **FRONTEND TASK 09 — REPAIR ORDER MANAGEMENT (LỆNH SỬA CHỮA & PHÂN CÔNG KỸ THUẬT)**
 
 
+
+## Cập nhật 01/10/2026 — hồ sơ khách hàng mobile và giao diện thanh toán thành công
+
+- Mobile: `Tài khoản → Thông tin cá nhân` mở `/account/profile`, dùng GET/PUT `/api/customers/me` hiện hữu. Sửa họ tên, email, số điện thoại liên hệ, địa chỉ, ngày sinh; tên đăng nhập chỉ đọc. Có validation, trạng thái tải/lưu, retry và thông báo lỗi; lỗi lưu giữ bản nháp. Chưa có upload avatar hoặc đổi mật khẩu trong phạm vi này. Email đã có cần nhập email thay thế; chưa hỗ trợ xóa ngày sinh.
+- Profile service dùng ApiClient/JWT, chỉ gửi các trường hồ sơ, không gửi mã khách/role/branch. Route thuộc customer guard và giữ navbar Tài khoản. Tên hiển thị cập nhật sau save, kiểm tra token tránh áp phản hồi lên phiên đăng nhập khác; thông tin vẫn do backend lưu.
+- Thanh toán thành công: thẻ trắng, dấu tích trong vòng tròn xanh primary #00236F, mã hóa đơn thực màu xanh, số tiền đã trả và nút xem hóa đơn/danh sách. Hiển thị khi backend trả DA_THANH_TOAN và còn lại 0; giữ cơ chế polling/dừng polling. Không tự xóa hóa đơn hoặc tự đánh dấu đã thanh toán, không thêm chuyển trang tự động.
+- Sửa null session ở AccountPage khi logout/redirect. Không thay API, schema, backend hoặc dữ liệu thật.
+- Kiểm tra: `flutter test --no-pub test/features/customer/profile_test.dart test/features/invoices` đạt 38 test; `flutter analyze --no-pub` sạch; `git diff --check` đạt. Chưa chạy/build Flutter hoặc xác minh form trên thiết bị với tài khoản thật.
+
+## Cập nhật 01/10/2026 — lưu QR và mở MB Bank trên Android
+
+- Màn thanh toán có nút **Lưu QR và mở MB Bank** và **Lưu mã QR** riêng. Tải đúng ảnh QR từ phiên backend; chỉ mở MB sau khi lưu thành công. Nếu thiếu MB, ảnh vẫn được lưu và app báo cách mở thủ công.
+- Kiểm tra status/ownership trước khi lưu; ngăn thao tác khi phiên hết hạn, đã trả tiền hoặc màn hình đã thay đổi. Kết quả thanh toán vẫn lấy từ backend khi polling/resume.
+- Android 10+ lưu PNG qua MediaStore vào Pictures/AutoCare, không yêu cầu quyền đọc thư viện. Android 9 trở xuống xin WRITE_EXTERNAL_STORAGE. Chỉ thêm query package com.mbmobile; chưa hỗ trợ iOS, Techcombank hoặc TPBank trong phiên triển khai này.
+- Flutter analyze sạch; 45/45 tests trong test/features/invoices đạt (11 tests QR mới). Chưa chạy/build Flutter, chưa biên dịch/kiểm thử bridge Kotlin trên thiết bị, chưa mở MB hoặc chuyển tiền thật.
+- Do có thay đổi native Android, người dùng phải dừng/chạy lại app đầy đủ. Trên máy ảo chưa cài MB, thử lưu ảnh và thông báo thiếu ứng dụng; luồng MB thật cần Garage và MB trên cùng điện thoại.
+
+## Bàn giao nhóm web — 01/10/2026
+
+Đọc [hướng dẫn lấy code, chạy và tích hợp](docs/WEB_TEAM_QUICKSTART.md), [contract hóa đơn/thanh toán](docs/PAYMENT_SEPAY_WEB_HANDOFF.md) và [cấu hình SePay](docs/SEPAY_SETUP.md). Hướng dẫn có migration cho DB hiện hữu, nạp .env vào backend Maven, ngrok/webhook và phân chia công việc frontend. Dữ liệu local và khóa bí mật không đi theo Git.

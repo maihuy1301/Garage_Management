@@ -10,6 +10,10 @@ abstract interface class VehicleGateway {
   Future<List<VehicleBrand>> loadBrands();
   Future<List<VehicleModel>> loadModels(int brandId);
   Future<CustomerVehicle> createVehicle(CreateCustomerVehicle request);
+  Future<CustomerVehicle> updateVehicle(
+    int vehicleId,
+    UpdateCustomerVehicle request,
+  );
   Future<void> uploadVehicleImage(int vehicleId, String filePath);
   Future<Uint8List?> loadVehicleImage(int vehicleId);
 }
@@ -85,6 +89,34 @@ class VehicleService implements VehicleGateway {
       throw VehicleException(_messageFor(error));
     } on Object {
       throw const VehicleException('Phản hồi thêm xe từ máy chủ không hợp lệ.');
+    }
+  }
+
+  @override
+  Future<CustomerVehicle> updateVehicle(
+    int vehicleId,
+    UpdateCustomerVehicle request,
+  ) async {
+    try {
+      final response = await _apiClient.dio.put<Map<String, dynamic>>(
+        '/vehicles/$vehicleId',
+        data: request.toJson(),
+      );
+      final data = response.data?['data'];
+      if (response.data?['success'] != true || data is! Map<String, dynamic>) {
+        throw VehicleException(
+          response.data?['message']?.toString() ?? 'Không thể cập nhật xe.',
+        );
+      }
+      return CustomerVehicle.fromJson(data);
+    } on VehicleException {
+      rethrow;
+    } on DioException catch (error) {
+      throw VehicleException(_messageFor(error));
+    } on Object {
+      throw const VehicleException(
+        'Phản hồi cập nhật xe từ máy chủ không hợp lệ.',
+      );
     }
   }
 

@@ -106,4 +106,18 @@ class AuthController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
+
+  void updateProfileName(String token, String name) {
+    final current = _session;
+    if (current == null || current.accessToken != token) return;
+    _session = AuthSession(
+      accessToken: current.accessToken,
+      username: current.username,
+      userId: current.userId,
+      roles: current.roles,
+      hasPin: current.hasPin,
+      fullName: name,
+    );
+    notifyListeners();
+  }
 }

@@ -15,6 +15,9 @@ import '../features/notifications/data/fcm_client.dart';
 import '../features/notifications/data/push_registration.dart';
 import '../features/technician/data/technician_service.dart';
 import '../features/vehicles/data/vehicle_service.dart';
+import '../features/invoices/data/invoice_service.dart';
+import '../features/invoices/data/payment_service.dart';
+import '../features/customer/data/profile_service.dart';
 import 'app.dart';
 
 Future<void> bootstrap() async {
@@ -58,6 +61,9 @@ Future<void> bootstrap() async {
           create: (_) => TechnicianService(apiClient),
         ),
         Provider<VehicleGateway>(create: (_) => VehicleService(apiClient)),
+        Provider<InvoiceGateway>(create: (_) => InvoiceService(apiClient)),
+        Provider<PaymentGateway>(create: (_) => PaymentService(apiClient)),
+        Provider<ProfileGateway>(create: (_) => ProfileService(apiClient)),
       ],
       child: const GarageApp(),
     ),

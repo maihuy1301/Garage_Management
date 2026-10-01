@@ -8,6 +8,100 @@ import 'package:garage_mobile/features/vehicles/presentation/vehicles_page.dart'
 import 'package:garage_mobile/features/customer/presentation/customer_shell.dart';
 
 void main() {
+  const existingVehicle = CustomerVehicle(
+    id: 7,
+    licensePlate: '51A-11111',
+    brandId: 1,
+    modelId: 10,
+    brand: 'Toyota',
+    model: 'Camry',
+    year: 2020,
+    color: 'Trắng',
+    vin: 'VIN123',
+    odometer: 12000,
+  );
+
+  Future<void> openEditor(
+    WidgetTester tester,
+    _FakeVehicleGateway gateway,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: VehiclesPage(gateway: gateway)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final edit = find.byKey(const ValueKey('vehicle-edit-7'));
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('bánh răng mở dữ liệu cũ, lưu đúng xe và cập nhật thẻ', (
+    tester,
+  ) async {
+    final gateway = _FakeVehicleGateway()..vehicles = [existingVehicle];
+    await openEditor(tester, gateway);
+    expect(find.text('Chỉnh sửa thông tin xe'), findsOneWidget);
+    final plate = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('vehicle-license-plate-field')),
+    );
+    expect(plate.controller!.text, '51A-11111');
+    final editablePlate = tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const ValueKey('vehicle-license-plate-field')),
+        matching: find.byType(TextField),
+      ),
+    );
+    expect(editablePlate.readOnly, isTrue);
+    expect(find.text('2020'), findsOneWidget);
+    expect(find.text('12000'), findsOneWidget);
+    final color = find.widgetWithText(TextFormField, 'Trắng');
+    await tester.ensureVisible(color);
+    await tester.enterText(color, 'Đen');
+    final submit = find.byKey(const ValueKey('vehicle-submit-button'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(gateway.updatedId, 7);
+    expect(gateway.lastUpdate?.brandId, 1);
+    expect(gateway.lastUpdate?.modelId, 10);
+    expect(gateway.lastUpdate?.color, 'Đen');
+    expect(gateway.lastUpdate?.vin, 'VIN123');
+    expect(gateway.createCalls, 0);
+    expect(find.text('Đen • Đời 2020'), findsOneWidget);
+    expect(find.text('Đã cập nhật thông tin xe.'), findsOneWidget);
+    expect(gateway.imageLoads, 2);
+  });
+
+  testWidgets('lỗi lưu giữ form để sửa lại, không đổi thẻ xe', (tester) async {
+    final gateway = _FakeVehicleGateway()
+      ..vehicles = [existingVehicle]
+      ..updateError = 'Bạn không có quyền cập nhật xe này';
+    await openEditor(tester, gateway);
+    final submit = find.byKey(const ValueKey('vehicle-submit-button'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(find.text(gateway.updateError!), findsOneWidget);
+    expect(find.text('Lưu thay đổi'), findsOneWidget);
+    expect(gateway.createCalls, 0);
+    gateway.updateError = null;
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    expect(find.text('Đã cập nhật thông tin xe.'), findsOneWidget);
+  });
+
+  testWidgets('đóng form chỉnh sửa không gửi request cập nhật', (tester) async {
+    final gateway = _FakeVehicleGateway()..vehicles = [existingVehicle];
+    await openEditor(tester, gateway);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(gateway.updatedId, isNull);
+    expect(gateway.createCalls, 0);
+  });
+
   testWidgets('empty state và nút góc phải cùng mở form thêm xe', (
     tester,
   ) async {
@@ -102,6 +196,33 @@ void main() {
 class _FakeVehicleGateway implements VehicleGateway {
   int createCalls = 0;
   CreateCustomerVehicle? lastRequest;
+  List<CustomerVehicle> vehicles = [];
+  int? updatedId;
+  UpdateCustomerVehicle? lastUpdate;
+  String? updateError;
+  int imageLoads = 0;
+
+  @override
+  Future<CustomerVehicle> updateVehicle(
+    int vehicleId,
+    UpdateCustomerVehicle request,
+  ) async {
+    updatedId = vehicleId;
+    lastUpdate = request;
+    if (updateError != null) throw VehicleException(updateError!);
+    return CustomerVehicle(
+      id: vehicleId,
+      licensePlate: vehicles.single.licensePlate,
+      brandId: request.brandId,
+      modelId: request.modelId,
+      brand: 'Toyota',
+      model: 'Camry',
+      color: request.color,
+      year: request.year,
+      vin: request.vin,
+      odometer: request.odometer,
+    );
+  }
 
   @override
   Future<CustomerVehicle> createVehicle(CreateCustomerVehicle request) async {
@@ -121,10 +242,13 @@ class _FakeVehicleGateway implements VehicleGateway {
   ];
 
   @override
-  Future<List<CustomerVehicle>> loadVehicles() async => const [];
+  Future<List<CustomerVehicle>> loadVehicles() async => vehicles;
 
   @override
-  Future<Uint8List?> loadVehicleImage(int vehicleId) async => null;
+  Future<Uint8List?> loadVehicleImage(int vehicleId) async {
+    imageLoads++;
+    return null;
+  }
 
   @override
   Future<void> uploadVehicleImage(int vehicleId, String filePath) async {}

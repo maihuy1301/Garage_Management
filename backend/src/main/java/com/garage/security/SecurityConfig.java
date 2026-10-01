@@ -64,6 +64,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/auth/register", "/ws/**", "/error").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/brands", "/api/brands/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
                 .anyRequest().authenticated()
             );
 

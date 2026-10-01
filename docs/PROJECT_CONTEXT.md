@@ -3,12 +3,51 @@
 > **Ghi chú cho AI Agent**: File này tổng hợp các quyết định kỹ thuật và trạng thái triển khai thực tế. Đọc file này khi bắt đầu session mới để nắm ngữ cảnh mà không cần scan toàn bộ codebase.
 
 ## 1. Môi trường phát triển đã xác minh
+
+### Hoàn thiện thanh toán sau rà soát — 2026-10-01
+
+- Tiếp tục công việc 30/09, không khởi tạo lại. GiaoDichSePay triển khai Persistable với isNew luôn true vì receipt chỉ được insert: tránh JPA merge ghi đè receipt có cùng provider ID giữa bước kiểm tra trùng và lưu. Thêm test SQL xác minh INSERT trùng bị từ chối.
+- Mobile không hiển thị 0đ khi chưa tải số dư. PaymentException giữ HTTP status; khi 401/403/404 thì xóa phiên/thông tin ngân hàng đang hiển thị và dừng polling; lỗi mạng tạm thời vẫn giữ thông tin và khả năng thử lại.
+- Kiểm tra lần tiếp tục: 30 backend tests (14 SePayService, 6 PaymentService, 7 controller, 3 SQL integration), 33 Flutter tests trong module hóa đơn, analyze sạch, diff check đạt. Full suite 492 backend/119 Flutter là kết quả ngày 30/09, không phải full rerun ngày 01/10.
+- Docker lúc đầu tắt; người dùng mở lại, đã xác minh SQL sau kiểm thử: invoice #1 của khách #1001, 1.190.000đ, CHUA_THANH_TOAN, 0 payment/session/event thử. Không đổi schema hoặc thêm fixture mới. SePay vẫn disabled vì chưa có tài khoản/key; chưa run/build Flutter, commit/push/deploy hoặc chuyển tiền thật.
+
+### Thanh toán ngân hàng mobile và backend SePay — 2026-09-30
+
+- User chốt triển khai payment backend cùng mobile, bạn cùng nhóm làm web; chưa yêu cầu commit/push. Bỏ phiếu thô TECHNICIAN (chưa triển khai), giữ công việc/tiến độ. Khách duyệt phát sinh trên mobile là yêu cầu riêng đã chốt nhưng chưa làm trong phiên này.
+- Luồng hóa đơn: tiếp tân bấm Xuất hóa đơn sau khi phiếu chính/phát sinh hoàn tất, backend tổng hợp, web/mobile đọc chung. API xuất đã có, web vẫn placeholder; chưa bổ sung đầy đủ guard hoàn tất/khóa hạng mục vào InvoiceService trong phiên thanh toán.
+- Mobile: `/invoices/:invoiceId/payment`, nút trong chi tiết khi còn nợ, chọn tài khoản nhận cấu hình (MVP một tài khoản), QR/sao chép, trạng thái pending/expired/review/paid. Poll 5 giây khi màn hoạt động, dừng ở nền/dispose/kết quả cuối, tải ngay khi resume; bỏ response cũ khi đổi hóa đơn/session đăng nhập. Giữ navbar 5 tab và route guard CUSTOMER.
+- API mới: GET `/api/invoices/{id}/payment-options`, POST `/api/invoices/{id}/payment-sessions` (không body), GET `/api/invoices/{id}/payment-sessions/{sessionId}`. CUSTOMER chính chủ và ADMIN/MANAGER/FRONT_DESK trong phạm vi chi nhánh; TECHNICIAN không có quyền. Amount/account/ownership do server quyết định.
+- POST `/api/payments/sepay/webhook` dùng Apikey riêng, constant-time compare, chỉ bật khi cấu hình hợp lệ. Phiên 15 phút, mã GAR + 24 hex, account/environment snapshot. Chỉ credit đúng tiền/receiver/code vào phiên còn hiệu lực; sai/thiếu/thừa/đến muộn lưu đối soát. PK `SEPAY:<environment>:<provider-id>` chống retry, cùng transaction với payment; khóa hóa đơn và refresh sau lock, dùng chung với PaymentService thu ngân.
+- Đã được duyệt thêm `PhienThanhToan`/`GiaoDichSePay`, đồng bộ `database/GarageManagementSystem.sql` và áp local `database/migrations/V04__sepay_payment_sessions.sql`. DDL chỉ bổ sung; không reset dữ liệu.
+- Đã xác minh tài khoản người dùng cung cấp là khách #1001 và tạo fixture hóa đơn #1 từ phiếu #2002 đã hoàn tất: 1 dịch vụ + 2 phụ tùng, tổng 1.190.000đ, CHUA_THANH_TOAN. Không có phiếu con local nên chưa test gộp phát sinh trong fixture. Sau kiểm thử: 0 payments/sessions/events lưu lại.
+- Kiểm tra: Maven toàn bộ **492/492**, 62 suites, gồm 2 SQL Server integration (round trip/replay rollback và invoice locking giữa hai transaction). Loại report QuotationServiceTest cũ không thuộc lần chạy này khi đếm. Flutter **119/119**, analyze sạch, diff check đạt. Chưa chạy/build Flutter hoặc thử trên thiết bị; chưa có tài khoản/key/callback SePay thật, mặc định `SEPAY_ENABLED=false`.
+- Tài liệu: `docs/SEPAY_SETUP.md`, `docs/PAYMENT_SEPAY_WEB_HANDOFF.md`, `docs/PAYMENT_TEST_INVOICE_SAMPLE.md`. Hạn chế: chưa UI/API giải quyết đối soát/hoàn tiền; một tài khoản nhận chung; chưa deep link/lưu QR, thông báo payment realtime hoặc invoice export UI web.
+
+### Chỉnh sửa xe CUSTOMER và chẩn đoán phân công — 2026-09-29
+
+- Mobile `/vehicles`: thêm bánh răng cạnh đặt lịch; dùng lại bottom sheet để sửa xe với dữ liệu điền sẵn, PUT `/api/vehicles/{id}`, cập nhật thẻ/ảnh sau khi lưu. Model phụ thuộc hãng, trạng thái tải/lỗi/retry và validation giữ nguyên; lỗi lưu giữ form, đóng form không ghi dữ liệu. Biển số chỉ đọc vì `UpdateVehicleRequest` không có trường này. Màu/VIN trống gửi chuỗi rỗng; năm/ODO để trống giữ giá trị cũ theo contract cập nhật từng trường. Owner/role/branch vẫn do backend kiểm tra.
+- Database local trong container `garage-sqlserver`, `GarageManagementSystem.dbo.PhanCong` còn schema cũ gồm `MaQuanLy`, `ThoiGianPhanCong`, default `TrangThai = DA_GIAO`. Thiếu `MaNguoiPhanCong`, `MaNguoiDuyet`, `ThoiGianTao`, `ThoiGianDuyet`, `GhiChu` mà entity hiện dùng. Truy vấn chỉ đọc xác nhận `Invalid column name`; bảng đang rỗng. Đây là lỗi lệch schema local, chưa có log HTTP để khẳng định máy chủ trong ảnh dùng đúng database này.
+- Chưa sửa/ap dụng schema hoặc dữ liệu. SQL đề xuất ở `D:/KLCN/Garage_Management_Work_Sessions/2026-09-29_phan-cong-migration-proposal.sql`, cần duyệt trước khi chạy. Script chỉ nhận schema cũ/bảng rỗng, đổi tên hai cột, thêm ba cột/FK người duyệt, đồng bộ default và NOT NULL trạng thái trong transaction; dừng nếu có dữ liệu để tránh tự suy diễn trạng thái cũ.
+- Kiểm tra: `flutter analyze --no-pub` sạch; `flutter test --no-pub` 109/109 đạt; 53 test backend thuộc TechnicianAssignmentService/Controller và VehicleService/Controller đạt (service/repository nghiệp vụ được mock trong test). Chưa chạy/build Flutter hoặc kiểm thử gửi phân công/lưu xe thật. Không commit/push/deploy.
+
+### Giao diện trang chủ mobile — 2026-09-26
+
+- Người dùng chọn bố cục tham khảo DatXE với nền sáng, xanh–cam AutoCare. `HomePage` có header, lời chào theo session, banner ảnh xe riêng, lưới 6 tiện ích, thẻ mở lịch hẹn và các thẻ giới thiệu chức năng có thể bấm. Giữ 5 tab và route guard hiện tại; không thêm API hay dữ liệu quảng cáo giả.
+- Asset nội bộ `mobile/asset/home_autocare_car.png`, khai báo trong pubspec. Lưới đổi 3 sang 2 cột khi chữ phóng lớn; nội dung giới hạn rộng 640 px trên màn lớn.
+- Kiểm tra `flutter analyze --no-pub` sạch, `flutter test --no-pub` 96/96 đạt. Widget tests kiểm tra guest returnTo của 6 tiện ích, layout 320/390/768 px với text scale 2 và 5 tab. Chưa chạy/build Flutter hoặc nghiệm thu thiết bị thật.
+
 - OS: Windows 11 Home (64-bit)
 - Java: Oracle JDK `17.0.12`
 - Maven: `Apache Maven 3.9.16`
 - Node.js: `v24.15.0` | npm `11.12.1`
 - Flutter / Dart: `D:\Downloadd\LapTrinhMobile\flutter`
 - Git: `2.51.0`
+
+### Mobile cập nhật tiến độ — 2026-09-29
+
+- Form TECHNICIAN thay slider bằng thanh chỉ đọc, tự tính theo trạng thái giống `TechnicianExecutionService.getProgressHistory`: `DANG_SUA` 50%, `HOAN_TAT` 100%, còn lại 0%. Đây là mức quy đổi trạng thái, không phải tỷ lệ hạng mục thực hiện. Form cuộn được khi mở bàn phím.
+- Đã kiểm tra 110 Flutter tests, analyze sạch; 35 backend tests thuộc CustomerProgressNotifierTest, TechnicianExecutionServiceTest, NotificationServiceTest đạt. Chưa chạy/build Flutter hoặc tái hiện thông báo trên thiết bị/API thật.
+- `CHO_KH_DUYET` đã gọi notifier khi trạng thái thay đổi, gửi đến tài khoản chủ xe đang hoạt động. Mobile lấy lần tải đầu làm baseline nên không phát popup lịch sử khi đổi tài khoản; inbox vẫn tải từ REST. Chưa có API/màn hình duyệt hoặc từ chối phát sinh; đang trao đổi nghiệp vụ với người dùng, chưa triển khai luồng phản hồi.
 
 ## 2. Backend Module Status
 - Framework: Spring Boot 3.2.5, Java 17.
@@ -87,14 +126,11 @@
   - Repositories: `HoaDonRepository`, `HoaDonDichVuRepository`, `HoaDonPhuTungRepository`, `ThanhToanRepository`.
   - DTOs: `CreateInvoiceRequest`, `InvoiceResponse`, `InvoiceServiceItemResponse`, `InvoicePartItemResponse`, `CreatePaymentRequest`, `PaymentResponse`.
 - **Additional Quotation Management (TASK 14)**:
-  - Base paths: `/api/repair-orders/{repairOrderId}/quotations`, `/api/quotations/{quotationId}`.
-  - Entities: `BaoGiaPhatSinh`, `BaoGiaPhatSinh_DichVu`, `BaoGiaPhatSinh_PhuTung`.
-  - Workflow: Tạo báo giá phát sinh khi sửa chữa (`CHO_KHACH_DUYET`) -> Khách hàng xem và duyệt (`DA_DUYET`) hoặc từ chối (`TU_CHOI`) -> Quản lý/nhân viên có thể hủy (`HUY`).
-  - Server-side Price Calculation: Đơn giá dịch vụ được resolve từ `DichVu.DonGia`, đơn giá phụ tùng từ `PhuTung.giaBan`. Backend tự động tính tổng tiền từ dữ liệu server. Client không thể override giá.
-  - Status Protection & Immutability: Không thể duyệt/từ chối/hủy/chỉnh sửa báo giá đã ở trạng thái kết thúc (`DA_DUYET`, `TU_CHOI`, `HUY` -> 400 Bad Request). Không thể tạo báo giá cho phiếu đã `HUY` hoặc `HOAN_TAT`.
-  - Ownership & RBAC: Customer chỉ được xem/duyệt/từ chối báo giá thuộc xe của chính mình (`NguoiDung -> KhachHang -> Xe -> PhieuTiepNhan -> PhieuSuaChua -> BaoGiaPhatSinh`). Customer khác truy cập -> 403 Forbidden. Staff tuân thủ `BranchAuthorizationService` và Technician Assignment.
-  - Repositories: `BaoGiaPhatSinhRepository`, `BaoGiaPhatSinhDichVuRepository`, `BaoGiaPhatSinhPhuTungRepository`.
-  - DTOs: `CreateQuotationRequest`, `QuotationServiceItemRequest`, `QuotationPartItemRequest`, `QuotationResponse`, `QuotationServiceItemResponse`, `QuotationPartItemResponse`.
+  - Đối chiếu source và remote main `8832f5f` ngày 2026-09-27: mô tả cũ về `/quotations`, `QuotationController/Service`, `BaoGiaPhatSinh` không khớp source hiện tại. Chưa có API để CUSTOMER xem/duyệt/từ chối báo giá phát sinh; trạng thái sửa chữa `CHO_KH_DUYET` và thông báo không cấp quyền phản hồi.
+  - Phiếu phát sinh thực tế: `POST /api/repair-orders/direct` với `maPhieuCha`, chỉ ADMIN/MANAGER/FRONT_DESK. Backend kiểm tra chi nhánh, xe/khách hàng của phiếu cha, reception và tính giá từ dữ liệu server. GET phiếu sửa chữa cũng chỉ dành cho ba role này.
+  - CUSTOMER được đọc dự toán tại `GET /api/services`, `GET /api/appointments` và `GET /api/appointments/{id}` theo ownership. Dự toán gồm tiền công, phụ tùng định mức và tổng; backend tính từ danh mục hiện tại khi đọc, chưa lưu snapshot chốt giá.
+  - CUSTOMER được xem hóa đơn chính chủ qua `GET /api/invoices` và `GET /api/invoices/{id}`. Khi tạo hóa đơn, backend gộp hạng mục phiếu con trực tiếp không hủy; DTO không phân biệt dòng gốc/phát sinh. Không suy diễn các dòng hóa đơn là báo giá đã được khách duyệt.
+  - Mobile: giữ module hóa đơn và trang chủ chưa commit; sửa chi tiết lịch hẹn đọc ba tổng `tongTienDichVuDuKien`, `tongTienPhuTungDuKien`, `tongChiPhiDuKien` trực tiếp từ API, thiếu trường hiển thị “Chưa có dự toán”, giữ 0 đồng hợp lệ. Thêm chú thích báo giá sơ bộ ở đặt lịch/chi tiết; giữ navbar, route và API contract. Không thêm thao tác duyệt/từ chối, không sửa backend/schema/seed.
 - **Parts & Inventory Management (TASK 13)**:
   - Base paths: `/api/parts`, `/api/inventory`, `/api/repair-orders/{repairOrderId}/parts`.
   - Parts Catalog: Xem danh mục phụ tùng đang hoạt động (`PhuTung.trangThai = 1`).
@@ -303,6 +339,10 @@
   - Responsive layout with mobile drawer toggle and overlay backdrop.
 
 ## 7. Mobile App Status
+
+- **Hóa đơn CUSTOMER (2026-09-25)**: `features/invoices` gồm model, `InvoiceGateway`/`InvoiceService` qua `ApiClient`, màn danh sách/chi tiết. Tài khoản → Hóa đơn của tôi → `/invoices` → `/invoices/{id}`; giữ navbar 5 mục, chọn Tài khoản. Guest login với `returnTo`; TECHNICIAN về `/technician`. Route gắn key theo session.
+- Chỉ dùng `GET /api/invoices` và `GET /api/invoices/{id}`. `InvoiceResponse` đã kèm `services`, `parts`, `payments`; lịch sử và các khoản tiền hiển thị từ cùng response, không gọi riêng `/payments`. Giữ trạng thái backend, không suy ra từ số tiền; hiển thị cả giao dịch thất bại. Có loading/error/retry/empty/pull-to-refresh; tải lại danh sách khi quay về từ chi tiết; xóa dữ liệu cũ khi tải lỗi, bỏ qua response cũ/dispose. Không đổi backend/schema/seed, không thanh toán online.
+- Xác minh phiên hóa đơn: `flutter analyze` sạch, `flutter test` **93/93**, gồm **22 test mới** cho API/model, UI, refresh, phản hồi đến muộn, màn hình hẹp và router/session. Chưa chạy/build Flutter hoặc kiểm thử API thật trên thiết bị.
 - **Nền tảng**: Flutter app dùng chung cho `ROLE_CUSTOMER` và `ROLE_TECHNICIAN`, tổ chức theo `app/core/features/shared`.
 - **Foundation đã có**:
   - AutoCare Material 3 theme theo Deep Blue / Orange design direction.
@@ -334,3 +374,36 @@
 - Cập nhật `README.md` và `docs/PROJECT_CONTEXT.md` sau mỗi task.
 
 
+
+## Cập nhật Docker SQL đã được duyệt — 2026-09-29 15:01
+
+- Người dùng yêu cầu áp SQL mới vào Docker để đồng bộ backend.
+- Đã sao lưu COPY_ONLY/CHECKSUM và RESTORE VERIFYONLY thành công; bản sao ở `D:/KLCN/Garage_Management_Work_Sessions/GarageManagementSystem_before_sync_20260929.bak`.
+- Áp migration PhanCong: đổi MaQuanLy thành MaNguoiPhanCong, ThoiGianPhanCong thành ThoiGianTao; thêm MaNguoiDuyet, ThoiGianDuyet, GhiChu và FK; TrangThai NOT NULL mặc định CHO_DUYET. Bảng rỗng tại thời điểm cập nhật.
+- Áp V02 để tạo HinhAnhXe. Không thực thi các DELETE cuối file SQL nguồn, không reset volume hoặc seed lại.
+- Script đề xuất ban đầu có lỗi cú pháp EXEC/QUOTENAME; SQL Server từ chối trước khi thực thi. Đã sửa bằng biến câu lệnh + sp_executesql và chạy thành công.
+- Đối chiếu các cột DDL: không thiếu cột; kiểu dữ liệu, nullable và độ dài chuỗi khớp. Truy vấn các cột PhanCong mới thành công.
+- Kiểm thử TechnicianAssignmentServiceTest và TechnicianAssignmentControllerTest: 24/24 đạt. Chưa bấm gửi phân công qua phiên đăng nhập web thực tế.
+- Không sửa file SQL nguồn của người dùng; không commit/push.
+
+## Cập nhật 01/10/2026 — hồ sơ khách hàng mobile và giao diện thanh toán thành công
+
+- Mobile: `Tài khoản → Thông tin cá nhân` mở `/account/profile`, dùng GET/PUT `/api/customers/me` hiện hữu. Sửa họ tên, email, số điện thoại liên hệ, địa chỉ, ngày sinh; tên đăng nhập chỉ đọc. Có validation, trạng thái tải/lưu, retry và thông báo lỗi; lỗi lưu giữ bản nháp. Chưa có upload avatar hoặc đổi mật khẩu trong phạm vi này. Email đã có cần nhập email thay thế; chưa hỗ trợ xóa ngày sinh.
+- Profile service dùng ApiClient/JWT, chỉ gửi các trường hồ sơ, không gửi mã khách/role/branch. Route thuộc customer guard và giữ navbar Tài khoản. Tên hiển thị cập nhật sau save, kiểm tra token tránh áp phản hồi lên phiên đăng nhập khác; thông tin vẫn do backend lưu.
+- Thanh toán thành công: thẻ trắng, dấu tích trong vòng tròn xanh primary #00236F, mã hóa đơn thực màu xanh, số tiền đã trả và nút xem hóa đơn/danh sách. Hiển thị khi backend trả DA_THANH_TOAN và còn lại 0; giữ cơ chế polling/dừng polling. Không tự xóa hóa đơn hoặc tự đánh dấu đã thanh toán, không thêm chuyển trang tự động.
+- Sửa null session ở AccountPage khi logout/redirect. Không thay API, schema, backend hoặc dữ liệu thật.
+- Kiểm tra: `flutter test --no-pub test/features/customer/profile_test.dart test/features/invoices` đạt 38 test; `flutter analyze --no-pub` sạch; `git diff --check` đạt. Chưa chạy/build Flutter hoặc xác minh form trên thiết bị với tài khoản thật.
+
+## Cập nhật 01/10/2026 — lưu QR và mở MB Bank trên Android
+
+- Màn thanh toán có nút **Lưu QR và mở MB Bank** và **Lưu mã QR** riêng. Tải đúng ảnh QR từ phiên backend; chỉ mở MB sau khi lưu thành công. Nếu thiếu MB, ảnh vẫn được lưu và app báo cách mở thủ công.
+- Kiểm tra status/ownership trước khi lưu; ngăn thao tác khi phiên hết hạn, đã trả tiền hoặc màn hình đã thay đổi. Kết quả thanh toán vẫn lấy từ backend khi polling/resume.
+- Android 10+ lưu PNG qua MediaStore vào Pictures/AutoCare, không yêu cầu quyền đọc thư viện. Android 9 trở xuống xin WRITE_EXTERNAL_STORAGE. Chỉ thêm query package com.mbmobile; chưa hỗ trợ iOS, Techcombank hoặc TPBank trong phiên triển khai này.
+- Flutter analyze sạch; 45/45 tests trong test/features/invoices đạt (11 tests QR mới). Chưa chạy/build Flutter, chưa biên dịch/kiểm thử bridge Kotlin trên thiết bị, chưa mở MB hoặc chuyển tiền thật.
+- Do có thay đổi native Android, người dùng phải dừng/chạy lại app đầy đủ. Trên máy ảo chưa cài MB, thử lưu ảnh và thông báo thiếu ứng dụng; luồng MB thật cần Garage và MB trên cùng điện thoại.
+## Kiểm tra bản bàn giao ngày 01/10/2026
+
+- Backend `mvn test`: BUILD SUCCESS, 493 tests được báo cáo; 0 failures/errors, 3 SQL integration tests opt-in bị skip (490 tests chạy đạt).
+- Mobile `flutter analyze`: sạch; `flutter test`: 137/137 đạt. Không chạy/build Flutter trong phiên push.
+- Frontend `npm run build`: đạt; cảnh báo bundle trên 500 kB, không chặn build. Không thay đổi source React trong bản bàn giao.
+- Bộ kiểm thử không thay thế nghiệm thu SePay/ngân hàng. Người dùng đã xác nhận chạy điện thoại ổn; backend tiếp tục là nơi xác nhận thanh toán.

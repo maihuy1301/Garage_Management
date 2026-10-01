@@ -840,6 +840,13 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
                                       ),
                                     ],
                                     const Divider(height: 12),
+                                    const Text(
+                                      'Báo giá sơ bộ theo dịch vụ đã chọn, có thể thay đổi '
+                                      'sau khi kiểm tra xe. Số tiền thanh toán được thể hiện '
+                                      'trên hóa đơn của garage.',
+                                      style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+                                    ),
+                                    const SizedBox(height: 8),
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [

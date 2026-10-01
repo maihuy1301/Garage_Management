@@ -31,7 +31,11 @@ class CustomerShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final navigationLocation = currentLocation == '/vehicles'
+    final navigationLocation =
+        currentLocation.startsWith('/account/') ||
+            currentLocation == '/vehicles' ||
+            currentLocation == '/invoices' ||
+            currentLocation.startsWith('/invoices/')
         ? '/account'
         : currentLocation.startsWith('/tracking/')
         ? '/tracking'

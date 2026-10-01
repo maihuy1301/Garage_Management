@@ -15,7 +15,7 @@ void main() {
   late VehicleService service;
 
   setUp(() {
-    FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
+    FlutterSecureStorage.setMockInitialValues({'garage_access_token': 'test-token'});
     dio = Dio(BaseOptions(baseUrl: 'http://localhost/api'));
     const storage = SecureSessionStorage(FlutterSecureStorage());
     service = VehicleService(ApiClient(dio, storage));
@@ -168,6 +168,93 @@ void main() {
 
     await service.uploadVehicleImage(8, image.path);
   });
+
+  test(
+    'cập nhật xe PUT đúng ID, không gửi biển số hay thông tin quyền',
+    () async {
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            expect(options.method, 'PUT');
+            expect(options.path, '/vehicles/7');
+            expect(options.headers['Authorization'], 'Bearer test-token');
+            expect(options.data, {
+              'maHangXe': 1,
+              'maModel': 10,
+              'namSanXuat': 2020,
+              'mauXe': '',
+              'soVIN': 'VIN123',
+              'soKmHienTai': 20000,
+            });
+            handler.resolve(
+              Response<Map<String, dynamic>>(
+                requestOptions: options,
+                statusCode: 200,
+                data: {
+                  'success': true,
+                  'data': {
+                    'maXe': 7,
+                    'bienSo': '51A-11111',
+                    'soKmHienTai': 20000,
+                  },
+                },
+              ),
+            );
+          },
+        ),
+      );
+      final vehicle = await service.updateVehicle(
+        7,
+        const UpdateCustomerVehicle(
+          brandId: 1,
+          modelId: 10,
+          year: 2020,
+          color: ' ',
+          vin: ' vin123 ',
+          odometer: 20000,
+        ),
+      );
+      expect(vehicle.id, 7);
+      expect(vehicle.odometer, 20000);
+    },
+  );
+
+  for (final status in [403, 500]) {
+    test(
+      'lỗi cập nhật $status trả VehicleException để form giữ dữ liệu',
+      () async {
+        dio.interceptors.add(
+          InterceptorsWrapper(
+            onRequest: (options, handler) {
+              handler.reject(
+                DioException(
+                  requestOptions: options,
+                  response: Response<Map<String, dynamic>>(
+                    requestOptions: options,
+                    statusCode: status,
+                    data: {'message': 'Không thể cập nhật xe'},
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+        await expectLater(
+          service.updateVehicle(
+            7,
+            const UpdateCustomerVehicle(brandId: 1, modelId: 10),
+          ),
+          throwsA(
+            isA<VehicleException>().having(
+              (error) => error.message,
+              'message',
+              'Không thể cập nhật xe',
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   test('ảnh xe không tồn tại trả null để UI dùng placeholder', () async {
     dio.interceptors.add(

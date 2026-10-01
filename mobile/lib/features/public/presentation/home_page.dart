@@ -12,206 +12,245 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
-    final name = auth.session?.fullName?.trim();
+    final fullName = auth.session?.fullName?.trim();
+    final name = fullName != null && fullName.isNotEmpty
+        ? fullName
+        : auth.session?.username ?? 'Chào bạn!';
     return SafeArea(
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const BrandMark(compact: true),
-                  const Spacer(),
-                  if (auth.isAuthenticated)
-                    CircleAvatar(
-                      backgroundColor: AppColors.surfaceContainer,
-                      child: Text(
-                        _initial(name ?? auth.session!.username),
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
+            child: _Header(isAuthenticated: auth.isAuthenticated),
+          ),
+          SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 23,
+                            backgroundColor: AppColors.surfaceContainer,
+                            child: Icon(
+                              Icons.person_rounded,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Chào mừng đến với AutoCare',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      const _BookingBanner(),
+                      const SizedBox(height: 26),
+                      const _SectionTitle(title: 'Tiện ích cho bạn'),
+                      const SizedBox(height: 16),
+                      const _QuickActions(),
+                      const SizedBox(height: 22),
+                      _ActionCard(
+                        icon: Icons.event_available_rounded,
+                        title: auth.isAuthenticated
+                            ? 'Lịch hẹn của bạn'
+                            : 'Chăm xe dễ dàng hơn',
+                        description: auth.isAuthenticated
+                            ? 'Xem lịch hẹn và theo dõi tiến độ sửa xe.'
+                            : 'Đăng nhập để quản lý xe và lịch hẹn của bạn.',
+                        route: auth.isAuthenticated ? '/tracking' : '/login',
+                        emphasized: true,
+                      ),
+                      const SizedBox(height: 26),
+                      const _SectionTitle(title: 'Chăm sóc xe cùng AutoCare'),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Chủ động từng bước, an tâm mỗi hành trình.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceVariant,
                         ),
                       ),
-                    )
-                  else
-                    TextButton.icon(
-                      onPressed: () => context.go('/login'),
-                      icon: const Icon(Icons.login_rounded, size: 19),
-                      label: const Text('Đăng nhập'),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-            sliver: SliverList.list(
-              children: [
-                Text(
-                  auth.isAuthenticated
-                      ? 'Xin chào, ${name?.isNotEmpty == true ? name : auth.session!.username}'
-                      : 'Chăm sóc xe nhẹ nhàng hơn',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Đặt lịch, theo dõi sửa chữa và nắm rõ mọi chi phí trong một ứng dụng.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: AppColors.onSurfaceVariant,
+                      const SizedBox(height: 14),
+                      const _ActionCard(
+                        icon: Icons.car_repair_rounded,
+                        title: 'Đặt lịch dịch vụ',
+                        description: 'Chọn xe, chi nhánh và dịch vụ phù hợp.',
+                        route: '/appointments',
+                      ),
+                      const SizedBox(height: 10),
+                      const _ActionCard(
+                        icon: Icons.directions_car_outlined,
+                        title: 'Garage của riêng bạn',
+                        description:
+                            'Thêm xe và quản lý thông tin xe tại một nơi.',
+                        route: '/vehicles',
+                      ),
+                      const SizedBox(height: 10),
+                      const _ActionCard(
+                        icon: Icons.receipt_long_outlined,
+                        title: 'Chi phí rõ ràng',
+                        description:
+                            'Xem hóa đơn và lịch sử thanh toán của bạn.',
+                        route: '/invoices',
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 22),
-                _HeroBanner(onBook: () => context.go('/appointments')),
-                const SizedBox(height: 28),
-                Text(
-                  'Truy cập nhanh',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 14),
-                const _QuickActions(),
-                const SizedBox(height: 30),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Dịch vụ nổi bật',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    Text(
-                      'Minh bạch • Chuyên nghiệp',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const _ServiceCard(
-                  icon: Icons.oil_barrel_outlined,
-                  title: 'Bảo dưỡng định kỳ',
-                  description:
-                      'Kiểm tra các hạng mục quan trọng theo tình trạng và mốc vận hành của xe.',
-                ),
-                const SizedBox(height: 12),
-                const _ServiceCard(
-                  icon: Icons.car_repair_outlined,
-                  title: 'Chẩn đoán & sửa chữa',
-                  description:
-                      'Theo dõi tiến độ thực hiện và duyệt chi phí phát sinh trước khi sửa.',
-                ),
-                const SizedBox(height: 12),
-                const _ServiceCard(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'Hóa đơn rõ ràng',
-                  description:
-                      'Xem chi tiết tiền công, phụ tùng và trạng thái thanh toán tại một nơi.',
-                ),
-              ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
-
-  static String _initial(String value) {
-    final trimmed = value.trim();
-    return trimmed.isEmpty ? 'A' : trimmed.characters.first.toUpperCase();
-  }
 }
 
-class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onBook});
-
-  final VoidCallback onBook;
+class _Header extends StatelessWidget {
+  const _Header({required this.isAuthenticated});
+  final bool isAuthenticated;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryContainer],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.18),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.surfaceContainer)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        children: [
+          const Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: BrandMark(compact: true),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (!isAuthenticated)
+            TextButton(
+              onPressed: () => context.go('/login'),
+              child: const Text('Đăng nhập'),
+            ),
+          IconButton.filledTonal(
+            tooltip: 'Mở thông báo',
+            onPressed: () => context.go('/notifications'),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surfaceContainerLow,
+              foregroundColor: AppColors.primary,
+            ),
+            icon: const Icon(Icons.notifications_none_rounded),
           ),
         ],
       ),
-      child: Stack(
+    );
+  }
+}
+
+class _BookingBanner extends StatelessWidget {
+  const _BookingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.surfaceContainer),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Positioned(
-            right: -12,
-            bottom: -20,
-            child: Icon(
-              Icons.directions_car_filled_rounded,
-              size: 126,
-              color: Color(0x1FFFFFFF),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  'AUTOCARE ĐA CHI NHÁNH',
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'CHĂM XE CHỦ ĐỘNG',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const SizedBox(
-                width: 235,
-                child: Text(
-                  'An tâm trên mọi hành trình',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    height: 1.18,
+                    fontSize: 10,
+                    letterSpacing: 1.7,
+                    color: AppColors.secondary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-              const SizedBox(height: 9),
-              const SizedBox(
-                width: 245,
-                child: Text(
-                  'Chủ động chọn thời gian phù hợp và theo dõi xe ngay trên điện thoại.',
-                  style: TextStyle(color: Color(0xFFDCE5FF), height: 1.45),
+                const SizedBox(height: 7),
+                const Text(
+                  'Đặt lịch dễ dàng.\nAn tâm lăn bánh.',
+                  style: TextStyle(
+                    fontSize: 26,
+                    height: 1.15,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  key: const ValueKey('home-book'),
+                  onPressed: () => context.go('/appointments'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.secondaryContainer,
+                    foregroundColor: AppColors.onSurface,
+                    minimumSize: const Size(48, 44),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                  ),
+                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                  label: const Text(
+                    'Đặt lịch ngay',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ExcludeSemantics(
+            child: SizedBox(
+              height: 160,
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (bounds) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black, Colors.black],
+                  stops: [0, 0.18, 1],
+                ).createShader(bounds),
+                child: Image.asset(
+                  'asset/home_autocare_car.png',
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0, 0.4),
+                  cacheWidth: 1000,
                 ),
               ),
-              const SizedBox(height: 20),
-              FilledButton.icon(
-                onPressed: onBook,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.secondaryContainer,
-                  foregroundColor: Colors.white,
-                ),
-                icon: const Icon(Icons.calendar_month_rounded),
-                label: const Text('Đặt lịch ngay'),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -222,109 +261,183 @@ class _HeroBanner extends StatelessWidget {
 class _QuickActions extends StatelessWidget {
   const _QuickActions();
 
+  static const _actions = [
+    (
+      'Đặt lịch',
+      Icons.calendar_month_outlined,
+      '/appointments',
+      AppColors.secondary,
+    ),
+    (
+      'Xe của tôi',
+      Icons.directions_car_outlined,
+      '/vehicles',
+      AppColors.primary,
+    ),
+    ('Theo dõi', Icons.build_outlined, '/tracking', AppColors.tertiary),
+    ('Hóa đơn', Icons.receipt_long_outlined, '/invoices', AppColors.primary),
+    (
+      'Thông báo',
+      Icons.notifications_none_rounded,
+      '/notifications',
+      AppColors.tertiary,
+    ),
+    (
+      'Tài khoản',
+      Icons.person_outline_rounded,
+      '/account',
+      AppColors.secondary,
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    const actions = [
-      ('Đặt lịch', Icons.calendar_month_rounded, '/appointments'),
-      ('Theo dõi', Icons.car_repair_rounded, '/tracking'),
-      ('Thông báo', Icons.notifications_rounded, '/notifications'),
-      ('Tài khoản', Icons.person_rounded, '/account'),
-    ];
-    return Row(
-      children: [
-        for (var index = 0; index < actions.length; index++) ...[
-          if (index > 0) const SizedBox(width: 10),
-          Expanded(
-            child: InkWell(
-              onTap: () => context.go(actions[index].$3),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.outlineVariant),
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: const BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(actions[index].$2, color: AppColors.primary),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      actions[index].$1,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = MediaQuery.textScalerOf(context).scale(12) > 20 ? 2 : 3;
+        final width = (constraints.maxWidth - (columns - 1) * 12) / columns;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 18,
+          children: [
+            for (final action in _actions)
+              SizedBox(
+                width: width,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: ValueKey('home-action-${action.$3}'),
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => context.go(action.$3),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: action.$4.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(17),
+                            ),
+                            child: Icon(action.$2, color: action.$4, size: 25),
+                          ),
+                          const SizedBox(height: 9),
+                          Text(
+                            action.$1,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ],
+          ],
+        );
+      },
     );
   }
 }
 
-class _ServiceCard extends StatelessWidget {
-  const _ServiceCard({
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    title,
+    style: const TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w800,
+      color: AppColors.onSurface,
+    ),
+  );
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
     required this.icon,
     required this.title,
     required this.description,
+    required this.route,
+    this.emphasized = false,
   });
 
   final IconData icon;
   final String title;
   final String description;
+  final String route;
+  final bool emphasized;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
+    final foreground = emphasized ? Colors.white : AppColors.onSurface;
+    return Material(
+      color: emphasized ? AppColors.primary : Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.go(route),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: emphasized
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: emphasized
+                      ? const Color(0xFFFFB690)
+                      : AppColors.primary,
+                ),
               ),
-              child: Icon(icon, color: AppColors.primary),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: foreground,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.45,
+                        color: emphasized
+                            ? const Color(0xFFDCE5FF)
+                            : AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: emphasized ? const Color(0xFFFFB690) : AppColors.primary,
+                size: 22,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -11,7 +11,8 @@ class AccountPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
-    final session = auth.session!;
+    final session = auth.session;
+    if (session == null) return const SizedBox.shrink();
     final displayName = session.fullName?.trim().isNotEmpty == true
         ? session.fullName!
         : session.username;
@@ -71,10 +72,17 @@ class AccountPage extends StatelessWidget {
             title: 'Lịch sử bảo dưỡng',
             subtitle: 'Xem các lần sửa chữa và bảo dưỡng',
           ),
-          const _AccountTile(
+          _AccountTile(
+            icon: Icons.receipt_long_outlined,
+            title: 'Hóa đơn của tôi',
+            subtitle: 'Chi tiết chi phí và lịch sử thanh toán',
+            onTap: () => context.push('/invoices'),
+          ),
+          _AccountTile(
             icon: Icons.manage_accounts_outlined,
             title: 'Thông tin cá nhân',
             subtitle: 'Cập nhật hồ sơ khách hàng',
+            onTap: () => context.push('/account/profile'),
           ),
           const SizedBox(height: 22),
           OutlinedButton.icon(

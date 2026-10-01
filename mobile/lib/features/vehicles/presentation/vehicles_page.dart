@@ -71,6 +71,26 @@ class _VehiclesPageState extends State<VehiclesPage> {
     );
   }
 
+  Future<void> _editVehicle(CustomerVehicle vehicle) async {
+    final result = await showVehicleFormSheet(
+      context,
+      _gateway,
+      vehicle: vehicle,
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _vehicles = _vehicles
+          .map((item) => item.id == vehicle.id ? result.vehicle : item)
+          .toList();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.warning ?? 'Đã cập nhật thông tin xe.'),
+        backgroundColor: result.warning == null ? null : AppColors.warning,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -158,8 +178,10 @@ class _VehiclesPageState extends State<VehiclesPage> {
             else
               for (final vehicle in _vehicles) ...[
                 _VehicleCard(
+                  key: ValueKey('vehicle-card-${vehicle.id}'),
                   vehicle: vehicle,
                   gateway: _gateway,
+                  onEdit: () => _editVehicle(vehicle),
                   onBook: () =>
                       context.go('/appointments?vehicleId=${vehicle.id}'),
                 ),
@@ -437,14 +459,17 @@ class _EmptyVehiclesCard extends StatelessWidget {
 
 class _VehicleCard extends StatefulWidget {
   const _VehicleCard({
+    super.key,
     required this.vehicle,
     required this.gateway,
     required this.onBook,
+    required this.onEdit,
   });
 
   final CustomerVehicle vehicle;
   final VehicleGateway gateway;
   final VoidCallback onBook;
+  final VoidCallback onEdit;
 
   @override
   State<_VehicleCard> createState() => _VehicleCardState();
@@ -462,7 +487,8 @@ class _VehicleCardState extends State<_VehicleCard> {
   @override
   void didUpdateWidget(covariant _VehicleCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.vehicle.id != widget.vehicle.id) {
+    if (oldWidget.vehicle != widget.vehicle ||
+        oldWidget.gateway != widget.gateway) {
       _imageFuture = widget.gateway.loadVehicleImage(widget.vehicle.id);
     }
   }
@@ -635,17 +661,34 @@ class _VehicleCardState extends State<_VehicleCard> {
                   ),
                 ),
                 const SizedBox(height: 13),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: vehicle.isActive ? widget.onBook : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primaryContainer,
-                      foregroundColor: Colors.white,
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: vehicle.isActive ? widget.onBook : null,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primaryContainer,
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: const Icon(
+                          Icons.calendar_month_rounded,
+                          size: 19,
+                        ),
+                        label: const Text('Đặt lịch ngay'),
+                      ),
                     ),
-                    icon: const Icon(Icons.calendar_month_rounded, size: 19),
-                    label: const Text('Đặt lịch ngay'),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton.outlined(
+                      key: ValueKey('vehicle-edit-${vehicle.id}'),
+                      tooltip: 'Chỉnh sửa thông tin xe',
+                      onPressed: widget.onEdit,
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
+                      icon: const Icon(Icons.settings_outlined, size: 20),
+                    ),
+                  ],
                 ),
               ],
             ),

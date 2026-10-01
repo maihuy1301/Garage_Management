@@ -77,7 +77,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_fullPayment_success_updatesInvoiceStatusToPaid() {
         stubStaffAuth();
-        when(hoaDonRepository.findById(701)).thenReturn(Optional.of(invoice1));
+        when(hoaDonRepository.findForUpdate(701)).thenReturn(Optional.of(invoice1));
         when(thanhToanRepository.findByHoaDonMaHoaDon(701)).thenReturn(List.of());
 
         ThanhToan savedPayment = new ThanhToan();
@@ -100,7 +100,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_partialPayment_success_keepsStatusChuaThanhToan() {
         stubStaffAuth();
-        when(hoaDonRepository.findById(701)).thenReturn(Optional.of(invoice1));
+        when(hoaDonRepository.findForUpdate(701)).thenReturn(Optional.of(invoice1));
         when(thanhToanRepository.findByHoaDonMaHoaDon(701)).thenReturn(List.of());
 
         ThanhToan savedPayment = new ThanhToan();
@@ -122,7 +122,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_overpayment_throws400() {
         stubStaffAuth();
-        when(hoaDonRepository.findById(701)).thenReturn(Optional.of(invoice1));
+        when(hoaDonRepository.findForUpdate(701)).thenReturn(Optional.of(invoice1));
         when(thanhToanRepository.findByHoaDonMaHoaDon(701)).thenReturn(List.of());
 
         CreatePaymentRequest req = new CreatePaymentRequest(new BigDecimal("1500000.00"), "TIEN_MAT", null);
@@ -136,7 +136,7 @@ class PaymentServiceTest {
     void createPayment_alreadyPaidInvoice_throws400() {
         stubStaffAuth();
         invoice1.setTrangThai("DA_THANH_TOAN");
-        when(hoaDonRepository.findById(701)).thenReturn(Optional.of(invoice1));
+        when(hoaDonRepository.findForUpdate(701)).thenReturn(Optional.of(invoice1));
 
         CreatePaymentRequest req = new CreatePaymentRequest(new BigDecimal("100000.00"), "TIEN_MAT", null);
 
@@ -148,7 +148,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_duplicateTransactionCode_throws400() {
         stubStaffAuth();
-        when(hoaDonRepository.findById(701)).thenReturn(Optional.of(invoice1));
+        when(hoaDonRepository.findForUpdate(701)).thenReturn(Optional.of(invoice1));
         when(thanhToanRepository.findByHoaDonMaHoaDon(701)).thenReturn(List.of());
         when(thanhToanRepository.existsByMaGiaoDichAndTrangThai("TX123", "THANH_CONG")).thenReturn(true);
 
@@ -167,7 +167,7 @@ class PaymentServiceTest {
         ));
         SecurityContextHolder.setContext(ctx);
         when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(false);
-        when(hoaDonRepository.findById(701)).thenReturn(Optional.of(invoice1));
+        when(hoaDonRepository.findForUpdate(701)).thenReturn(Optional.of(invoice1));
 
         CreatePaymentRequest req = new CreatePaymentRequest(new BigDecimal("500000.00"), "TIEN_MAT", null);
 
