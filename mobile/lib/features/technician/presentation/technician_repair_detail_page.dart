@@ -91,7 +91,7 @@ class _TechnicianRepairDetailPageState
     setState(() => _isSubmitting = true);
     try {
       await _gateway.updateItemStatus(
-        repairOrderId: widget.repairOrderId,
+        repairOrderId: item.repairOrderId,
         itemId: item.id,
         status: status,
       );
@@ -252,14 +252,7 @@ class _TechnicianRepairDetailPageState
         trailing: Text('$completedItems/${detail.items.length} hoàn tất'),
         children: detail.items.isEmpty
             ? const [Text('Phiếu sửa chữa chưa có hạng mục dịch vụ.')]
-            : [
-                for (final item in detail.items)
-                  _RepairItemTile(
-                    item: item,
-                    enabled: !order.isLocked && !_isSubmitting,
-                    onChanged: (status) => _updateItem(item, status),
-                  ),
-              ],
+            : _buildGroupedItems(context, detail),
       ),
       const SizedBox(height: 16),
       _SectionCard(
@@ -272,6 +265,108 @@ class _TechnicianRepairDetailPageState
               ],
       ),
     ];
+  }
+
+  List<Widget> _buildGroupedItems(
+    BuildContext context,
+    TechnicianRepairDetail detail,
+  ) {
+    final order = detail.order;
+    final groups = <int, List<TechnicianRepairItem>>{};
+    for (final item in detail.items) {
+      groups.putIfAbsent(item.repairOrderId, () => []).add(item);
+    }
+
+    if (groups.length == 1 && groups.keys.first == order.id) {
+      return [
+        for (final item in detail.items)
+          _RepairItemTile(
+            item: item,
+            enabled: !order.isLocked && !_isSubmitting,
+            onChanged: (status) => _updateItem(item, status),
+          ),
+      ];
+    }
+
+    final widgets = <Widget>[];
+    final sortedKeys = groups.keys.toList()
+      ..sort((a, b) {
+        if (a == order.id) return -1;
+        if (b == order.id) return 1;
+        return a.compareTo(b);
+      });
+
+    for (var i = 0; i < sortedKeys.length; i++) {
+      final orderId = sortedKeys[i];
+      final items = groups[orderId]!;
+      final isMain = orderId == order.id;
+      final groupCompleted = items.where((it) => it.status == 'HOAN_TAT').length;
+
+      if (i > 0) {
+        widgets.add(const SizedBox(height: 14));
+      }
+
+      widgets.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isMain
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : Colors.amber.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isMain
+                  ? AppColors.primary.withValues(alpha: 0.25)
+                  : Colors.amber.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isMain ? Icons.assignment_outlined : Icons.bolt_rounded,
+                size: 18,
+                color: isMain ? AppColors.primary : Colors.amber.shade800,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isMain
+                      ? 'Hạng mục ban đầu (Phiếu #$orderId)'
+                      : 'Hạng mục phát sinh (Phiếu #$orderId)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: isMain ? AppColors.primary : Colors.amber.shade900,
+                  ),
+                ),
+              ),
+              Text(
+                '$groupCompleted/${items.length} hoàn tất',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: isMain ? AppColors.primary : Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      for (final item in items) {
+        widgets.add(
+          _RepairItemTile(
+            item: item,
+            enabled: !order.isLocked && !_isSubmitting,
+            onChanged: (status) => _updateItem(item, status),
+            isAdditional: !isMain,
+          ),
+        );
+      }
+    }
+
+    return widgets;
   }
 }
 
@@ -341,11 +436,13 @@ class _RepairItemTile extends StatelessWidget {
     required this.item,
     required this.enabled,
     required this.onChanged,
+    this.isAdditional = false,
   });
 
   final TechnicianRepairItem item;
   final bool enabled;
   final ValueChanged<String> onChanged;
+  final bool isAdditional;
 
   static const _statuses = [
     ('CHO_XU_LY', 'Chờ xử lý'),
@@ -371,9 +468,33 @@ class _RepairItemTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.name,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.name,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    if (isAdditional)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        margin: const EdgeInsets.only(left: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.amber.shade400, width: 0.8),
+                        ),
+                        child: Text(
+                          'Phát sinh #${item.repairOrderId}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 if (item.category.isNotEmpty) Text(item.category),
                 Text(
@@ -539,7 +660,7 @@ class _ProgressSheetState extends State<_ProgressSheet> {
               minHeight: 8,
               borderRadius: BorderRadius.circular(999),
               semanticsLabel: 'Tiến độ theo trạng thái',
-              semanticsValue: '$_percent%',
+              semanticsValue: '$_percent',
             ),
             const SizedBox(height: 8),
             Text(

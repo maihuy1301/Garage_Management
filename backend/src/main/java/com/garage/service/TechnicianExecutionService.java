@@ -44,7 +44,7 @@ public class TechnicianExecutionService {
     }
 
     /**
-     * Kỹ thuật viên xem danh sách các phiếu sửa chữa được phân công cho mình (chỉ xem các phân công DA_DUYET)
+     * Kỹ thuật viên xem danh sách các phiếu sửa chữa được phân công cho mình (chỉ xem các phân công DA_DUYET và gộp về phiếu gốc)
      */
     @Transactional(readOnly = true)
     public List<RepairOrderResponse> getMyRepairOrders() {
@@ -52,6 +52,8 @@ public class TechnicianExecutionService {
         return phanCongRepository.findByNhanVienDuocPhanCongMaNhanVienAndTrangThai(tech.getMaNhanVien(), "DA_DUYET")
                 .stream()
                 .map(PhanCong::getPhieuSuaChua)
+                .filter(java.util.Objects::nonNull)
+                .map(this::findRootRepairOrder)
                 .distinct()
                 .map(this::mapToRepairOrderResponse)
                 .collect(Collectors.toList());
@@ -68,16 +70,24 @@ public class TechnicianExecutionService {
     }
 
     /**
-     * Kỹ thuật viên xem danh sách các hạng mục dịch vụ thuộc phiếu sửa chữa của mình
+     * Kỹ thuật viên xem danh sách các hạng mục dịch vụ thuộc phiếu sửa chữa của mình (bao gồm cả các phiếu phát sinh / phiếu con liên quan)
      */
     @Transactional(readOnly = true)
     public List<RepairItemResponse> getRepairOrderItems(Integer repairOrderId) {
         NhanVien tech = getCurrentTechnician();
-        validateTechnicianAssignment(tech, repairOrderId);
-        return phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId)
-                .stream()
-                .map(this::mapToRepairItemResponse)
-                .collect(Collectors.toList());
+        PhieuSuaChua order = validateTechnicianAssignment(tech, repairOrderId);
+        List<PhieuSuaChua> relatedOrders = getRelatedRepairOrders(order);
+
+        List<RepairItemResponse> result = new java.util.ArrayList<>();
+        for (PhieuSuaChua ro : relatedOrders) {
+            List<PhieuSuaChuaDichVu> items = phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(ro.getMaPhieuSuaChua());
+            if (items != null) {
+                for (PhieuSuaChuaDichVu it : items) {
+                    result.add(mapToRepairItemResponse(it));
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -114,6 +124,66 @@ public class TechnicianExecutionService {
 
         PhieuSuaChua saved = phieuSuaChuaRepository.save(order);
         customerProgressNotifier.repairChanged(saved, previousStatus);
+
+        // Nếu hoàn tất, cập nhật tất cả dịch vụ của phiếu chính sang HOAN_TAT
+        if ("HOAN_TAT".equalsIgnoreCase(order.getTrangThai())) {
+            List<PhieuSuaChuaDichVu> mainItems = phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(order.getMaPhieuSuaChua());
+            if (mainItems != null) {
+                for (PhieuSuaChuaDichVu mi : mainItems) {
+                    if (!"HUY".equalsIgnoreCase(mi.getTrangThai()) && !"HOAN_TAT".equalsIgnoreCase(mi.getTrangThai())) {
+                        mi.setTrangThai("HOAN_TAT");
+                        phieuSuaChuaDichVuRepository.save(mi);
+                    }
+                }
+            }
+        }
+
+        // Đồng bộ cập nhật tiến độ sang tất cả các phiếu con / phiếu phát sinh liên quan
+        List<PhieuSuaChua> relatedOrders = getRelatedRepairOrders(order);
+        for (PhieuSuaChua ro : relatedOrders) {
+            if (ro.getMaPhieuSuaChua().equals(order.getMaPhieuSuaChua())) {
+                continue;
+            }
+            if ("HUY".equalsIgnoreCase(ro.getTrangThai())) {
+                continue;
+            }
+            String prevChildStatus = ro.getTrangThai();
+            if ("HOAN_TAT".equalsIgnoreCase(order.getTrangThai())) {
+                if (ro.getThoiGianBatDau() == null) {
+                    ro.setThoiGianBatDau(order.getThoiGianBatDau() != null ? order.getThoiGianBatDau() : LocalDateTime.now());
+                }
+                ro.setThoiGianHoanTat(LocalDateTime.now());
+                ro.setTrangThai("HOAN_TAT");
+
+                // Cập nhật tất cả dịch vụ trong phiếu con sang HOAN_TAT
+                List<PhieuSuaChuaDichVu> childItems = phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(ro.getMaPhieuSuaChua());
+                if (childItems != null) {
+                    for (PhieuSuaChuaDichVu ci : childItems) {
+                        if (!"HUY".equalsIgnoreCase(ci.getTrangThai()) && !"HOAN_TAT".equalsIgnoreCase(ci.getTrangThai())) {
+                            ci.setTrangThai("HOAN_TAT");
+                            phieuSuaChuaDichVuRepository.save(ci);
+                        }
+                    }
+                }
+                phieuSuaChuaRepository.save(ro);
+                customerProgressNotifier.repairChanged(ro, prevChildStatus);
+            } else if ("DANG_SUA".equalsIgnoreCase(order.getTrangThai())) {
+                if (ro.getThoiGianBatDau() == null) {
+                    ro.setThoiGianBatDau(LocalDateTime.now());
+                }
+                if (!"HOAN_TAT".equalsIgnoreCase(ro.getTrangThai())) {
+                    ro.setTrangThai("DANG_SUA");
+                    phieuSuaChuaRepository.save(ro);
+                    customerProgressNotifier.repairChanged(ro, prevChildStatus);
+                }
+            } else if ("TAM_DUNG".equalsIgnoreCase(order.getTrangThai()) || "CHO_KH_DUYET".equalsIgnoreCase(order.getTrangThai())) {
+                if (!"HOAN_TAT".equalsIgnoreCase(ro.getTrangThai())) {
+                    ro.setTrangThai(order.getTrangThai());
+                    phieuSuaChuaRepository.save(ro);
+                    customerProgressNotifier.repairChanged(ro, prevChildStatus);
+                }
+            }
+        }
 
         String techName = (tech.getNguoiDung() != null && tech.getNguoiDung().getHoTen() != null)
                 ? tech.getNguoiDung().getHoTen()
@@ -159,7 +229,7 @@ public class TechnicianExecutionService {
     }
 
     /**
-     * Kỹ thuật viên cập nhật trạng thái hạng mục dịch vụ trong phiếu sửa chữa
+     * Kỹ thuật viên cập nhật trạng thái hạng mục dịch vụ trong phiếu sửa chữa (hoặc các phiếu phát sinh liên quan)
      */
     @Transactional
     public RepairItemResponse updateItemStatus(Integer repairOrderId, Integer itemId, UpdateServiceItemStatusRequest request) {
@@ -169,7 +239,29 @@ public class TechnicianExecutionService {
 
         PhieuSuaChuaDichVu item = phieuSuaChuaDichVuRepository
                 .findByMaChiTietAndPhieuSuaChuaMaPhieuSuaChua(itemId, repairOrderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hạng mục dịch vụ ID " + itemId + " trong phiếu sửa chữa này"));
+                .orElse(null);
+
+        if (item == null) {
+            List<PhieuSuaChua> relatedOrders = getRelatedRepairOrders(order);
+            for (PhieuSuaChua ro : relatedOrders) {
+                if (!ro.getMaPhieuSuaChua().equals(repairOrderId)) {
+                    java.util.Optional<PhieuSuaChuaDichVu> found = phieuSuaChuaDichVuRepository
+                            .findByMaChiTietAndPhieuSuaChuaMaPhieuSuaChua(itemId, ro.getMaPhieuSuaChua());
+                    if (found.isPresent()) {
+                        item = found.get();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (item == null) {
+            throw new ResourceNotFoundException("Không tìm thấy hạng mục dịch vụ ID " + itemId + " trong phiếu sửa chữa này hoặc các phiếu liên quan");
+        }
+
+        if (item.getPhieuSuaChua() != null) {
+            validateOrderNotCompletedOrCancelled(item.getPhieuSuaChua(), "cập nhật trạng thái dịch vụ");
+        }
 
         item.setTrangThai(request.getTrangThai());
         PhieuSuaChuaDichVu updated = phieuSuaChuaDichVuRepository.save(item);
@@ -224,16 +316,53 @@ public class TechnicianExecutionService {
             throw new AccessDeniedException("Forbidden: Phiếu sửa chữa thuộc chi nhánh khác");
         }
 
-        // Kiểm tra phân công (Technician chỉ được truy cập nếu phân công đã được DA_DUYET)
+        // Kiểm tra phân công (Technician được truy cập nếu phân công đã được DA_DUYET cho chính phiếu này hoặc phiếu gốc)
         boolean isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVienAndTrangThai(
                 repairOrderId, tech.getMaNhanVien(), "DA_DUYET"
         );
+
+        if (!isAssigned && order.getPhieuCha() != null) {
+            PhieuSuaChua root = findRootRepairOrder(order);
+            isAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVienAndTrangThai(
+                    root.getMaPhieuSuaChua(), tech.getMaNhanVien(), "DA_DUYET"
+            );
+        }
 
         if (!isAssigned) {
             throw new AccessDeniedException("Forbidden: Bạn không được phân công hoặc phân công chưa được duyệt cho phiếu sửa chữa này");
         }
 
         return order;
+    }
+
+    private PhieuSuaChua findRootRepairOrder(PhieuSuaChua order) {
+        PhieuSuaChua current = order;
+        java.util.Set<Integer> visited = new java.util.HashSet<>();
+        while (current.getPhieuCha() != null && current.getPhieuCha().getMaPhieuSuaChua() != null) {
+            if (!visited.add(current.getMaPhieuSuaChua())) {
+                break;
+            }
+            Integer parentId = current.getPhieuCha().getMaPhieuSuaChua();
+            current = phieuSuaChuaRepository.findById(parentId).orElse(current.getPhieuCha());
+        }
+        return current;
+    }
+
+    private List<PhieuSuaChua> getRelatedRepairOrders(PhieuSuaChua order) {
+        if (order == null) return List.of();
+        List<PhieuSuaChua> list = new java.util.ArrayList<>();
+        list.add(order);
+
+        if (order.getPhieuTiepNhan() != null && order.getPhieuTiepNhan().getMaTiepNhan() != null) {
+            List<PhieuSuaChua> ptnOrders = phieuSuaChuaRepository.findAllByPhieuTiepNhanMaTiepNhan(order.getPhieuTiepNhan().getMaTiepNhan());
+            if (ptnOrders != null && !ptnOrders.isEmpty()) {
+                return ptnOrders.stream()
+                        .filter(o -> !"HUY".equalsIgnoreCase(o.getTrangThai()))
+                        .distinct()
+                        .collect(Collectors.toList());
+            }
+        }
+        return list;
     }
 
     private void validateOrderNotCompletedOrCancelled(PhieuSuaChua order, String action) {

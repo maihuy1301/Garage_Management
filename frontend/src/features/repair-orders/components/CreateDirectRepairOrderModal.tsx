@@ -112,11 +112,12 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
     loadMasterData();
   }, [isOpen]);
 
-  // Filter Parent Orders by search
+  // Filter Parent Orders by search (Chỉ hiển thị phiếu gốc: maPhieuCha == null để tránh lồng nhánh con)
   const filteredParentOrders = useMemo(() => {
-    if (!parentOrderSearch.trim()) return existingOrders;
+    const rootOrders = existingOrders.filter((o) => !o.maPhieuCha);
+    if (!parentOrderSearch.trim()) return rootOrders;
     const q = parentOrderSearch.toLowerCase();
-    return existingOrders.filter((o) => {
+    return rootOrders.filter((o) => {
       const id = `#${o.maPhieuSuaChua}`.toLowerCase();
       const plate = (o.bienSoXe || '').toLowerCase();
       const cus = (o.tenKhachHang || '').toLowerCase();

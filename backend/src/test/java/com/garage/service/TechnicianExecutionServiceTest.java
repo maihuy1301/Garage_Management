@@ -151,6 +151,33 @@ class TechnicianExecutionServiceTest {
     }
 
     @Test
+    void getMyRepairOrders_withChildOrder_mergesToRootOrderDistinctly() {
+        stubCurrentTechnician();
+
+        PhieuSuaChua childOrder = new PhieuSuaChua();
+        childOrder.setMaPhieuSuaChua(602);
+        childOrder.setPhieuCha(order1);
+        childOrder.setChiNhanh(branch1);
+        childOrder.setTrangThai("DA_PHAN_CONG");
+
+        PhanCong assignmentChild = new PhanCong();
+        assignmentChild.setMaPhanCong(902);
+        assignmentChild.setPhieuSuaChua(childOrder);
+        assignmentChild.setNhanVienDuocPhanCong(tech1);
+        assignmentChild.setTrangThai("DA_DUYET");
+
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(phanCongRepository.findByNhanVienDuocPhanCongMaNhanVienAndTrangThai(100, "DA_DUYET"))
+                .thenReturn(List.of(assignment1, assignmentChild));
+
+        List<RepairOrderResponse> list = technicianExecutionService.getMyRepairOrders();
+
+        // 2 phân công (1 phiếu cha, 1 phiếu con) được gộp lại thành đúng 1 thẻ phiếu gốc 601
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).getMaPhieuSuaChua()).isEqualTo(601);
+    }
+
+    @Test
     void getRepairOrderDetail_assignedApproved_success() {
         stubCurrentTechnician();
         when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
@@ -208,6 +235,43 @@ class TechnicianExecutionServiceTest {
         assertThat(order1.getTrangThai()).isEqualTo("HOAN_TAT");
         assertThat(order1.getThoiGianHoanTat()).isNotNull();
         verify(phieuSuaChuaRepository).save(order1);
+    }
+
+    @Test
+    void updateProgress_toComplete_withChildOrders_syncsCompleteToChildOrdersAndItems() {
+        stubCurrentTechnician();
+
+        PhieuTiepNhan ptn = new PhieuTiepNhan();
+        ptn.setMaTiepNhan(501);
+        order1.setPhieuTiepNhan(ptn);
+
+        PhieuSuaChua childOrder = new PhieuSuaChua();
+        childOrder.setMaPhieuSuaChua(602);
+        childOrder.setPhieuCha(order1);
+        childOrder.setPhieuTiepNhan(ptn);
+        childOrder.setChiNhanh(branch1);
+        childOrder.setTrangThai("DANG_SUA");
+
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(order1));
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVienAndTrangThai(601, 100, "DA_DUYET")).thenReturn(true);
+        when(phieuSuaChuaRepository.findAllByPhieuTiepNhanMaTiepNhan(501)).thenReturn(List.of(order1, childOrder));
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenAnswer(i -> i.getArgument(0));
+
+        PhieuSuaChuaDichVu childItem = new PhieuSuaChuaDichVu();
+        childItem.setMaChiTiet(701);
+        childItem.setPhieuSuaChua(childOrder);
+        childItem.setTrangThai("CHO_XU_LY");
+        when(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(601)).thenReturn(List.of());
+        when(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(602)).thenReturn(List.of(childItem));
+
+        UpdateRepairProgressRequest req = new UpdateRepairProgressRequest("HOAN_TAT", 100, "Hoàn tất tất cả");
+        RepairProgressResponse res = technicianExecutionService.updateProgress(601, req);
+
+        assertThat(res).isNotNull();
+        assertThat(order1.getTrangThai()).isEqualTo("HOAN_TAT");
+        assertThat(childOrder.getTrangThai()).isEqualTo("HOAN_TAT");
+        assertThat(childItem.getTrangThai()).isEqualTo("HOAN_TAT");
+        verify(phieuSuaChuaDichVuRepository).save(childItem);
     }
 
     @Test

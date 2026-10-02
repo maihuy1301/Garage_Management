@@ -39,6 +39,7 @@ public class RepairOrderService {
     private final NhanVienRepository nhanVienRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final ChiNhanhRepository chiNhanhRepository;
+    private final PhanCongRepository phanCongRepository;
     private final BranchAuthorizationService branchAuthorizationService;
     private final CustomerProgressNotifier customerProgressNotifier;
 
@@ -54,6 +55,7 @@ public class RepairOrderService {
                               NhanVienRepository nhanVienRepository,
                               NguoiDungRepository nguoiDungRepository,
                               ChiNhanhRepository chiNhanhRepository,
+                              PhanCongRepository phanCongRepository,
                               BranchAuthorizationService branchAuthorizationService,
                               CustomerProgressNotifier customerProgressNotifier) {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
@@ -68,6 +70,7 @@ public class RepairOrderService {
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.chiNhanhRepository = chiNhanhRepository;
+        this.phanCongRepository = phanCongRepository;
         this.branchAuthorizationService = branchAuthorizationService;
         this.customerProgressNotifier = customerProgressNotifier;
     }
@@ -161,6 +164,10 @@ public class RepairOrderService {
                     }
                 }
             }
+        }
+
+        if (parentOrder != null) {
+            inheritAssignmentsFromParent(saved, parentOrder);
         }
 
         customerProgressNotifier.repairChanged(saved, null);
@@ -328,6 +335,10 @@ public class RepairOrderService {
                     }
                 }
             }
+        }
+
+        if (parentOrder != null) {
+            inheritAssignmentsFromParent(saved, parentOrder);
         }
 
         customerProgressNotifier.repairChanged(saved, null);
@@ -543,5 +554,57 @@ public class RepairOrderService {
                 order.getTrangThai(),
                 order.getGhiChu()
         );
+    }
+
+    private void inheritAssignmentsFromParent(PhieuSuaChua childOrder, PhieuSuaChua parentOrder) {
+        if (parentOrder == null || childOrder == null) return;
+
+        List<PhanCong> parentAssignments = phanCongRepository
+                .findByPhieuSuaChuaMaPhieuSuaChua(parentOrder.getMaPhieuSuaChua());
+
+        if (parentAssignments != null && !parentAssignments.isEmpty()) {
+            boolean assignedAnyApproved = false;
+            for (PhanCong parentAssignment : parentAssignments) {
+                if (parentAssignment.getNhanVienDuocPhanCong() != null) {
+                    String parentStatus = parentAssignment.getTrangThai();
+                    if (!"DA_DUYET".equalsIgnoreCase(parentStatus) && !"CHO_DUYET".equalsIgnoreCase(parentStatus)) {
+                        continue;
+                    }
+
+                    boolean alreadyAssigned = phanCongRepository
+                            .existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(
+                                    childOrder.getMaPhieuSuaChua(),
+                                    parentAssignment.getNhanVienDuocPhanCong().getMaNhanVien()
+                            );
+
+                    if (!alreadyAssigned) {
+                        PhanCong childAssignment = new PhanCong();
+                        childAssignment.setPhieuSuaChua(childOrder);
+                        childAssignment.setNhanVienDuocPhanCong(parentAssignment.getNhanVienDuocPhanCong());
+                        childAssignment.setNguoiPhanCong(parentAssignment.getNguoiPhanCong());
+                        childAssignment.setThoiGianTao(LocalDateTime.now());
+                        childAssignment.setGhiChu("Kế thừa phân công từ Phiếu cha #" + parentOrder.getMaPhieuSuaChua());
+
+                        if ("DA_DUYET".equalsIgnoreCase(parentStatus)) {
+                            childAssignment.setNguoiDuyet(parentAssignment.getNguoiDuyet());
+                            childAssignment.setTrangThai("DA_DUYET");
+                            childAssignment.setThoiGianDuyet(LocalDateTime.now());
+                            assignedAnyApproved = true;
+                        } else {
+                            childAssignment.setNguoiDuyet(null);
+                            childAssignment.setTrangThai("CHO_DUYET");
+                            childAssignment.setThoiGianDuyet(null);
+                        }
+
+                        phanCongRepository.save(childAssignment);
+                    }
+                }
+            }
+
+            if (assignedAnyApproved && "CHO_XU_LY".equalsIgnoreCase(childOrder.getTrangThai())) {
+                childOrder.setTrangThai("DA_PHAN_CONG");
+                phieuSuaChuaRepository.save(childOrder);
+            }
+        }
     }
 }

@@ -21,4 +21,7 @@ public interface PhieuSuaChuaRepository extends JpaRepository<PhieuSuaChua, Inte
 
     /** Kiểm tra xem phiếu tiếp nhận đã có phiếu sửa chữa hay chưa (idempotency check) */
     boolean existsByPhieuTiepNhanMaTiepNhan(Integer maTiepNhan);
+
+    /** Lấy danh sách phiếu sửa chữa con trực thuộc phiếu cha */
+    List<PhieuSuaChua> findByPhieuChaMaPhieuSuaChua(Integer maPhieuCha);
 }

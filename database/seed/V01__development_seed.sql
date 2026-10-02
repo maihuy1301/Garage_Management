@@ -47,7 +47,7 @@ IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'manager')
     VALUES ('manager', @PasswordHash, N'Quản lý Chi Nhánh 1', 'manager@autocare.local', '0900000002', 1);
 IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'receptionist')
     INSERT INTO NguoiDung (TenDangNhap, MatKhauHash, HoTen, Email, SoDienThoai, TrangThai)
-    VALUES ('receptionist', @PasswordHash, N'Nhân viên tiếp nhận Chi Nhánh 1', 'receptionist@autocare.local', '0900000003', 1);
+    VALUES ('frontdesk', @PasswordHash, N'Nhân viên tiếp nhận Chi Nhánh 1', 'receptionist@autocare.local', '0900000003', 1);
 IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'technician')
     INSERT INTO NguoiDung (TenDangNhap, MatKhauHash, HoTen, Email, SoDienThoai, TrangThai)
     VALUES ('technician', @PasswordHash, N'Kỹ thuật viên Chi Nhánh 1', 'technician@autocare.local', '0900000004', 1);
@@ -69,7 +69,7 @@ SELECT u.MaNguoiDung, r.MaVaiTro
 FROM (VALUES
     ('admin', 'ROLE_ADMIN'),
     ('manager', 'ROLE_MANAGER'),
-    ('receptionist', 'ROLE_FRONT_DESK'),
+    ('frontdesk', 'ROLE_FRONT_DESK'),
     ('technician', 'ROLE_TECHNICIAN'),
     ('manager2', 'ROLE_MANAGER'),
     ('technician2', 'ROLE_TECHNICIAN'),

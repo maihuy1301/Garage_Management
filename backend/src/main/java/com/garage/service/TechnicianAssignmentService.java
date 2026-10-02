@@ -173,6 +173,46 @@ public class TechnicianAssignmentService {
         }
 
         PhanCong saved = phanCongRepository.save(phanCong);
+
+        // Đồng bộ phân công sang các phiếu con nếu order là phiếu cha (maPhieuCha == null)
+        if (order.getPhieuCha() == null) {
+            List<PhieuSuaChua> childOrders = phieuSuaChuaRepository.findByPhieuChaMaPhieuSuaChua(order.getMaPhieuSuaChua());
+            for (PhieuSuaChua childOrder : childOrders) {
+                if ("HUY".equalsIgnoreCase(childOrder.getTrangThai()) || "HOAN_TAT".equalsIgnoreCase(childOrder.getTrangThai())) {
+                    continue;
+                }
+                boolean alreadyAssigned = phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(
+                        childOrder.getMaPhieuSuaChua(),
+                        technician.getMaNhanVien()
+                );
+                if (!alreadyAssigned) {
+                    PhanCong childPc = new PhanCong();
+                    childPc.setPhieuSuaChua(childOrder);
+                    childPc.setNhanVienDuocPhanCong(technician);
+                    childPc.setNguoiPhanCong(currentStaff);
+                    childPc.setThoiGianTao(LocalDateTime.now());
+                    childPc.setGhiChu(request.getGhiChu() != null ? request.getGhiChu() : ("Đồng bộ phân công từ Phiếu cha #" + order.getMaPhieuSuaChua()));
+
+                    if (isManagerOrAdmin) {
+                        childPc.setNguoiDuyet(currentStaff);
+                        childPc.setTrangThai("DA_DUYET");
+                        childPc.setThoiGianDuyet(LocalDateTime.now());
+
+                        if ("CHO_XU_LY".equalsIgnoreCase(childOrder.getTrangThai())) {
+                            childOrder.setTrangThai("DA_PHAN_CONG");
+                            phieuSuaChuaRepository.save(childOrder);
+                            customerProgressNotifier.repairChanged(childOrder, "CHO_XU_LY");
+                        }
+                    } else {
+                        childPc.setNguoiDuyet(null);
+                        childPc.setTrangThai("CHO_DUYET");
+                        childPc.setThoiGianDuyet(null);
+                    }
+                    phanCongRepository.save(childPc);
+                }
+            }
+        }
+
         return mapToAssignmentResponse(saved);
     }
 
@@ -209,6 +249,34 @@ public class TechnicianAssignmentService {
             customerProgressNotifier.repairChanged(order, "CHO_XU_LY");
         }
 
+        // Đồng bộ duyệt phân công ở các phiếu con nếu đây là phiếu cha
+        if (order.getPhieuCha() == null && assignment.getNhanVienDuocPhanCong() != null) {
+            Integer techId = assignment.getNhanVienDuocPhanCong().getMaNhanVien();
+            List<PhieuSuaChua> childOrders = phieuSuaChuaRepository.findByPhieuChaMaPhieuSuaChua(order.getMaPhieuSuaChua());
+            for (PhieuSuaChua childOrder : childOrders) {
+                if ("HUY".equalsIgnoreCase(childOrder.getTrangThai()) || "HOAN_TAT".equalsIgnoreCase(childOrder.getTrangThai())) {
+                    continue;
+                }
+                List<PhanCong> childAssignments = phanCongRepository.findByPhieuSuaChuaMaPhieuSuaChua(childOrder.getMaPhieuSuaChua());
+                for (PhanCong childPc : childAssignments) {
+                    if ("CHO_DUYET".equalsIgnoreCase(childPc.getTrangThai())
+                            && childPc.getNhanVienDuocPhanCong() != null
+                            && childPc.getNhanVienDuocPhanCong().getMaNhanVien().equals(techId)) {
+                        childPc.setNguoiDuyet(manager);
+                        childPc.setTrangThai("DA_DUYET");
+                        childPc.setThoiGianDuyet(LocalDateTime.now());
+                        phanCongRepository.save(childPc);
+
+                        if ("CHO_XU_LY".equalsIgnoreCase(childOrder.getTrangThai())) {
+                            childOrder.setTrangThai("DA_PHAN_CONG");
+                            phieuSuaChuaRepository.save(childOrder);
+                            customerProgressNotifier.repairChanged(childOrder, "CHO_XU_LY");
+                        }
+                    }
+                }
+            }
+        }
+
         return mapToAssignmentResponse(updated);
     }
 
@@ -240,6 +308,29 @@ public class TechnicianAssignmentService {
         }
 
         PhanCong updated = phanCongRepository.save(assignment);
+
+        // Đồng bộ từ chối phân công ở các phiếu con nếu đây là phiếu cha
+        if (order.getPhieuCha() == null && assignment.getNhanVienDuocPhanCong() != null) {
+            Integer techId = assignment.getNhanVienDuocPhanCong().getMaNhanVien();
+            List<PhieuSuaChua> childOrders = phieuSuaChuaRepository.findByPhieuChaMaPhieuSuaChua(order.getMaPhieuSuaChua());
+            for (PhieuSuaChua childOrder : childOrders) {
+                List<PhanCong> childAssignments = phanCongRepository.findByPhieuSuaChuaMaPhieuSuaChua(childOrder.getMaPhieuSuaChua());
+                for (PhanCong childPc : childAssignments) {
+                    if ("CHO_DUYET".equalsIgnoreCase(childPc.getTrangThai())
+                            && childPc.getNhanVienDuocPhanCong() != null
+                            && childPc.getNhanVienDuocPhanCong().getMaNhanVien().equals(techId)) {
+                        childPc.setNguoiDuyet(manager);
+                        childPc.setTrangThai("TU_CHOI");
+                        childPc.setThoiGianDuyet(LocalDateTime.now());
+                        if (request != null && request.getGhiChu() != null && !request.getGhiChu().isBlank()) {
+                            childPc.setGhiChu(request.getGhiChu());
+                        }
+                        phanCongRepository.save(childPc);
+                    }
+                }
+            }
+        }
+
         return mapToAssignmentResponse(updated);
     }
 
@@ -256,6 +347,28 @@ public class TechnicianAssignmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phân công với ID: " + assignmentId + " trong phiếu sửa chữa này"));
 
         phanCongRepository.delete(assignment);
+
+        // Đồng bộ xóa phân công tương ứng ở phiếu con nếu đây là phiếu cha
+        if (order.getPhieuCha() == null && assignment.getNhanVienDuocPhanCong() != null) {
+            Integer techId = assignment.getNhanVienDuocPhanCong().getMaNhanVien();
+            List<PhieuSuaChua> childOrders = phieuSuaChuaRepository.findByPhieuChaMaPhieuSuaChua(order.getMaPhieuSuaChua());
+            for (PhieuSuaChua childOrder : childOrders) {
+                List<PhanCong> childAssignments = phanCongRepository.findByPhieuSuaChuaMaPhieuSuaChua(childOrder.getMaPhieuSuaChua());
+                for (PhanCong childPc : childAssignments) {
+                    if (childPc.getNhanVienDuocPhanCong() != null
+                            && childPc.getNhanVienDuocPhanCong().getMaNhanVien().equals(techId)) {
+                        phanCongRepository.delete(childPc);
+
+                        long remainingChildApproved = phanCongRepository.countByPhieuSuaChuaMaPhieuSuaChuaAndTrangThai(childOrder.getMaPhieuSuaChua(), "DA_DUYET");
+                        if (remainingChildApproved == 0 && "DA_PHAN_CONG".equalsIgnoreCase(childOrder.getTrangThai())) {
+                            childOrder.setTrangThai("CHO_XU_LY");
+                            phieuSuaChuaRepository.save(childOrder);
+                            customerProgressNotifier.repairChanged(childOrder, "DA_PHAN_CONG");
+                        }
+                    }
+                }
+            }
+        }
 
         // Nếu sau khi xóa không còn phân công đã duyệt nào và trạng thái đang là DA_PHAN_CONG -> rollback về CHO_XU_LY
         long remainingApproved = phanCongRepository.countByPhieuSuaChuaMaPhieuSuaChuaAndTrangThai(repairOrderId, "DA_DUYET");

@@ -123,6 +123,21 @@ void main() {
     expect(find.text('Hoàn tất'), findsOneWidget);
     expect(find.text('Cập nhật tiến độ'), findsNothing);
   });
+
+  testWidgets('hiển thị phân nhóm hạng mục ban đầu và hạng mục phát sinh (Gợi ý 1)', (tester) async {
+    final gateway = _FakeTechnicianGateway(hasChildItems: true);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TechnicianRepairDetailPage(repairOrderId: 11, gateway: gateway),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hạng mục ban đầu (Phiếu #11)'), findsOneWidget);
+    expect(find.text('Hạng mục phát sinh (Phiếu #15)'), findsOneWidget);
+    expect(find.text('Thay dầu 5W-30'), findsOneWidget);
+    expect(find.text('Phát sinh #15'), findsOneWidget);
+  });
 }
 
 AuthController _authController() {
@@ -133,9 +148,10 @@ AuthController _authController() {
 }
 
 class _FakeTechnicianGateway implements TechnicianGateway {
-  _FakeTechnicianGateway({this.completedDetail = false});
+  _FakeTechnicianGateway({this.completedDetail = false, this.hasChildItems = false});
 
   final bool completedDetail;
+  final bool hasChildItems;
   TechnicianRepairProgress? savedProgress;
 
   List<TechnicianRepairOrder> get orders => const [
@@ -163,8 +179,8 @@ class _FakeTechnicianGateway implements TechnicianGateway {
     final order = completedDetail ? orders.last : orders.first;
     return TechnicianRepairDetail(
       order: order,
-      items: const [
-        TechnicianRepairItem(
+      items: [
+        const TechnicianRepairItem(
           id: 3,
           repairOrderId: 11,
           name: 'Kiểm tra phanh',
@@ -172,6 +188,15 @@ class _FakeTechnicianGateway implements TechnicianGateway {
           status: 'CHO_XU_LY',
           total: 250000,
         ),
+        if (hasChildItems)
+          const TechnicianRepairItem(
+            id: 8,
+            repairOrderId: 15,
+            name: 'Thay dầu 5W-30',
+            category: 'Bảo dưỡng',
+            status: 'CHO_XU_LY',
+            total: 350000,
+          ),
       ],
       progressHistory: const [
         TechnicianRepairProgress(

@@ -73,6 +73,9 @@ class RepairOrderServiceTest {
     private ChiNhanhRepository chiNhanhRepository;
 
     @Mock
+    private PhanCongRepository phanCongRepository;
+
+    @Mock
     private BranchAuthorizationService branchAuthorizationService;
 
     @InjectMocks
@@ -575,6 +578,58 @@ class RepairOrderServiceTest {
         assertThat(res.getMaPhieuSuaChua()).isEqualTo(602);
         assertThat(res.getMaPhieuCha()).isEqualTo(601);
         verify(phieuTiepNhanRepository, never()).save(any(PhieuTiepNhan.class)); // Reuses parent reception
+    }
+
+    @Test
+    void createDirectRepairOrder_childOrder_inheritsParentAssignments_setsAssignedStatus() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        KhachHang customer = new KhachHang();
+        customer.setMaKhachHang(10);
+        customer.setNguoiDung(managerUser);
+        vehicle.setKhachHang(customer);
+        reception1.setXe(vehicle);
+
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(customer));
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle));
+        when(phieuSuaChuaRepository.findById(601)).thenReturn(Optional.of(repairOrder1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+
+        NhanVien techStaff = new NhanVien();
+        techStaff.setMaNhanVien(88);
+        techStaff.setChiNhanh(branch1);
+
+        PhanCong parentAssignment = new PhanCong();
+        parentAssignment.setMaPhanCong(991);
+        parentAssignment.setPhieuSuaChua(repairOrder1);
+        parentAssignment.setNhanVienDuocPhanCong(techStaff);
+        parentAssignment.setTrangThai("DA_DUYET");
+
+        when(phanCongRepository.findByPhieuSuaChuaMaPhieuSuaChua(601))
+                .thenReturn(List.of(parentAssignment));
+        when(phanCongRepository.existsByPhieuSuaChuaMaPhieuSuaChuaAndNhanVienDuocPhanCongMaNhanVien(602, 88))
+                .thenReturn(false);
+
+        PhieuSuaChua childOrder = new PhieuSuaChua();
+        childOrder.setMaPhieuSuaChua(602);
+        childOrder.setPhieuCha(repairOrder1);
+        childOrder.setPhieuTiepNhan(reception1);
+        childOrder.setChiNhanh(branch1);
+        childOrder.setTrangThai("CHO_XU_LY");
+        when(phieuSuaChuaRepository.save(any(PhieuSuaChua.class))).thenReturn(childOrder);
+
+        DichVu dv = new DichVu();
+        dv.setMaDichVu(2);
+        when(dichVuRepository.findById(2)).thenReturn(Optional.of(dv));
+        when(phieuSuaChuaDichVuRepository.save(any(PhieuSuaChuaDichVu.class))).thenReturn(new PhieuSuaChuaDichVu());
+        when(dichVuPhuTungRepository.findByDichVuMaDichVu(2)).thenReturn(List.of());
+
+        CreateDirectRepairOrderRequest req = new CreateDirectRepairOrderRequest(10, 100, 601, List.of(2), "Phát sinh kiểm tra");
+        RepairOrderResponse res = repairOrderService.createDirectRepairOrder(req);
+
+        assertThat(res).isNotNull();
+        verify(phanCongRepository).save(any(PhanCong.class));
+        assertThat(childOrder.getTrangThai()).isEqualTo("DA_PHAN_CONG");
     }
 
     @Test
