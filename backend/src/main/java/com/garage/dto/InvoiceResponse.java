@@ -24,6 +24,11 @@ public class InvoiceResponse {
     private String trangThai;
     private LocalDateTime ngayLap;
 
+    private String soDienThoaiKhachHang;
+    private String bienSoXe;
+    private String tenHangXe;
+    private String tenModel;
+
     private List<InvoiceServiceItemResponse> services = new ArrayList<>();
     private List<InvoicePartItemResponse> parts = new ArrayList<>();
     private List<PaymentResponse> payments = new ArrayList<>();
@@ -108,6 +113,18 @@ public class InvoiceResponse {
 
     public LocalDateTime getNgayLap() { return ngayLap; }
     public void setNgayLap(LocalDateTime ngayLap) { this.ngayLap = ngayLap; }
+
+    public String getSoDienThoaiKhachHang() { return soDienThoaiKhachHang; }
+    public void setSoDienThoaiKhachHang(String soDienThoaiKhachHang) { this.soDienThoaiKhachHang = soDienThoaiKhachHang; }
+
+    public String getBienSoXe() { return bienSoXe; }
+    public void setBienSoXe(String bienSoXe) { this.bienSoXe = bienSoXe; }
+
+    public String getTenHangXe() { return tenHangXe; }
+    public void setTenHangXe(String tenHangXe) { this.tenHangXe = tenHangXe; }
+
+    public String getTenModel() { return tenModel; }
+    public void setTenModel(String tenModel) { this.tenModel = tenModel; }
 
     public List<InvoiceServiceItemResponse> getServices() { return services; }
     public void setServices(List<InvoiceServiceItemResponse> services) { this.services = services; }

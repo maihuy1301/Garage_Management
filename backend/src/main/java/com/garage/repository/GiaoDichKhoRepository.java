@@ -11,5 +11,9 @@ public interface GiaoDichKhoRepository extends JpaRepository<GiaoDichKho, Intege
 
     List<GiaoDichKho> findByChiNhanhMaChiNhanh(Integer maChiNhanh);
 
+    List<GiaoDichKho> findByChiNhanhMaChiNhanhOrderByMaGiaoDichDesc(Integer maChiNhanh);
+
+    List<GiaoDichKho> findAllByOrderByMaGiaoDichDesc();
+
     List<GiaoDichKho> findByPhieuSuaChuaMaPhieuSuaChua(Integer maPhieuSuaChua);
 }

@@ -415,7 +415,9 @@ CREATE TABLE TinNhan (
 );
 
 --XÓA CÁC BẢNG LIÊN QUAN ĐỂ DỄ TEST LẠI
-
+Delete from HoaDon_PhuTung
+Delete from HoaDon_DichVu
+Delete from HoaDon
 Delete from PhieuSuaChua_PhuTung
 Delete from PhieuSuaChua_DichVu
 Delete from PhanCong

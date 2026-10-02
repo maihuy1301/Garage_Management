@@ -107,7 +107,7 @@ class InvoiceControllerTest {
     }
 
     // ==========================================
-    // 2. ROLE_CUSTOMER (View: 200, Create: 403)
+    // 2. Unauthorized Roles: ROLE_CUSTOMER & ROLE_TECHNICIAN (403)
     // ==========================================
 
     @Test
@@ -115,6 +115,19 @@ class InvoiceControllerTest {
         NguoiDung cust = mockUser(5, "customer");
         stubUser(cust, "ROLE_CUSTOMER");
         String token = jwtService.generateToken("customer", List.of("ROLE_CUSTOMER"));
+
+        mockMvc.perform(post("/api/repair-orders/601/invoice")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void technician_createInvoice_returns403() throws Exception {
+        NguoiDung tech = mockUser(4, "technician");
+        stubUser(tech, "ROLE_TECHNICIAN");
+        String token = jwtService.generateToken("technician", List.of("ROLE_TECHNICIAN"));
 
         mockMvc.perform(post("/api/repair-orders/601/invoice")
                         .header("Authorization", "Bearer " + token)
@@ -138,7 +151,7 @@ class InvoiceControllerTest {
     }
 
     // ==========================================
-    // 3. ROLE_FRONT_DESK (Create Invoice: 201, Create Payment: 201)
+    // 3. Authorized Roles: FRONT_DESK, MANAGER, ADMIN (201)
     // ==========================================
 
     @Test
@@ -155,6 +168,40 @@ class InvoiceControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.maHoaDon").value(701));
+    }
+
+    @Test
+    void manager_createInvoice_fromRepairOrderAlias_returns201() throws Exception {
+        NguoiDung manager = mockUser(2, "manager");
+        stubUser(manager, "ROLE_MANAGER");
+        String token = jwtService.generateToken("manager", List.of("ROLE_MANAGER"));
+
+        when(invoiceService.createInvoice(eq(601), any(CreateInvoiceRequest.class)))
+                .thenReturn(sampleInvoice(701, 601));
+
+        mockMvc.perform(post("/api/invoices/from-repair-order/601")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.maHoaDon").value(701));
+    }
+
+    @Test
+    void admin_createInvoice_fromRepairOrderAlias_returns201() throws Exception {
+        NguoiDung admin = mockUser(1, "admin");
+        stubUser(admin, "ROLE_ADMIN");
+        String token = jwtService.generateToken("admin", List.of("ROLE_ADMIN"));
+
+        when(invoiceService.createInvoice(eq(601), any(CreateInvoiceRequest.class)))
+                .thenReturn(sampleInvoice(701, 601));
+
+        mockMvc.perform(post("/api/invoices/from-repair-order/601")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.maHoaDon").value(701));
     }

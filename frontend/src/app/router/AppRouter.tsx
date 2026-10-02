@@ -18,6 +18,9 @@ import { AppointmentsPage } from '@/features/appointments/pages/AppointmentsPage
 import { BranchesPage } from '@/features/branches/pages/BranchesPage';
 import { ReceptionPage } from '@/features/reception/pages/ReceptionPage';
 import { RepairOrdersPage } from '@/features/repair-orders/pages/RepairOrdersPage';
+import { InvoicesPage } from '@/features/invoices/pages/InvoicesPage';
+import { ServicesPage } from '@/features/services/pages/ServicesPage';
+import { InventoryPage } from '@/features/inventory/pages/InventoryPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -79,7 +82,7 @@ export const AppRouter: React.FC = () => {
           path="services"
           element={
             <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER']}>
-              <PlaceholderPage moduleName="Danh mục dịch vụ & giá" taskNumber="Frontend Task Dịch vụ" />
+              <ServicesPage />
             </RoleGuard>
           }
         />
@@ -87,7 +90,7 @@ export const AppRouter: React.FC = () => {
           path="inventory"
           element={
             <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER']}>
-              <PlaceholderPage moduleName="Kho & Phụ tùng" taskNumber="Frontend Task Kho phụ tùng" />
+              <InventoryPage />
             </RoleGuard>
           }
         />
@@ -171,7 +174,11 @@ export const AppRouter: React.FC = () => {
         />
         <Route
           path="invoices"
-          element={<PlaceholderPage moduleName="Hóa đơn & Thanh toán" taskNumber="Frontend Task Hóa đơn" />}
+          element={
+            <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK', 'ROLE_CUSTOMER']}>
+              <InvoicesPage />
+            </RoleGuard>
+          }
         />
         <Route
           path="notifications"

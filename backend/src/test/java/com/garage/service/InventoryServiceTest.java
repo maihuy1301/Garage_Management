@@ -1,13 +1,13 @@
 package com.garage.service;
 
-import com.garage.dto.InventoryResponse;
-import com.garage.dto.PartResponse;
+import com.garage.dto.*;
 import com.garage.entity.ChiNhanh;
+import com.garage.entity.GiaoDichKho;
 import com.garage.entity.PhuTung;
 import com.garage.entity.TonKho;
+import com.garage.exception.DuplicateResourceException;
 import com.garage.exception.ResourceNotFoundException;
-import com.garage.repository.PhuTungRepository;
-import com.garage.repository.TonKhoRepository;
+import com.garage.repository.*;
 import com.garage.security.BranchAuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,7 +24,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
@@ -33,6 +35,18 @@ class InventoryServiceTest {
 
     @Mock
     private TonKhoRepository tonKhoRepository;
+
+    @Mock
+    private ChiNhanhRepository chiNhanhRepository;
+
+    @Mock
+    private GiaoDichKhoRepository giaoDichKhoRepository;
+
+    @Mock
+    private PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository;
+
+    @Mock
+    private DichVuPhuTungRepository dichVuPhuTungRepository;
 
     @Mock
     private BranchAuthorizationService branchAuthorizationService;
@@ -95,34 +109,90 @@ class InventoryServiceTest {
     }
 
     @Test
-    void getInventoryByBranch_allowedBranch_success() {
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-        when(tonKhoRepository.findByIdMaChiNhanhAndPhuTungTrangThaiTrue(1)).thenReturn(List.of(tonKho1));
+    void createPart_adminSuccess() {
+        CreatePartRequest req = new CreatePartRequest();
+        req.setMaPhuTungCode("PT002");
+        req.setTenPhuTung("Bugi Iridium");
+        req.setDonViTinh("Cái");
+        req.setGiaNhap(new BigDecimal("120000"));
+        req.setGiaBan(new BigDecimal("220000"));
 
-        List<InventoryResponse> list = inventoryService.getInventoryByBranch(1);
+        when(phuTungRepository.existsByMaPhuTungCode("PT002")).thenReturn(false);
+        when(phuTungRepository.save(any(PhuTung.class))).thenAnswer(i -> {
+            PhuTung p = i.getArgument(0);
+            p.setMaPhuTung(20);
+            return p;
+        });
+        when(chiNhanhRepository.findAll()).thenReturn(List.of(branch1));
 
-        assertThat(list).hasSize(1);
-        assertThat(list.get(0).getSoLuongTon()).isEqualTo(10);
-        assertThat(list.get(0).getTenPhuTung()).isEqualTo("Lọc dầu động cơ");
-    }
-
-    @Test
-    void getInventoryByBranch_unauthorizedBranch_throws403() {
-        when(branchAuthorizationService.isAllowedBranch(2)).thenReturn(false);
-
-        assertThatThrownBy(() -> inventoryService.getInventoryByBranch(2))
-                .isInstanceOf(AccessDeniedException.class)
-                .hasMessageContaining("chi nhánh khác");
-    }
-
-    @Test
-    void getInventoryDetail_success() {
-        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
-        when(tonKhoRepository.findByIdMaChiNhanhAndIdMaPhuTung(1, 10)).thenReturn(Optional.of(tonKho1));
-
-        InventoryResponse res = inventoryService.getInventoryDetail(1, 10);
+        PartResponse res = inventoryService.createPart(req);
 
         assertThat(res).isNotNull();
-        assertThat(res.getSoLuongTon()).isEqualTo(10);
+        assertThat(res.getMaPhuTungCode()).isEqualTo("PT002");
+        verify(tonKhoRepository, times(1)).save(any(TonKho.class));
+    }
+
+    @Test
+    void createPart_duplicateCode_throws409() {
+        CreatePartRequest req = new CreatePartRequest();
+        req.setMaPhuTungCode("PT001");
+        req.setTenPhuTung("Trùng code");
+
+        when(phuTungRepository.existsByMaPhuTungCode("PT001")).thenReturn(true);
+
+        assertThatThrownBy(() -> inventoryService.createPart(req))
+                .isInstanceOf(DuplicateResourceException.class);
+    }
+
+    @Test
+    void updatePartStatus_success() {
+        when(phuTungRepository.findById(10)).thenReturn(Optional.of(part1));
+        when(phuTungRepository.save(any(PhuTung.class))).thenReturn(part1);
+
+        PartResponse res = inventoryService.updatePartStatus(10, new UpdatePartStatusRequest(false));
+
+        assertThat(res).isNotNull();
+        assertThat(part1.getTrangThai()).isFalse();
+    }
+
+    @Test
+    void importStock_managerSuccess_increasesTonKhoAndCreatesGiaoDichKho() {
+        StockImportRequest req = new StockImportRequest();
+        req.setMaPhuTung(10);
+        req.setSoLuong(15);
+        req.setBranchId(1);
+        req.setGhiChu("Nhập hàng đợt 1");
+
+        when(branchAuthorizationService.resolveUserBranchId(any())).thenReturn(Optional.of(1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(chiNhanhRepository.findById(1)).thenReturn(Optional.of(branch1));
+        when(phuTungRepository.findById(10)).thenReturn(Optional.of(part1));
+        when(tonKhoRepository.findByIdMaChiNhanhAndIdMaPhuTung(1, 10)).thenReturn(Optional.of(tonKho1));
+        when(tonKhoRepository.save(any(TonKho.class))).thenReturn(tonKho1);
+
+        InventoryResponse res = inventoryService.importStock(req);
+
+        assertThat(res).isNotNull();
+        assertThat(tonKho1.getSoLuongTon()).isEqualTo(25); // 10 + 15
+        verify(giaoDichKhoRepository, times(1)).save(argThat(gd ->
+                "NHAP".equals(gd.getLoaiGiaoDich()) &&
+                gd.getSoLuong() == 15 &&
+                gd.getChiNhanh().getMaChiNhanh().equals(1) &&
+                gd.getPhuTung().getMaPhuTung().equals(10)
+        ));
+    }
+
+    @Test
+    void importStock_forbiddenBranch_throws403() {
+        StockImportRequest req = new StockImportRequest();
+        req.setMaPhuTung(10);
+        req.setSoLuong(5);
+        req.setBranchId(2);
+
+        when(branchAuthorizationService.resolveUserBranchId(any())).thenReturn(Optional.of(1)); // Manager of branch 1
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(false);
+
+        assertThatThrownBy(() -> inventoryService.importStock(req))
+                .isInstanceOf(AccessDeniedException.class);
     }
 }

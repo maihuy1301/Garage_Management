@@ -295,8 +295,9 @@ public class RepairOrderService {
                 DichVu dv = dichVuRepository.findById(serviceId)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với ID: " + serviceId));
 
-                if (Boolean.FALSE.equals(dv.getTrangThai())) {
-                    throw new BadRequestException("Dịch vụ '" + dv.getTenDichVu() + "' hiện đang tạm ngưng hoạt động");
+                if (Boolean.FALSE.equals(dv.getTrangThai()) ||
+                        (dv.getLoaiDichVu() != null && Boolean.FALSE.equals(dv.getLoaiDichVu().getTrangThai()))) {
+                    throw new BadRequestException("Dịch vụ '" + dv.getTenDichVu() + "' hiện đang tạm ngưng hoặc thuộc loại dịch vụ không còn được hỗ trợ");
                 }
 
                 BigDecimal price = (dv.getDonGia() != null) ? dv.getDonGia() : BigDecimal.ZERO;

@@ -208,8 +208,9 @@ public class AppointmentService {
                 DichVu dichVu = dichVuRepository.findById(maDichVu)
                         .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với ID: " + maDichVu));
 
-                if (Boolean.FALSE.equals(dichVu.getTrangThai())) {
-                    throw new BadRequestException("Dịch vụ '" + dichVu.getTenDichVu() + "' hiện đang tạm ngưng hoạt động");
+                if (Boolean.FALSE.equals(dichVu.getTrangThai()) ||
+                        (dichVu.getLoaiDichVu() != null && Boolean.FALSE.equals(dichVu.getLoaiDichVu().getTrangThai()))) {
+                    throw new BadRequestException("Dịch vụ '" + dichVu.getTenDichVu() + "' hiện đang tạm ngưng hoặc thuộc loại dịch vụ không còn được hỗ trợ");
                 }
 
                 DatLichDichVu datLichDichVu = new DatLichDichVu(saved, dichVu);

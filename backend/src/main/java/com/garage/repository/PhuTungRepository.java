@@ -15,4 +15,6 @@ public interface PhuTungRepository extends JpaRepository<PhuTung, Integer> {
     Optional<PhuTung> findByMaPhuTungCode(String maPhuTungCode);
 
     boolean existsByMaPhuTungCode(String maPhuTungCode);
+
+    boolean existsByMaPhuTungCodeAndMaPhuTungNot(String maPhuTungCode, Integer maPhuTung);
 }

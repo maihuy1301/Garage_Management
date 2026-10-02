@@ -11,16 +11,20 @@ interface RepairOrderTableProps {
   orders: RepairOrderResponse[];
   loading: boolean;
   canAssign?: boolean;
+  canGenerateInvoice?: boolean;
   onViewDetail: (order: RepairOrderResponse) => void;
   onAssign?: (order: RepairOrderResponse) => void;
+  onGenerateInvoice?: (order: RepairOrderResponse) => void;
 }
 
 export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
   orders,
   loading,
   canAssign = false,
+  canGenerateInvoice = false,
   onViewDetail,
   onAssign,
+  onGenerateInvoice,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(new Set());
@@ -339,6 +343,14 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                             icon: 'visibility',
                             onClick: () => onViewDetail(order),
                           },
+                          canGenerateInvoice && onGenerateInvoice && order.trangThai === 'HOAN_TAT'
+                            ? {
+                                label: 'Xuất hóa đơn',
+                                icon: 'receipt_long',
+                                variant: 'primary',
+                                onClick: () => onGenerateInvoice(order),
+                              }
+                            : false,
                           canAssign && onAssign
                             ? {
                                 label: 'Phân công kỹ thuật viên',
@@ -462,6 +474,14 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                                   icon: 'visibility',
                                   onClick: () => onViewDetail(child),
                                 },
+                                canGenerateInvoice && onGenerateInvoice && child.trangThai === 'HOAN_TAT'
+                                  ? {
+                                      label: 'Xuất hóa đơn',
+                                      icon: 'receipt_long',
+                                      variant: 'primary',
+                                      onClick: () => onGenerateInvoice(child),
+                                    }
+                                  : false,
                                 canAssign && onAssign
                                   ? {
                                       label: 'Phân công kỹ thuật viên',

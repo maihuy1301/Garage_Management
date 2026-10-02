@@ -10,10 +10,13 @@ import { branchService } from '@/features/branches/services/branch.service';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/common/Button';
 import { RepairOrderTable } from '../components/RepairOrderTable';
+import { PendingAssignmentsTable } from '../components/PendingAssignmentsTable';
 import { RepairOrderDetailModal } from '../components/RepairOrderDetailModal';
 import { AssignTechnicianModal } from '../components/AssignTechnicianModal';
-import { PendingAssignmentsTable } from '../components/PendingAssignmentsTable';
 import { CreateDirectRepairOrderModal } from '../components/CreateDirectRepairOrderModal';
+import { GenerateInvoiceConfirmModal } from '@/features/invoices/components/GenerateInvoiceConfirmModal';
+import { InvoiceDetailModal } from '@/features/invoices/components/InvoiceDetailModal';
+import { InvoiceResponse } from '@/types/invoice.types';
 
 export const RepairOrdersPage: React.FC = () => {
   const { user } = useAuth();
@@ -22,6 +25,7 @@ export const RepairOrdersPage: React.FC = () => {
   const isFrontDesk = userRoles.includes('ROLE_FRONT_DESK');
   const isTechnician = userRoles.includes('ROLE_TECHNICIAN') && !isManagerOrAdmin && !isFrontDesk;
   const canAssign = isManagerOrAdmin || isFrontDesk;
+  const canGenerateInvoice = isManagerOrAdmin || isFrontDesk;
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<'orders' | 'pending'>('orders');
@@ -45,6 +49,26 @@ export const RepairOrdersPage: React.FC = () => {
   const [selectedOrderForAssign, setSelectedOrderForAssign] = useState<RepairOrderResponse | null>(null);
   const [isAssignOpen, setIsAssignOpen] = useState<boolean>(false);
   const [isCreateDirectOpen, setIsCreateDirectOpen] = useState<boolean>(false);
+
+  // Invoice modals
+  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<RepairOrderResponse | null>(null);
+  const [isGenerateInvoiceOpen, setIsGenerateInvoiceOpen] = useState<boolean>(false);
+  const [generatedInvoice, setGeneratedInvoice] = useState<InvoiceResponse | null>(null);
+  const [isInvoiceDetailOpen, setIsInvoiceDetailOpen] = useState<boolean>(false);
+
+  const handleOpenGenerateInvoice = (order: RepairOrderResponse) => {
+    setSelectedOrderForInvoice(order);
+    setIsGenerateInvoiceOpen(true);
+  };
+
+  const handleInvoiceGeneratedSuccess = (invoice: InvoiceResponse) => {
+    setIsGenerateInvoiceOpen(false);
+    setSelectedOrderForInvoice(null);
+    setToast(`Xuất hóa đơn #${invoice.maHoaDon} thành công cho lệnh sửa chữa #${invoice.maPhieuSuaChua}!`);
+    fetchData();
+    setGeneratedInvoice(invoice);
+    setIsInvoiceDetailOpen(true);
+  };
 
   // Auto clear toast
   useEffect(() => {
@@ -445,8 +469,10 @@ export const RepairOrdersPage: React.FC = () => {
             orders={filteredOrders}
             loading={loading}
             canAssign={canAssign}
+            canGenerateInvoice={canGenerateInvoice}
             onViewDetail={handleOpenDetail}
             onAssign={handleOpenAssign}
+            onGenerateInvoice={handleOpenGenerateInvoice}
           />
         </>
       ) : (
@@ -490,6 +516,27 @@ export const RepairOrdersPage: React.FC = () => {
         onSuccess={(newOrder) => {
           setToast(`Đã tạo lệnh sửa chữa #${newOrder.maPhieuSuaChua} thành công!`);
           fetchData();
+        }}
+      />
+
+      {/* Generate Invoice Confirm Modal */}
+      <GenerateInvoiceConfirmModal
+        isOpen={isGenerateInvoiceOpen}
+        repairOrder={selectedOrderForInvoice}
+        onClose={() => {
+          setIsGenerateInvoiceOpen(false);
+          setSelectedOrderForInvoice(null);
+        }}
+        onSuccess={handleInvoiceGeneratedSuccess}
+      />
+
+      {/* Invoice Detail Modal */}
+      <InvoiceDetailModal
+        isOpen={isInvoiceDetailOpen}
+        invoice={generatedInvoice}
+        onClose={() => {
+          setIsInvoiceDetailOpen(false);
+          setGeneratedInvoice(null);
         }}
       />
     </div>

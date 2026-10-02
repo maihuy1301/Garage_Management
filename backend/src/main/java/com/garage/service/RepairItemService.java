@@ -66,8 +66,9 @@ public class RepairItemService {
         DichVu dichVu = dichVuRepository.findById(request.getMaDichVu())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với ID: " + request.getMaDichVu()));
 
-        if (Boolean.FALSE.equals(dichVu.getTrangThai())) {
-            throw new BadRequestException("Dịch vụ '" + dichVu.getTenDichVu() + "' hiện đang tạm ngưng hoạt động");
+        if (Boolean.FALSE.equals(dichVu.getTrangThai()) ||
+                (dichVu.getLoaiDichVu() != null && Boolean.FALSE.equals(dichVu.getLoaiDichVu().getTrangThai()))) {
+            throw new BadRequestException("Dịch vụ '" + dichVu.getTenDichVu() + "' hiện đang tạm ngưng hoặc thuộc loại dịch vụ không còn được hỗ trợ");
         }
 
         // 2. Chống trùng lặp dịch vụ trong cùng 1 phiếu sửa chữa

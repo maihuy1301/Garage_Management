@@ -1,106 +1,86 @@
 package com.garage.controller;
 
-import com.garage.dto.ApiResponse;
-import com.garage.dto.ServicePartResponse;
-import com.garage.dto.ServiceResponse;
-import com.garage.entity.DichVu;
-import com.garage.entity.DichVuPhuTung;
-import com.garage.entity.PhuTung;
-import com.garage.exception.ResourceNotFoundException;
-import com.garage.repository.DichVuPhuTungRepository;
-import com.garage.repository.DichVuRepository;
+import com.garage.dto.*;
+import com.garage.service.ServiceCatalogService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service Catalog REST Controller — /api/services
  *
- * Cho phép xem danh mục dịch vụ đang hoạt động kèm phụ tùng định mức và tổng giá ước tính.
  * RBAC:
- *   ADMIN, MANAGER, FRONT_DESK, TECHNICIAN, CUSTOMER đều có thể xem danh mục dịch vụ.
+ *   - SYSTEM_ADMIN: Toàn quyền CRUD dịch vụ
+ *   - BRANCH_MANAGER: Xem danh mục và cập nhật trạng thái (Bật/Tắt) dịch vụ
+ *   - RECEPTIONIST, TECHNICIAN, CUSTOMER: Xem danh mục dịch vụ đang hoạt động
  */
 @RestController
 @RequestMapping("/api/services")
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'TECHNICIAN', 'CUSTOMER')")
-@org.springframework.transaction.annotation.Transactional(readOnly = true)
 public class ServiceController {
 
-    private final DichVuRepository dichVuRepository;
-    private final DichVuPhuTungRepository dichVuPhuTungRepository;
+    private final ServiceCatalogService serviceCatalogService;
 
-    public ServiceController(DichVuRepository dichVuRepository,
-                             DichVuPhuTungRepository dichVuPhuTungRepository) {
-        this.dichVuRepository = dichVuRepository;
-        this.dichVuPhuTungRepository = dichVuPhuTungRepository;
+    public ServiceController(ServiceCatalogService serviceCatalogService) {
+        this.serviceCatalogService = serviceCatalogService;
     }
 
-    /** GET /api/services — Lấy danh mục dịch vụ đang hoạt động */
+    /** GET /api/services — Lấy danh mục dịch vụ */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ServiceResponse>>> getAllServices() {
-        List<ServiceResponse> services = dichVuRepository.findByTrangThaiTrue().stream()
-                .map(this::mapToServiceResponse)
-                .collect(Collectors.toList());
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'TECHNICIAN', 'CUSTOMER')")
+    public ResponseEntity<ApiResponse<List<ServiceResponse>>> getAllServices(
+            @RequestParam(required = false, defaultValue = "false") boolean onlyActive,
+            @RequestParam(required = false) Integer categoryId) {
+        List<ServiceResponse> services = serviceCatalogService.getAllServices(onlyActive, categoryId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh mục dịch vụ thành công", services));
     }
 
     /** GET /api/services/{id} — Lấy chi tiết dịch vụ theo ID */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK', 'TECHNICIAN', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<ServiceResponse>> getServiceById(@PathVariable Integer id) {
-        DichVu dichVu = dichVuRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ với ID: " + id));
-        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết dịch vụ thành công", mapToServiceResponse(dichVu)));
+        ServiceResponse response = serviceCatalogService.getServiceById(id);
+        return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết dịch vụ thành công", response));
     }
 
-    private ServiceResponse mapToServiceResponse(DichVu dv) {
-        Integer maLoai = dv.getLoaiDichVu() != null ? dv.getLoaiDichVu().getMaLoaiDichVu() : null;
-        String tenLoai = dv.getLoaiDichVu() != null ? dv.getLoaiDichVu().getTenLoai() : null;
+    /** POST /api/services — Tạo mới dịch vụ (Admin only) */
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ServiceResponse>> createService(
+            @Valid @RequestBody CreateServiceRequest request) {
+        ServiceResponse response = serviceCatalogService.createService(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Tạo dịch vụ thành công", response));
+    }
 
-        List<DichVuPhuTung> dichVuPhuTungs = dichVuPhuTungRepository.findByDichVuMaDichVu(dv.getMaDichVu());
-        List<ServicePartResponse> parts = new ArrayList<>();
-        BigDecimal totalPartPrice = BigDecimal.ZERO;
+    /** PUT /api/services/{id} — Cập nhật thông tin dịch vụ (Admin only) */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ServiceResponse>> updateService(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateServiceRequest request) {
+        ServiceResponse response = serviceCatalogService.updateService(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin dịch vụ thành công", response));
+    }
 
-        if (dichVuPhuTungs != null) {
-            for (DichVuPhuTung dp : dichVuPhuTungs) {
-                PhuTung pt = dp.getPhuTung();
-                if (pt != null) {
-                    int qty = dp.getSoLuong() != null ? dp.getSoLuong() : 1;
-                    BigDecimal partPrice = pt.getGiaBan() != null ? pt.getGiaBan() : BigDecimal.ZERO;
-                    BigDecimal lineTotal = partPrice.multiply(BigDecimal.valueOf(qty));
-                    totalPartPrice = totalPartPrice.add(lineTotal);
+    /** PATCH /api/services/{id}/status — Bật/Tắt trạng thái dịch vụ (Admin + Manager) */
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<ServiceResponse>> updateServiceStatus(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateServiceStatusRequest request) {
+        ServiceResponse response = serviceCatalogService.updateServiceStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật trạng thái dịch vụ thành công", response));
+    }
 
-                    parts.add(new ServicePartResponse(
-                            pt.getMaPhuTung(),
-                            pt.getTenPhuTung(),
-                            qty,
-                            partPrice,
-                            lineTotal,
-                            pt.getDonViTinh()
-                    ));
-                }
-            }
-        }
-
-        BigDecimal servicePrice = dv.getDonGia() != null ? dv.getDonGia() : BigDecimal.ZERO;
-        BigDecimal estimatedTotal = servicePrice.add(totalPartPrice);
-
-        return new ServiceResponse(
-                dv.getMaDichVu(),
-                maLoai,
-                tenLoai,
-                dv.getTenDichVu(),
-                dv.getMoTa(),
-                dv.getDonGia(),
-                dv.getThoiGianDuKien(),
-                dv.getTrangThai(),
-                parts,
-                totalPartPrice,
-                estimatedTotal
-        );
+    /** DELETE /api/services/{id} — Xóa dịch vụ (Admin only) */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteService(@PathVariable Integer id) {
+        serviceCatalogService.deleteService(id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa dịch vụ thành công", null));
     }
 }

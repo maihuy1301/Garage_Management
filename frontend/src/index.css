@@ -87,6 +87,49 @@ input, select, textarea {
   font-size: 0.875rem;
 }
 
+/* Form Controls & Groups */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-on-surface, #0d1c2f);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-on-surface, #0d1c2f);
+  background-color: #ffffff;
+  border: 1.5px solid var(--color-outline-variant, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  border-color: var(--color-primary, #00236f);
+  box-shadow: 0 0 0 3px rgba(0, 35, 111, 0.12);
+}
+
+.form-control::placeholder {
+  color: #94a3b8;
+}
+
+.form-control:disabled {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
   font-weight: normal;

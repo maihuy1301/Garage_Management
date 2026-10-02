@@ -14,10 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +28,8 @@ public class InvoiceService {
     private final PhieuSuaChuaRepository phieuSuaChuaRepository;
     private final PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository;
     private final PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository;
+    private final TonKhoRepository tonKhoRepository;
+    private final GiaoDichKhoRepository giaoDichKhoRepository;
     private final NhanVienRepository nhanVienRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final KhachHangRepository khachHangRepository;
@@ -42,6 +42,8 @@ public class InvoiceService {
                           PhieuSuaChuaRepository phieuSuaChuaRepository,
                           PhieuSuaChuaDichVuRepository phieuSuaChuaDichVuRepository,
                           PhieuSuaChuaPhuTungRepository phieuSuaChuaPhuTungRepository,
+                          TonKhoRepository tonKhoRepository,
+                          GiaoDichKhoRepository giaoDichKhoRepository,
                           NhanVienRepository nhanVienRepository,
                           NguoiDungRepository nguoiDungRepository,
                           KhachHangRepository khachHangRepository,
@@ -53,6 +55,8 @@ public class InvoiceService {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
         this.phieuSuaChuaDichVuRepository = phieuSuaChuaDichVuRepository;
         this.phieuSuaChuaPhuTungRepository = phieuSuaChuaPhuTungRepository;
+        this.tonKhoRepository = tonKhoRepository;
+        this.giaoDichKhoRepository = giaoDichKhoRepository;
         this.nhanVienRepository = nhanVienRepository;
         this.nguoiDungRepository = nguoiDungRepository;
         this.khachHangRepository = khachHangRepository;
@@ -61,149 +65,239 @@ public class InvoiceService {
 
     /**
      * Tạo hóa đơn từ phiếu sửa chữa:
-     * - Chống duplicate hóa đơn cho cùng 1 repair order
-     * - Tập hợp dịch vụ & phụ tùng đã thực hiện từ PhieuSuaChua
-     * - HoaDon_DichVu ánh xạ trực tiếp PhieuSuaChua_DichVu
-     * - HoaDon_PhuTung ánh xạ trực tiếp PhieuSuaChua_PhuTung
-     * - Tính toán tổng tiền, giảm giá, thuế và thành tiền phía server
-     * - Ghi nhận nhân viên thu ngân nếu có
+     * - Tìm kiếm root order và tập hợp toàn bộ cây phiếu sửa chữa phát sinh (cha - con nhiều cấp)
+     * - Kiểm tra quyền hạn xuất hóa đơn (chỉ FRONT_DESK, MANAGER, ADMIN; chặn CUSTOMER & TECHNICIAN)
+     * - Kiểm tra trạng thái hoàn tất: Toàn bộ phiếu trong cây phải ở trạng thái HOAN_TAT
+     * - Chống duplicate: Kiểm tra nếu bất kỳ phiếu nào trong cây đã có hóa đơn thì từ chối (409)
+     * - Kiểm tra và cập nhật tồn kho (TonKho):
+     *     + Audit tránh double deduction: Chỉ trừ kho cho số lượng phụ tùng chưa được xuất trước đó
+     *     + Nếu tồn kho không đủ: Reject và rollback toàn bộ, không tạo hóa đơn
+     *     + Ghi nhận nhật ký GiaoDichKho (LoaiGiaoDich = XUAT) gắn đúng mã phiếu sửa chữa
+     * - Sao chép toàn bộ PhieuSuaChua_DichVu sang HoaDon_DichVu (giữ nguyên đơn giá thời điểm sửa)
+     * - Sao chép toàn bộ PhieuSuaChua_PhuTung sang HoaDon_PhuTung (ánh xạ đúng MaDichVuChiTiet từ HoaDon_DichVu)
+     * - Tính toán chính xác TongTien, GiamGia, Thue và ThanhTien phía Backend
      */
     @Transactional
     public InvoiceResponse createInvoice(Integer repairOrderId, CreateInvoiceRequest request) {
-        PhieuSuaChua order = phieuSuaChuaRepository.findById(repairOrderId)
+        PhieuSuaChua targetOrder = phieuSuaChuaRepository.findById(repairOrderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu sửa chữa ID: " + repairOrderId));
 
-        validateStaffAccessAuthorization(order.getChiNhanh().getMaChiNhanh());
+        validateStaffAccessAuthorization(targetOrder.getChiNhanh().getMaChiNhanh());
 
-        if ("HUY".equalsIgnoreCase(order.getTrangThai())) {
+        // Tìm phiếu sửa chữa gốc (root order) trong chuỗi cha-con
+        PhieuSuaChua rootOrder = findRootRepairOrder(targetOrder);
+
+        // Tập hợp toàn bộ danh sách phiếu sửa chữa trong cây phát sinh (không tính các phiếu đã hủy)
+        List<PhieuSuaChua> familyOrders = getRepairOrderTree(rootOrder);
+
+        if ("HUY".equalsIgnoreCase(targetOrder.getTrangThai()) || familyOrders.isEmpty()) {
             throw new BadRequestException("Không thể tạo hóa đơn cho phiếu sửa chữa đã bị hủy");
         }
 
-        if (hoaDonRepository.existsByPhieuSuaChuaMaPhieuSuaChua(repairOrderId)) {
-            throw new DuplicateResourceException("Phiếu sửa chữa ID " + repairOrderId + " đã được tạo hóa đơn trước đó");
-        }
-
-        KhachHang customer = order.getPhieuTiepNhan() != null && order.getPhieuTiepNhan().getXe() != null
-                ? order.getPhieuTiepNhan().getXe().getKhachHang()
-                : null;
-
-        if (customer == null) {
-            throw new BadRequestException("Không xác định được thông tin khách hàng từ phiếu sửa chữa");
-        }
-
-        // Lấy nhân viên thu ngân từ tài khoản đang đăng nhập
-        NhanVien cashier = getCurrentEmployee();
-
-        List<PhieuSuaChuaDichVu> repairServices = new ArrayList<>(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId));
-        List<PhieuSuaChuaPhuTung> repairParts = new ArrayList<>(phieuSuaChuaPhuTungRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId));
-
-        // Tự động gộp dịch vụ và phụ tùng từ các phiếu phát sinh con (nếu có)
-        List<PhieuSuaChua> childOrders = phieuSuaChuaRepository.findAll().stream()
-                .filter(o -> o.getPhieuCha() != null && repairOrderId.equals(o.getPhieuCha().getMaPhieuSuaChua()) && !"HUY".equalsIgnoreCase(o.getTrangThai()))
-                .toList();
-        for (PhieuSuaChua child : childOrders) {
-            repairServices.addAll(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(child.getMaPhieuSuaChua()));
-            repairParts.addAll(phieuSuaChuaPhuTungRepository.findByPhieuSuaChuaMaPhieuSuaChua(child.getMaPhieuSuaChua()));
-        }
-
-        BigDecimal totalServiceAmount = BigDecimal.ZERO;
-        for (PhieuSuaChuaDichVu s : repairServices) {
-            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(s.getSoLuong() != null ? s.getSoLuong() : 1));
-            totalServiceAmount = totalServiceAmount.add(lineTotal);
-        }
-
-        BigDecimal totalPartAmount = BigDecimal.ZERO;
-        for (PhieuSuaChuaPhuTung p : repairParts) {
-            BigDecimal lineTotal = p.getDonGia().multiply(BigDecimal.valueOf(p.getSoLuong() != null ? p.getSoLuong() : 1));
-            totalPartAmount = totalPartAmount.add(lineTotal);
-        }
-
-        BigDecimal tongTien = totalServiceAmount.add(totalPartAmount);
-        BigDecimal giamGia = request != null && request.getGiamGia() != null ? request.getGiamGia() : BigDecimal.ZERO;
-        BigDecimal thue = request != null && request.getThue() != null ? request.getThue() : BigDecimal.ZERO;
-        BigDecimal thanhTien = tongTien.subtract(giamGia).add(thue);
-        if (thanhTien.compareTo(BigDecimal.ZERO) < 0) {
-            thanhTien = BigDecimal.ZERO;
-        }
-
-        HoaDon invoice = new HoaDon();
-        invoice.setPhieuSuaChua(order);
-        invoice.setKhachHang(customer);
-        invoice.setChiNhanh(order.getChiNhanh());
-        invoice.setNhanVienThuNgan(cashier);
-        invoice.setTongTien(tongTien);
-        invoice.setGiamGia(giamGia);
-        invoice.setThue(thue);
-        invoice.setThanhTien(thanhTien);
-        invoice.setTrangThai("CHUA_THANH_TOAN");
-
-        HoaDon savedInvoice = hoaDonRepository.save(invoice);
-
-        // Lưu chi tiết dịch vụ và lưu mapping để phục vụ link phụ tùng
-        Map<Integer, HoaDonDichVu> repairServiceToInvoiceServiceMap = new HashMap<>();
-        List<InvoiceServiceItemResponse> serviceResponses = new ArrayList<>();
-        for (PhieuSuaChuaDichVu s : repairServices) {
-            HoaDonDichVu item = new HoaDonDichVu();
-            item.setHoaDon(savedInvoice);
-            item.setPhieuDichVu(s);
-            item.setDonGia(s.getDonGia());
-            HoaDonDichVu savedItem = hoaDonDichVuRepository.save(item);
-            repairServiceToInvoiceServiceMap.put(s.getMaChiTiet(), savedItem);
-
-            int qty = s.getSoLuong() != null ? s.getSoLuong() : 1;
-            BigDecimal lineTotal = s.getDonGia().multiply(BigDecimal.valueOf(qty));
-            serviceResponses.add(new InvoiceServiceItemResponse(
-                    savedItem.getMaChiTiet(),
-                    s.getMaChiTiet(),
-                    s.getDichVu() != null ? s.getDichVu().getMaDichVu() : null,
-                    s.getDichVu() != null ? s.getDichVu().getTenDichVu() : null,
-                    qty,
-                    savedItem.getDonGia(),
-                    lineTotal
-            ));
-        }
-
-        // Lưu chi tiết phụ tùng
-        List<InvoicePartItemResponse> partResponses = new ArrayList<>();
-        for (PhieuSuaChuaPhuTung p : repairParts) {
-            HoaDonPhuTung item = new HoaDonPhuTung();
-            item.setHoaDon(savedInvoice);
-            item.setPhieuPhuTung(p);
-            if (p.getDichVuChiTiet() != null) {
-                item.setHoaDonDichVu(repairServiceToInvoiceServiceMap.get(p.getDichVuChiTiet().getMaChiTiet()));
+        // Đồng bộ concurrency chống double-click tạo 2 hóa đơn đồng thời
+        synchronized (("INVOICE_LOCK_" + rootOrder.getMaPhieuSuaChua()).intern()) {
+            // Kiểm tra trạng thái hoàn tất: toàn bộ phiếu sửa chữa trong cây phải ở trạng thái HOAN_TAT
+            boolean allCompleted = familyOrders.stream()
+                    .allMatch(o -> "HOAN_TAT".equalsIgnoreCase(o.getTrangThai()));
+            if (!allCompleted) {
+                throw new BadRequestException("Lệnh sửa chữa chưa hoàn tất, không thể xuất hóa đơn");
             }
-            item.setSoLuong(p.getSoLuong() != null ? p.getSoLuong() : 1);
-            item.setDonGia(p.getDonGia());
-            HoaDonPhuTung savedItem = hoaDonPhuTungRepository.save(item);
 
-            BigDecimal lineTotal = p.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
-            Integer maDichVuChiTiet = (savedItem.getHoaDonDichVu() != null) ? savedItem.getHoaDonDichVu().getMaChiTiet() : null;
-            PhuTung pt = p.getPhuTung();
+            // Chống duplicate: Kiểm tra nếu bất kỳ phiếu nào trong cây đã được xuất hóa đơn trước đó
+            for (PhieuSuaChua ro : familyOrders) {
+                if (hoaDonRepository.existsByPhieuSuaChuaMaPhieuSuaChua(ro.getMaPhieuSuaChua())) {
+                    throw new DuplicateResourceException("Lệnh sửa chữa này đã được xuất hóa đơn trước đó");
+                }
+            }
 
-            partResponses.add(new InvoicePartItemResponse(
-                    savedItem.getMaChiTiet(),
-                    p.getMaChiTiet(),
-                    maDichVuChiTiet,
-                    pt != null ? pt.getMaPhuTung() : null,
-                    pt != null ? pt.getMaPhuTungCode() : null,
-                    pt != null ? pt.getTenPhuTung() : null,
-                    pt != null ? pt.getDonViTinh() : null,
-                    savedItem.getSoLuong(),
-                    savedItem.getDonGia(),
-                    lineTotal
-            ));
+            // Xác định thông tin khách hàng từ phiếu tiếp nhận của root order
+            KhachHang customer = rootOrder.getPhieuTiepNhan() != null && rootOrder.getPhieuTiepNhan().getXe() != null
+                    ? rootOrder.getPhieuTiepNhan().getXe().getKhachHang()
+                    : null;
+
+            if (customer == null) {
+                throw new BadRequestException("Không xác định được thông tin khách hàng từ phiếu sửa chữa");
+            }
+
+            // Lấy nhân viên thu ngân từ tài khoản đang đăng nhập
+            NhanVien cashier = getCurrentEmployee();
+
+            // Gom toàn bộ dịch vụ và phụ tùng của tất cả các phiếu trong cây
+            List<PhieuSuaChuaDichVu> repairServices = new ArrayList<>();
+            List<PhieuSuaChuaPhuTung> repairParts = new ArrayList<>();
+            for (PhieuSuaChua ro : familyOrders) {
+                repairServices.addAll(phieuSuaChuaDichVuRepository.findByPhieuSuaChuaMaPhieuSuaChua(ro.getMaPhieuSuaChua()));
+                repairParts.addAll(phieuSuaChuaPhuTungRepository.findByPhieuSuaChuaMaPhieuSuaChua(ro.getMaPhieuSuaChua()));
+            }
+
+            // Xử lý tồn kho (TonKho) và nhật ký xuất kho (GiaoDichKho)
+            // Kiểm tra số lượng phụ tùng thực tế cần trừ thêm để tránh double deduction
+            for (PhieuSuaChuaPhuTung partItem : repairParts) {
+                PhieuSuaChua orderOfPart = partItem.getPhieuSuaChua();
+                PhuTung pt = partItem.getPhuTung();
+                if (pt == null || orderOfPart == null) continue;
+
+                List<GiaoDichKho> existingTx = giaoDichKhoRepository.findByPhieuSuaChuaMaPhieuSuaChua(orderOfPart.getMaPhieuSuaChua());
+                int alreadyExported = 0;
+                if (existingTx != null) {
+                    for (GiaoDichKho tx : existingTx) {
+                        if (tx.getPhuTung() != null && tx.getPhuTung().getMaPhuTung().equals(pt.getMaPhuTung())) {
+                            if ("XUAT".equalsIgnoreCase(tx.getLoaiGiaoDich()) || "XUAT_SUA_CHUA".equalsIgnoreCase(tx.getLoaiGiaoDich())) {
+                                alreadyExported += (tx.getSoLuong() != null ? tx.getSoLuong() : 0);
+                            } else if ("HOAN_TRA".equalsIgnoreCase(tx.getLoaiGiaoDich())) {
+                                alreadyExported -= (tx.getSoLuong() != null ? tx.getSoLuong() : 0);
+                            }
+                        }
+                    }
+                }
+
+                int partQty = partItem.getSoLuong() != null ? partItem.getSoLuong() : 1;
+                int needed = partQty - alreadyExported;
+                if (needed > 0) {
+                    Integer branchId = orderOfPart.getChiNhanh().getMaChiNhanh();
+                    TonKho tonKho = tonKhoRepository.findByIdMaChiNhanhAndIdMaPhuTung(branchId, pt.getMaPhuTung())
+                            .orElse(null);
+                    if (tonKho == null || tonKho.getSoLuongTon() < needed) {
+                        String ptName = pt.getTenPhuTung() != null ? pt.getTenPhuTung() : ("ID #" + pt.getMaPhuTung());
+                        throw new BadRequestException("Phụ tùng '" + ptName + "' không đủ tồn kho tại chi nhánh");
+                    }
+
+                    tonKho.setSoLuongTon(tonKho.getSoLuongTon() - needed);
+                    tonKhoRepository.save(tonKho);
+
+                    GiaoDichKho gd = new GiaoDichKho();
+                    gd.setChiNhanh(orderOfPart.getChiNhanh());
+                    gd.setPhuTung(pt);
+                    gd.setLoaiGiaoDich("XUAT");
+                    gd.setSoLuong(needed);
+                    gd.setPhieuSuaChua(orderOfPart);
+                    gd.setGhiChu("Xuất phụ tùng khi tạo hóa đơn cho phiếu sửa chữa #" + orderOfPart.getMaPhieuSuaChua());
+                    giaoDichKhoRepository.save(gd);
+                }
+            }
+
+            // Tính toán tổng tiền từ danh sách dịch vụ và phụ tùng
+            BigDecimal totalServiceAmount = BigDecimal.ZERO;
+            for (PhieuSuaChuaDichVu s : repairServices) {
+                int qty = s.getSoLuong() != null ? s.getSoLuong() : 1;
+                BigDecimal donGia = s.getDonGia() != null ? s.getDonGia() : BigDecimal.ZERO;
+                totalServiceAmount = totalServiceAmount.add(donGia.multiply(BigDecimal.valueOf(qty)));
+            }
+
+            BigDecimal totalPartAmount = BigDecimal.ZERO;
+            for (PhieuSuaChuaPhuTung p : repairParts) {
+                int qty = p.getSoLuong() != null ? p.getSoLuong() : 1;
+                BigDecimal donGia = p.getDonGia() != null ? p.getDonGia() : BigDecimal.ZERO;
+                totalPartAmount = totalPartAmount.add(donGia.multiply(BigDecimal.valueOf(qty)));
+            }
+
+            BigDecimal tongTien = totalServiceAmount.add(totalPartAmount);
+            BigDecimal giamGia = request != null && request.getGiamGia() != null ? request.getGiamGia() : BigDecimal.ZERO;
+            BigDecimal thue = request != null && request.getThue() != null ? request.getThue() : BigDecimal.ZERO;
+            BigDecimal thanhTien = tongTien.subtract(giamGia).add(thue);
+            if (thanhTien.compareTo(BigDecimal.ZERO) < 0) {
+                thanhTien = BigDecimal.ZERO;
+            }
+
+            HoaDon invoice = new HoaDon();
+            invoice.setPhieuSuaChua(rootOrder);
+            invoice.setKhachHang(customer);
+            invoice.setChiNhanh(rootOrder.getChiNhanh());
+            invoice.setNhanVienThuNgan(cashier);
+            invoice.setTongTien(tongTien);
+            invoice.setGiamGia(giamGia);
+            invoice.setThue(thue);
+            invoice.setThanhTien(thanhTien);
+            invoice.setTrangThai("CHUA_THANH_TOAN");
+            invoice.setNgayLap(LocalDateTime.now());
+
+            HoaDon savedInvoice = hoaDonRepository.save(invoice);
+
+            // Lưu chi tiết dịch vụ và lưu mapping ID để liên kết với phụ tùng
+            Map<Integer, HoaDonDichVu> repairServiceToInvoiceServiceMap = new HashMap<>();
+            List<InvoiceServiceItemResponse> serviceResponses = new ArrayList<>();
+            for (PhieuSuaChuaDichVu s : repairServices) {
+                HoaDonDichVu item = new HoaDonDichVu();
+                item.setHoaDon(savedInvoice);
+                item.setPhieuDichVu(s);
+                item.setDonGia(s.getDonGia() != null ? s.getDonGia() : BigDecimal.ZERO);
+                HoaDonDichVu savedItem = hoaDonDichVuRepository.save(item);
+                repairServiceToInvoiceServiceMap.put(s.getMaChiTiet(), savedItem);
+
+                int qty = s.getSoLuong() != null ? s.getSoLuong() : 1;
+                BigDecimal itemPrice = savedItem.getDonGia() != null ? savedItem.getDonGia() : item.getDonGia();
+                BigDecimal lineTotal = itemPrice.multiply(BigDecimal.valueOf(qty));
+                serviceResponses.add(new InvoiceServiceItemResponse(
+                        savedItem.getMaChiTiet(),
+                        s.getMaChiTiet(),
+                        s.getDichVu() != null ? s.getDichVu().getMaDichVu() : null,
+                        s.getDichVu() != null ? s.getDichVu().getTenDichVu() : null,
+                        qty,
+                        itemPrice,
+                        lineTotal
+                ));
+            }
+
+            // Lưu chi tiết phụ tùng và mapping MaDichVuChiTiet từ HoaDon_DichVu
+            List<InvoicePartItemResponse> partResponses = new ArrayList<>();
+            for (PhieuSuaChuaPhuTung p : repairParts) {
+                HoaDonPhuTung item = new HoaDonPhuTung();
+                item.setHoaDon(savedInvoice);
+                item.setPhieuPhuTung(p);
+                if (p.getDichVuChiTiet() != null && p.getDichVuChiTiet().getMaChiTiet() != null) {
+                    item.setHoaDonDichVu(repairServiceToInvoiceServiceMap.get(p.getDichVuChiTiet().getMaChiTiet()));
+                }
+                item.setSoLuong(p.getSoLuong() != null ? p.getSoLuong() : 1);
+                item.setDonGia(p.getDonGia() != null ? p.getDonGia() : BigDecimal.ZERO);
+                HoaDonPhuTung savedItem = hoaDonPhuTungRepository.save(item);
+
+                int partQty = savedItem.getSoLuong() != null ? savedItem.getSoLuong() : item.getSoLuong();
+                BigDecimal partPrice = savedItem.getDonGia() != null ? savedItem.getDonGia() : item.getDonGia();
+                BigDecimal lineTotal = partPrice.multiply(BigDecimal.valueOf(partQty));
+                Integer maDichVuChiTiet = (savedItem.getHoaDonDichVu() != null) ? savedItem.getHoaDonDichVu().getMaChiTiet() : null;
+                PhuTung pt = p.getPhuTung();
+
+                partResponses.add(new InvoicePartItemResponse(
+                        savedItem.getMaChiTiet(),
+                        p.getMaChiTiet(),
+                        maDichVuChiTiet,
+                        pt != null ? pt.getMaPhuTung() : null,
+                        pt != null ? pt.getMaPhuTungCode() : null,
+                        pt != null ? pt.getTenPhuTung() : null,
+                        pt != null ? pt.getDonViTinh() : null,
+                        partQty,
+                        partPrice,
+                        lineTotal
+                ));
+            }
+
+            return mapInvoiceToResponse(savedInvoice, serviceResponses, partResponses, new ArrayList<>());
         }
-
-        return mapInvoiceToResponse(savedInvoice, serviceResponses, partResponses, new ArrayList<>());
     }
 
     /**
-     * Xem hóa đơn của phiếu sửa chữa
+     * Xem hóa đơn của phiếu sửa chữa (hỗ trợ tìm kiếm theo bất kỳ phiếu nào trong cây)
      */
     @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceByRepairOrder(Integer repairOrderId) {
-        HoaDon invoice = hoaDonRepository.findByPhieuSuaChuaMaPhieuSuaChua(repairOrderId)
-                .orElseThrow(() -> new ResourceNotFoundException("Chưa có hóa đơn cho phiếu sửa chữa ID: " + repairOrderId));
+        PhieuSuaChua targetOrder = phieuSuaChuaRepository.findById(repairOrderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu sửa chữa ID: " + repairOrderId));
+
+        PhieuSuaChua rootOrder = findRootRepairOrder(targetOrder);
+        List<PhieuSuaChua> familyOrders = getRepairOrderTree(rootOrder);
+
+        HoaDon invoice = null;
+        for (PhieuSuaChua ro : familyOrders) {
+            Optional<HoaDon> opt = hoaDonRepository.findByPhieuSuaChuaMaPhieuSuaChua(ro.getMaPhieuSuaChua());
+            if (opt.isPresent()) {
+                invoice = opt.get();
+                break;
+            }
+        }
+
+        if (invoice == null) {
+            throw new ResourceNotFoundException("Chưa có hóa đơn cho phiếu sửa chữa ID: " + repairOrderId);
+        }
 
         validateReadAuthorization(invoice);
 
@@ -270,6 +364,52 @@ public class InvoiceService {
     }
 
     // --- Helpers ---
+
+    private PhieuSuaChua findRootRepairOrder(PhieuSuaChua order) {
+        PhieuSuaChua current = order;
+        Set<Integer> visited = new HashSet<>();
+        while (current.getPhieuCha() != null && current.getPhieuCha().getMaPhieuSuaChua() != null) {
+            if (!visited.add(current.getMaPhieuSuaChua())) {
+                break;
+            }
+            Integer parentId = current.getPhieuCha().getMaPhieuSuaChua();
+            current = phieuSuaChuaRepository.findById(parentId).orElse(current.getPhieuCha());
+        }
+        return current;
+    }
+
+    private List<PhieuSuaChua> getRepairOrderTree(PhieuSuaChua root) {
+        List<PhieuSuaChua> allBranchOrders = phieuSuaChuaRepository.findByChiNhanhMaChiNhanh(root.getChiNhanh().getMaChiNhanh());
+        Map<Integer, List<PhieuSuaChua>> childrenMap = new HashMap<>();
+        for (PhieuSuaChua o : allBranchOrders) {
+            if (o.getPhieuCha() != null && o.getPhieuCha().getMaPhieuSuaChua() != null) {
+                childrenMap.computeIfAbsent(o.getPhieuCha().getMaPhieuSuaChua(), k -> new ArrayList<>()).add(o);
+            }
+        }
+
+        List<PhieuSuaChua> result = new ArrayList<>();
+        Queue<PhieuSuaChua> queue = new LinkedList<>();
+        Set<Integer> visited = new HashSet<>();
+
+        queue.add(root);
+        visited.add(root.getMaPhieuSuaChua());
+
+        while (!queue.isEmpty()) {
+            PhieuSuaChua curr = queue.poll();
+            if (!"HUY".equalsIgnoreCase(curr.getTrangThai())) {
+                result.add(curr);
+            }
+            List<PhieuSuaChua> children = childrenMap.get(curr.getMaPhieuSuaChua());
+            if (children != null) {
+                for (PhieuSuaChua child : children) {
+                    if (visited.add(child.getMaPhieuSuaChua())) {
+                        queue.add(child);
+                    }
+                }
+            }
+        }
+        return result;
+    }
 
     private void validateStaffAccessAuthorization(Integer branchId) {
         if (!branchAuthorizationService.isAllowedBranch(branchId)) {
@@ -396,12 +536,31 @@ public class InvoiceService {
 
         KhachHang kh = invoice.getKhachHang();
         String tenKh = (kh != null && kh.getNguoiDung() != null) ? kh.getNguoiDung().getHoTen() : null;
+        String sdtKh = (kh != null && kh.getNguoiDung() != null) ? kh.getNguoiDung().getSoDienThoai() : null;
+
         ChiNhanh cn = invoice.getChiNhanh();
         String tenCn = cn != null ? cn.getTenChiNhanh() : null;
         NhanVien cashier = invoice.getNhanVienThuNgan();
         String tenCashier = (cashier != null && cashier.getNguoiDung() != null) ? cashier.getNguoiDung().getHoTen() : null;
 
-        return new InvoiceResponse(
+        String bienSoXe = null;
+        String tenHangXe = null;
+        String tenModel = null;
+
+        if (invoice.getPhieuSuaChua() != null && invoice.getPhieuSuaChua().getPhieuTiepNhan() != null) {
+            Xe xe = invoice.getPhieuSuaChua().getPhieuTiepNhan().getXe();
+            if (xe != null) {
+                bienSoXe = xe.getBienSo();
+                if (xe.getModelXe() != null) {
+                    tenModel = xe.getModelXe().getTenModel();
+                    if (xe.getModelXe().getHangXe() != null) {
+                        tenHangXe = xe.getModelXe().getHangXe().getTenHangXe();
+                    }
+                }
+            }
+        }
+
+        InvoiceResponse response = new InvoiceResponse(
                 invoice.getMaHoaDon(),
                 invoice.getPhieuSuaChua() != null ? invoice.getPhieuSuaChua().getMaPhieuSuaChua() : null,
                 kh != null ? kh.getMaKhachHang() : null,
@@ -422,5 +581,12 @@ public class InvoiceService {
                 parts,
                 payments
         );
+
+        response.setSoDienThoaiKhachHang(sdtKh);
+        response.setBienSoXe(bienSoXe);
+        response.setTenHangXe(tenHangXe);
+        response.setTenModel(tenModel);
+
+        return response;
     }
 }

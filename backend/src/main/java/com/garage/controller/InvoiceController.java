@@ -41,8 +41,8 @@ public class InvoiceController {
         return ResponseEntity.ok(ApiResponse.success("Lấy thông tin hóa đơn thành công", response));
     }
 
-    /** POST /api/repair-orders/{repairOrderId}/invoice — Tạo hóa đơn mới từ phiếu sửa chữa */
-    @PostMapping("/api/repair-orders/{repairOrderId}/invoice")
+    /** POST /api/repair-orders/{repairOrderId}/invoice & POST /api/invoices/from-repair-order/{repairOrderId} — Tạo hóa đơn mới từ phiếu sửa chữa */
+    @PostMapping({"/api/repair-orders/{repairOrderId}/invoice", "/api/invoices/from-repair-order/{repairOrderId}"})
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'FRONT_DESK')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> createInvoice(
             @PathVariable Integer repairOrderId,
