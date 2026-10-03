@@ -21,7 +21,7 @@ flutter pub get
 flutter run
 ```
 
-Mặc định app gọi `http://10.0.2.2:8080/api`, phù hợp với Android emulator khi backend chạy ở máy phát triển.
+Mặc định app gọi `http://127.0.0.1:8080/api` để chạy Android thật qua USB với `adb reverse tcp:8080 tcp:8080`. Trong VS Code tại root, chọn **Garage Mobile (Điện thoại thật - USB)**: task trước Run tự forward cổng. Profile Android Emulator vẫn dùng `http://10.0.2.2:8080/api`. Nếu mở riêng mobile/ hoặc dùng IDE khác, cần thiết lập adb reverse cho phiên thiết bị hoặc truyền API_BASE_URL theo địa chỉ LAN.
 
 Với thiết bị thật, iOS simulator hoặc desktop, truyền URL backend có thể truy cập được:
 

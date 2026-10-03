@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWaitingChatCount } from '@/hooks/useWaitingChatCount';
 import { RoleLabels, RoleType } from '@/types/role.types';
 
 interface HeaderProps {
@@ -9,6 +11,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title = 'AutoCare Multi-Branch', onToggleSidebar }) => {
   const { user, logout } = useAuth();
+  const waitingCount = useWaitingChatCount();
+  const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -62,12 +66,42 @@ export const Header: React.FC<HeaderProps> = ({ title = 'AutoCare Multi-Branch',
       <div className="header-right">
         <button
           className="header-icon-btn"
-          title="Thông báo hệ thống"
+          title={waitingCount > 0 ? `Có ${waitingCount} yêu cầu chat đang chờ tiếp tân!` : 'Thông báo hệ thống'}
           aria-label="Thông báo hệ thống"
-          onClick={() => alert('Chức năng Thông báo thời gian thực đã sẵn sàng qua WebSocket.')}
+          onClick={() => {
+            if (waitingCount > 0) {
+              navigate('/app/chat');
+            } else {
+              alert('Chức năng Thông báo thời gian thực đã sẵn sàng qua WebSocket.');
+            }
+          }}
+          style={{ position: 'relative' }}
         >
           <span className="material-symbols-outlined">notifications</span>
-          <span className="header-badge-dot"></span>
+          {waitingCount > 0 ? (
+            <span
+              style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                backgroundColor: '#ef4444',
+                color: '#ffffff',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white',
+              }}
+            >
+              {waitingCount}
+            </span>
+          ) : (
+            <span className="header-badge-dot"></span>
+          )}
         </button>
 
         <button

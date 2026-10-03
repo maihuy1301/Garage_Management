@@ -21,6 +21,7 @@ import { RepairOrdersPage } from '@/features/repair-orders/pages/RepairOrdersPag
 import { InvoicesPage } from '@/features/invoices/pages/InvoicesPage';
 import { ServicesPage } from '@/features/services/pages/ServicesPage';
 import { InventoryPage } from '@/features/inventory/pages/InventoryPage';
+import { SupportChatPage } from '@/features/chat/pages/SupportChatPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -186,7 +187,7 @@ export const AppRouter: React.FC = () => {
         />
         <Route
           path="chat"
-          element={<PlaceholderPage moduleName="Trao đổi nội bộ & Chat" taskNumber="Frontend Task Chat" />}
+          element={<RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK']}><SupportChatPage /></RoleGuard>}
         />
       </Route>
 

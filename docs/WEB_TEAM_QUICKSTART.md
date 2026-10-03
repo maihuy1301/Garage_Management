@@ -47,21 +47,11 @@ Migration V04 chỉ tạo bảng/index nếu chưa có. Nếu database rất cũ
 
 ### Terminal 2: backend
 
-Spring Boot chạy bằng Maven **không tự đọc file .env ở root**. Docker Compose đọc .env chỉ cho container. Trong PowerShell tại root, nạp biến cần thiết vào chính terminal sẽ chạy Maven:
+Backend tự đọc `.env` ở root; không cần chạy script nạp biến. Từ thư mục root:
 
 ```powershell
-Get-Content .env | ForEach-Object {
-    if ($_ -match '^\s*((?:SEPAY_|SPRING_DATASOURCE_|JWT_|CORS_|FCM_)[A-Z_]+|SERVER_PORT|VEHICLE_IMAGES_DIR)\s*=(.*)$') {
-        $name = $matches[1]
-        $value = $matches[2].Trim().Trim('"').Trim("'")
-        [Environment]::SetEnvironmentVariable($name, $value, 'Process')
-    }
-}
-cd backend
-mvn spring-boot:run
-```
 
-Đặt các giá trị dạng NAME=value, bỏ dấu # ở đầu các biến thực sự muốn dùng. SQLSERVER_PASSWORD dùng cho Docker; nếu đổi mật khẩu DB, đặt SPRING_DATASOURCE_PASSWORD tương ứng cho backend. Cấu hình SPRING_DATASOURCE_URL nếu đổi host/port/database. Mỗi terminal mới cần nạp lại; sửa .env phải restart backend. Không cần cấu hình SePay để làm danh sách hóa đơn/thu tiền mặt; payment-options.available=false là trạng thái hợp lệ.
+Đặt các giá trị dạng NAME=value, bỏ dấu # ở đầu các biến thực sự muốn dùng. SQLSERVER_PASSWORD dùng cho Docker; nếu đổi mật khẩu DB, đặt SPRING_DATASOURCE_PASSWORD tương ứng cho backend. Cấu hình SPRING_DATASOURCE_URL nếu đổi host/port/database. Dùng giá trị không có dấu nháy; sửa .env phải restart backend. Nếu đã nạp biến bằng PowerShell trước đây, mở terminal mới để tránh giá trị cũ ghi đè file. Không cần cấu hình SePay để làm danh sách hóa đơn/thu tiền mặt; payment-options.available=false là trạng thái hợp lệ.
 
 Kiểm tra `http://localhost:8080/api/brands` trả JSON. Backend 8080; database 1433.
 

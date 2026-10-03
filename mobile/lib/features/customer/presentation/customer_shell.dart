@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../support_chat/presentation/support_chat_launcher.dart';
 
 class CustomerShell extends StatelessWidget {
   const CustomerShell({
@@ -47,6 +48,9 @@ class CustomerShell extends StatelessWidget {
     );
     return Scaffold(
       body: child,
+      floatingActionButton: MediaQuery.viewInsetsOf(context).bottom == 0
+          ? const SupportChatLauncher()
+          : null,
       bottomNavigationBar: NavigationBar(
         height: 72,
         selectedIndex: index < 0 ? 0 : index,

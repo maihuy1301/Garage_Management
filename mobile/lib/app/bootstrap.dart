@@ -19,6 +19,8 @@ import '../features/invoices/data/invoice_service.dart';
 import '../features/invoices/data/payment_service.dart';
 import '../features/customer/data/profile_service.dart';
 import 'app.dart';
+import '../features/support_chat/data/support_chat_service.dart';
+import '../features/support_chat/presentation/support_chat_controller.dart';
 
 Future<void> bootstrap() async {
   const secureStorage = FlutterSecureStorage();
@@ -47,6 +49,18 @@ Future<void> bootstrap() async {
       providers: [
         Provider<PushRegistration>.value(value: push),
         ChangeNotifierProvider.value(value: authController),
+        ChangeNotifierProxyProvider<AuthController, SupportChatController>(
+          create: (_) => SupportChatController(
+            SupportChatService(apiClient),
+            StompSupportEvents(AppConfig.apiBaseUrl),
+          ),
+          update: (_, auth, chat) => chat!
+            ..bind(
+              auth.session?.isCustomer == true
+                  ? auth.session!.accessToken
+                  : null,
+            ),
+        ),
         Provider<NotificationGateway>(
           create: (_) => NotificationService(apiClient),
         ),

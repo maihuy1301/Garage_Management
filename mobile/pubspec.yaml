@@ -43,6 +43,7 @@ dependencies:
   stomp_dart_client: 3.0.1
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

@@ -14,11 +14,17 @@ class AppointmentBookingPage extends StatefulWidget {
     this.gateway,
     this.vehicleGateway,
     this.initialVehicleId,
+    this.initialBranchId,
+    this.confirmBeforeSubmit = false,
+    this.onBooked,
   });
 
   final AppointmentGateway? gateway;
   final VehicleGateway? vehicleGateway;
   final int? initialVehicleId;
+  final int? initialBranchId;
+  final bool confirmBeforeSubmit;
+  final ValueChanged<AppointmentBookingResult>? onBooked;
 
   @override
   State<AppointmentBookingPage> createState() => _AppointmentBookingPageState();
@@ -35,6 +41,7 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
   bool _isLoading = true;
   bool _isLoadingAppointments = true;
   bool _isSubmitting = false;
+  bool _confirming = false;
   String? _loadError;
   String? _appointmentsError;
   String? _submitError;
@@ -91,7 +98,9 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
             : options.vehicles.length == 1
             ? options.vehicles.first.id
             : null;
-        _branchId = options.branches.length == 1
+        _branchId = options.branches.any((b) => b.id == widget.initialBranchId)
+            ? widget.initialBranchId
+            : options.branches.length == 1
             ? options.branches.first.id
             : null;
       });
@@ -205,12 +214,42 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting || _confirming) return;
     FocusScope.of(context).unfocus();
     setState(() {
       _submitError = null;
       _result = null;
     });
     if (!_formKey.currentState!.validate()) return;
+
+    if (widget.confirmBeforeSubmit) {
+      _confirming = true;
+      final vehicle = _options!.vehicles.firstWhere((v) => v.id == _vehicleId);
+      final branch = _options!.branches.firstWhere((b) => b.id == _branchId);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Xác nhận gửi yêu cầu đặt lịch'),
+          content: SingleChildScrollView(
+            child: Text(
+              '${vehicle.licensePlate}\n${branch.name}\n${_dateController.text} ${_timeController.text}\n${_options!.services.where((s) => _selectedServiceIds.contains(s.id)).map((s) => s.name).join(', ')}\n${_noteController.text}\n\nTiếp tân sẽ kiểm tra và xác nhận lịch sau.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Kiểm tra lại'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Gửi yêu cầu'),
+            ),
+          ],
+        ),
+      );
+      _confirming = false;
+      if (confirmed != true || !mounted) return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
@@ -234,6 +273,7 @@ class _AppointmentBookingPageState extends State<AppointmentBookingPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Đặt lịch hẹn thành công.')));
+      widget.onBooked?.call(result);
     } on AppointmentException catch (error) {
       if (mounted) setState(() => _submitError = error.message);
     } finally {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useWaitingChatCount } from '@/hooks/useWaitingChatCount';
 import { RoleLabels, RoleType } from '@/types/role.types';
 
 interface SidebarProps {
@@ -137,6 +138,7 @@ const ALL_NAV_ITEMS: NavItemConfig[] = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
   const { user } = useAuth();
+  const waitingCount = useWaitingChatCount();
   const userRoles = (user?.roles || []) as RoleType[];
 
   const filteredNavItems = ALL_NAV_ITEMS.filter((item) =>
@@ -169,7 +171,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
             className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
           >
             <span className="material-symbols-outlined">{item.icon}</span>
-            <span>{item.label}</span>
+            <span style={{ flex: 1 }}>{item.label}</span>
+            {item.path === '/app/chat' && waitingCount > 0 && (
+              <span
+                style={{
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  padding: '2px 7px',
+                  borderRadius: '10px',
+                  marginLeft: 'auto',
+                }}
+                title={`${waitingCount} khách hàng đang chờ tiếp tân`}
+              >
+                {waitingCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

@@ -31,6 +31,27 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class WebSocketAuthChannelInterceptorTest {
+    @Test void supportQueueRejectsTechnicianAndPhysicalDestinations() {
+        for (String destination : List.of("/user/queue/support-chat", "/queue/support-chat-user123", "/user/other/queue/support-chat")) {
+            var accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+            accessor.setDestination(destination);
+            accessor.setUser(new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
+            var message = MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders());
+            assertThatThrownBy(() -> interceptor.preSend(message, messageChannel)).isInstanceOf(AccessDeniedException.class);
+        }
+    }
+    @Test void supportQueueAcceptsCustomer() {
+        var accessor = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        accessor.setDestination("/user/queue/support-chat");
+        accessor.setUser(new UsernamePasswordAuthenticationToken("customer", null, List.of(new SimpleGrantedAuthority("ROLE_CUSTOMER"))));
+        assertThat(interceptor.preSend(MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders()),messageChannel)).isNotNull();
+    }
+    @Test void clientCannotForgeServerChatEvents() {
+        var accessor = StompHeaderAccessor.create(StompCommand.SEND);
+        accessor.setDestination("/queue/support-chat-user123");
+        accessor.setUser(new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
+        assertThatThrownBy(() -> interceptor.preSend(MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders()),messageChannel)).isInstanceOf(AccessDeniedException.class);
+    }
 
     @Mock
     private JwtService jwtService;

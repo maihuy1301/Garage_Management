@@ -18,6 +18,7 @@ import '../features/technician/presentation/technician_repair_detail_page.dart';
 import '../features/vehicles/presentation/vehicles_page.dart';
 import '../features/invoices/presentation/invoices_page.dart';
 import '../features/invoices/presentation/invoice_payment_page.dart';
+import '../features/support_chat/presentation/support_chat_page.dart';
 
 class AppRouter {
   AppRouter(AuthController authController)
@@ -26,6 +27,11 @@ class AppRouter {
         refreshListenable: authController,
         redirect: (context, state) => _redirect(authController, state),
         routes: [
+          GoRoute(
+            path: '/support-chat',
+            builder: (context, state) =>
+                SupportChatPage(key: ObjectKey(authController.session)),
+          ),
           GoRoute(
             path: '/splash',
             builder: (context, state) => const SplashPage(),
@@ -162,6 +168,7 @@ class AppRouter {
   final GoRouter router;
 
   static const _protectedCustomerPaths = {
+    '/support-chat',
     '/appointments',
     '/tracking',
     '/notifications',

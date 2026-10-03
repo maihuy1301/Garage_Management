@@ -195,6 +195,75 @@ void main() {
     expect(find.textContaining('Đã tạo lịch #1'), findsOneWidget);
   });
 
+  testWidgets('đặt lịch từ chat chỉ gửi sau khi khách xác nhận', (
+    tester,
+  ) async {
+    final gateway = _FakeAppointmentGateway();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: AppointmentBookingPage(gateway: gateway, confirmBeforeSubmit: true, initialBranchId: 1)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final dateField = find.byKey(const ValueKey('appointment-date-field'));
+    await tester.ensureVisible(dateField);
+    await tester.pumpAndSettle();
+    await tester.tap(dateField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    final timeField = find.byKey(const ValueKey('appointment-time-field'));
+    await tester.tap(timeField);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    // Mở modal bottom sheet
+    final selectButton = find.byKey(const ValueKey('appointment-select-services-button'));
+    await tester.ensureVisible(selectButton);
+    await tester.pumpAndSettle();
+    await tester.tap(selectButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Chọn dịch vụ'), findsOneWidget);
+    expect(find.byKey(const ValueKey('service-search-input')), findsOneWidget);
+
+    final serviceOption = find.byKey(const ValueKey('service-option-1'));
+    expect(serviceOption, findsOneWidget);
+    await tester.tap(serviceOption);
+    await tester.pumpAndSettle();
+
+    // Áp dụng lựa chọn
+    final applyButton = find.byKey(const ValueKey('apply-selected-services-button'));
+    await tester.tap(applyButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Đã chọn 1 dịch vụ'), findsOneWidget);
+    expect(find.text('Bảo dưỡng định kỳ'), findsOneWidget);
+
+    final submit = find.byKey(const ValueKey('appointment-submit-button'));
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(gateway.createCalls, 0);
+    expect(find.text('Xác nhận gửi yêu cầu đặt lịch'), findsOneWidget);
+    await tester.tap(find.text('Kiểm tra lại'));
+    await tester.pumpAndSettle();
+    expect(gateway.createCalls, 0);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gửi yêu cầu'));
+    await tester.pumpAndSettle();
+    expect(gateway.createCalls, 1);
+    expect(gateway.lastServiceIds, [1]);
+    expect(find.byKey(const ValueKey('appointment-success')), findsOneWidget);
+    expect(find.textContaining('Đã tạo lịch #1'), findsOneWidget);
+  });
+
   testWidgets('tìm kiếm dịch vụ trong modal và xóa chip trực tiếp trên form', (
     tester,
   ) async {

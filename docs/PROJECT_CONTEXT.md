@@ -4,6 +4,14 @@
 
 ## 1. Môi trường phát triển đã xác minh
 
+### Chat hỗ trợ hướng 1 — 2026-10-02 (đã áp database local)
+
+- Có source `/api/support-chat`, web `/app/chat` dành cho ADMIN/MANAGER/FRONT_DESK, mobile CUSTOMER `/support-chat` qua nút nổi. Chọn chi nhánh, bot FAQ/Gemini tùy chọn, handoff, claim và resolve; chỉ người phụ trách gửi tin khi HUMAN. Không triển khai nhóm nội bộ/chat phiếu sửa chữa.
+- Ba entity mới SupportConversation/SupportMessage/SupportReadCursor, không đổi chat legacy. **Đã được duyệt và áp V05__support_chat.sql vào SQL Server local**; schema chuẩn đã đồng bộ. Kiểm tra SQL ghi/đọc Unicode, trạng thái và read cursor đạt, dữ liệu thử đã rollback; số dòng các bảng cũ giữ nguyên. `GARAGE_SUPPORT_ENABLED=false` mặc định; capabilities hoạt động trước migration. Hibernate không tự tạo bảng.
+- STOMP private `/user/queue/support-chat` phát invalidation sau commit, client tải bù REST khi reconnect; đọc riêng từng người, idempotency gửi tin/đặt lịch, khóa claim và bỏ kết quả bot đến muộn. Siết allowlist SUBSCRIBE và chặn SEND trực tiếp vào broker. Tin STAFF gửi thông báo/FCM qua module hiện hữu.
+- Đặt lịch từ chat dùng lại form mobile trong sheet, xác nhận trước gửi, chi nhánh cố định theo phòng; backend gọi AppointmentService, vẫn chờ tiếp tân xác nhận. Không cho AI ghi DB. FAQ dùng danh mục/giá thật; Gemini chưa kiểm thử với key thật và mặc định tắt.
+- Flutter 147 tests đạt, analyze sạch; web build và 2 test STOMP đạt. Targeted backend support/WebSocket đạt; full backend bị dừng khi SQL Server localhost:1433 không kết nối được. Lint web chưa chạy được do repository thiếu cấu hình ESLint. Chưa run/build Flutter hoặc E2E thật. Chi tiết [SUPPORT_CHAT_SETUP.md](SUPPORT_CHAT_SETUP.md).
+
 ### Hoàn thiện thanh toán sau rà soát — 2026-10-01
 
 - Tiếp tục công việc 30/09, không khởi tạo lại. GiaoDichSePay triển khai Persistable với isNew luôn true vì receipt chỉ được insert: tránh JPA merge ghi đè receipt có cùng provider ID giữa bước kiểm tra trùng và lưu. Thêm test SQL xác minh INSERT trùng bị từ chối.
@@ -353,7 +361,7 @@
   - Đăng nhập thật qua `POST /api/auth/login`, JWT lưu bằng secure storage và kiểm tra session qua `GET /api/auth/me`; cả hai luồng đều lưu trạng thái `hasPin` để chuẩn bị màn PIN sau đăng nhập.
   - Role đọc từ claim `roles` để điều hướng customer/technician; backend vẫn là authority cho RBAC, branch và ownership.
   - Các route cá nhân yêu cầu đăng nhập và bảo toàn route đích qua tham số `returnTo`.
-- **API base URL**: mặc định `http://10.0.2.2:8080/api` cho Android emulator; override bằng `--dart-define=API_BASE_URL=...` cho thiết bị/môi trường khác. Với Android thật qua USB, chạy `adb reverse tcp:8080 tcp:8080` và dùng `http://127.0.0.1:8080/api`.
+- **API base URL**: mặc định `http://127.0.0.1:8080/api` cho Android thật qua USB + adb reverse; profile emulator truyền `http://10.0.2.2:8080/api`; override bằng `--dart-define=API_BASE_URL=...` cho môi trường khác. Với Android thật qua USB, chạy `adb reverse tcp:8080 tcp:8080` và dùng `http://127.0.0.1:8080/api`.
 - **Android emulator graphics**: AVD `Pixel_10_Pro_XL` Android 17/API 37, page size 16 KB có thể bị SurfaceView đen dù Flutter widget tree và Dart VM vẫn hoạt động. Android debug manifest tắt Impeller để dùng Skia fallback. Ngày 2026-09-11, Android Studio đã ghi AVD trở lại `hw.gpu.mode=auto` và bật Fast Boot, làm lỗi tái diễn kèm ADB mất thiết bị; đã đặt `hw.gpu.mode=software`, `fastboot.forceColdBoot=yes`, `fastboot.forceFastBoot=no`, cold boot và xác minh launcher cùng AutoCare render bình thường. Bản release giữ renderer mặc định.
 - **Customer feature screens**: `/vehicles` đã dùng `GET/POST /api/vehicles` để xem và thêm xe chính chủ bằng form bottom sheet; mục “Xe của tôi”, CTA/nút `+` và dấu cộng lớn ở empty state cùng mở form. Form đăng ký xe bám bố cục Stitch với các trường hai cột, badge bảo mật, vùng “Ảnh xe hoặc Giấy đăng kiểm”, CTA “Thêm xe vào danh sách” và khối trợ giúp. Hãng xe được tải từ `GET /api/brands`; khi chọn hãng, app tải model qua `GET /api/brands/{brandId}/models`, bắt buộc chọn cặp hợp lệ rồi gửi `maHangXe`/`maModel` trong `POST /api/vehicles`. Mobile không gửi `maKhachHang`; backend xác định owner từ JWT. Form có loading, retry, empty/error cho danh mục hãng-model. Vùng ảnh cho phép chụp bằng camera hoặc chọn từ thư viện, xin quyền camera, xem trước, nén ở chất lượng 82 và tải lên sau khi tạo xe qua `POST /api/vehicles/{id}/image`; hỗ trợ JPEG/PNG/WebP tối đa 8 MB. Backend lưu metadata ở `HinhAnhXe`, nội dung file tại `VEHICLE_IMAGES_DIR`, kiểm tra ownership trước upload/xem/xóa; card xe đọc ảnh có JWT qua `GET /api/vehicles/{id}/image` và dùng placeholder nếu chưa có. Card xe có nút “Đặt lịch ngay” chuyển sang `/appointments?vehicleId=...` và tự chọn xe tương ứng. `/vehicles` và `/appointments` dùng header/banner AutoCare phỏng theo tài liệu Stitch nhưng giữ thanh điều hướng hiện hành `Trang chủ / Đặt lịch / Theo dõi / Thông báo / Tài khoản`; route `/vehicles` đánh dấu đúng mục Tài khoản. Màn lịch hẹn tải xe/chi nhánh hoạt động, cho phép thêm xe ngay trong luồng rồi tự tải lại để hiện form đặt lịch, tạo lịch, hiển thị lịch của customer và hủy trạng thái `CHO_XAC_NHAN`/`DA_XAC_NHAN` qua quyền backend. `/tracking` đã thay placeholder bằng danh sách lịch hẹn và màn chi tiết `/tracking/{appointmentId}`; app đọc `GET /api/appointments` cùng `GET /api/appointments/{id}`, hiển thị timeline `CHO_XAC_NHAN`, `DA_XAC_NHAN`, `DA_TIEP_NHAN`, `HOAN_TAT`, hỗ trợ pull-to-refresh/loading/error/empty và không tự cập nhật trạng thái. Theo dõi phiếu sửa chữa chi tiết cho customer và notification vẫn là phase tiếp theo.
 - **Technician feature screens**: `/technician` đã thay placeholder bằng danh sách phiếu sửa chữa được phân công, có bộ lọc đang xử lý/hoàn tất/tất cả, pull-to-refresh và loading/error/empty state. Route `/technician/repair-orders/{id}` tải song song chi tiết phiếu, hạng mục dịch vụ và lịch sử tiến độ; hiển thị xe, khách hàng, chi nhánh, ghi chú tiếp nhận, trạng thái và tỷ lệ hạng mục hoàn tất. Kỹ thuật viên có thể cập nhật tiến độ (`DA_PHAN_CONG`, `DANG_SUA`, `TAM_DUNG`, `CHO_KH_DUYET`, `HOAN_TAT`) kèm phần trăm/mô tả, hoặc đổi trạng thái hạng mục (`CHO_XU_LY`, `DANG_SUA`, `HOAN_TAT`, `HUY`). Phiếu `HOAN_TAT`/`HUY` bị khóa thao tác trên UI; backend vẫn enforce role, branch và assigned-only. Mobile không gửi `maNhanVien` hoặc `maChiNhanh`. `flutter analyze` sạch và toàn bộ 37 test đạt ngày 2026-09-14.
@@ -407,3 +415,17 @@
 - Mobile `flutter analyze`: sạch; `flutter test`: 137/137 đạt. Không chạy/build Flutter trong phiên push.
 - Frontend `npm run build`: đạt; cảnh báo bundle trên 500 kB, không chặn build. Không thay đổi source React trong bản bàn giao.
 - Bộ kiểm thử không thay thế nghiệm thu SePay/ngân hàng. Người dùng đã xác nhận chạy điện thoại ổn; backend tiếp tục là nơi xác nhận thanh toán.
+
+
+### Mở rộng chat theo ngữ cảnh và GPS — 02/10/2026
+
+- Bot dùng chi nhánh hiện tại, danh mục/giá dịch vụ thật, tóm tắt số lịch của chủ phòng và tối đa 6 tin CUSTOMER/BOT gần nhất khi gọi Gemini. FAQ đặt lịch/tìm gara hướng dẫn khách tự chọn, không tạo lịch tự động.
+- Thêm GET/POST /api/support-chat/branch-suggestions cho CUSTOMER và màn Tìm gara trên mobile: lịch đặt hoặc GPS foreground có xin quyền khi bấm. Tính khoảng cách tại backend, không lưu/gửi GPS sang Gemini. Chưa có tọa độ gara thật vì user xác nhận địa chỉ mẫu; cấu hình GARAGE_SUPPORT_BRANCH_COORDINATES để trống, không bịa khoảng cách. Không thay schema/áp SQL trong phần mở rộng này.
+- Sửa retry/khởi tạo chat mobile và xóa lỗi cũ sau phục hồi. Chưa xác minh lỗi mạng ban đầu trên máy khách hoặc gọi Gemini/GPS thật.
+
+
+### Đặt lịch bằng AI trong hội thoại — 02/10/2026
+
+- Đã triển khai Gemini-first khi cấu hình hợp lệ, JSON bản nháp có xe/chi nhánh/giờ/dịch vụ/nhu cầu; backend tự xây bản tóm tắt và chỉ tạo lịch sau tin xác nhận rõ ràng. Lịch vẫn CHO_XAC_NHAN.
+- Thêm SupportBookingDrafts; lưu bản nháp versioned trong tin BOT hiện hữu, không migration/schema. Kiểm tra lại ownership/active/time/catalog, hiệu lực 15 phút, khóa phòng, idempotency theo draft message ID. Hủy bản nháp không tác động lịch đã tạo; sửa thông tin cần xác nhận lại.
+- Cập nhật SupportBotService/Context, DTO, SupportChatService và test. Key/model đã có trong .env (không ghi giá trị); không gọi provider thật, không tạo lịch thật khi test. Không tự chạy Flutter, commit/push/deploy.

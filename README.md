@@ -1,5 +1,7 @@
 # Garage Management System (Hệ Thống Quản Lý Garage Ô Tô Đa Chi Nhánh)
 
+Chat khách mobile ↔ tiếp tân (02/10/2026): đã viết luồng bot/FAQ → chờ tiếp tân → nhân viên hỗ trợ, nhắn tin realtime và đặt lịch có xác nhận. **Mặc định tắt; đã áp migration V05 vào SQL Server local ngày 02/10/2026, chưa kiểm thử end-to-end.** Xem [cấu hình và bàn giao chat hỗ trợ](docs/SUPPORT_CHAT_SETUP.md). Gemini là tùy chọn, chưa có key vẫn dùng được FAQ và chat người-người sau khi bật tính năng.
+
 ## 1. Project Overview
 Hệ thống phần mềm quản lý việc đặt lịch và dịch vụ sửa chữa xe ô tô dành cho Garage đa chi nhánh.
 - **Web App (React + Vite)**: Dành cho `ADMIN`, `MANAGER`, `RECEPTIONIST`.

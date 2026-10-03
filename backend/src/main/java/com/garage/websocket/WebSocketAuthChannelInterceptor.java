@@ -53,6 +53,10 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
             authenticateConnect(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(command)) {
             authorizeSubscription(accessor);
+        } else if (StompCommand.SEND.equals(command)) {
+            // Clients post chat through authorized REST services. Never let a client
+            // publish directly to the broker and impersonate server notifications.
+            throw new AccessDeniedException("Gửi tin nhắn qua API được xác thực");
         }
 
         return message;
@@ -103,8 +107,16 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
 
         String destination = accessor.getDestination();
         if (destination == null) {
-            return;
+            throw new AccessDeniedException("Thiếu kênh đăng ký");
         }
+
+        if (List.of("/user/queue/notifications", "/user/queue/chat").contains(destination)) return;
+        if ("/user/queue/support-chat".equals(destination)) {
+            if (auth.getAuthorities().stream().anyMatch(a -> List.of("ROLE_CUSTOMER", "ROLE_FRONT_DESK", "ROLE_MANAGER", "ROLE_ADMIN").contains(a.getAuthority()))) return;
+            throw new AccessDeniedException("Không có quyền chat hỗ trợ khách hàng");
+        }
+        if (!destination.startsWith("/topic/branches/"))
+            throw new AccessDeniedException("Kênh đăng ký không được phép");
 
         // Branch-specific topic subscription authorization (/topic/branches/{branchId})
         if (destination.startsWith("/topic/branches/")) {

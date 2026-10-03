@@ -28,21 +28,21 @@ MVP hỗ trợ một tài khoản nhận, dùng chung garage. Người trả có
 | `SEPAY_ACCOUNT_NUMBER` | STK nhận đã liên kết đúng môi trường SePay |
 | `SEPAY_ACCOUNT_NAME` | Tên chủ tài khoản nhận |
 
-Các biến được Spring đọc qua `backend/src/main/resources/application.properties`. File `.env` ở root không tự được Spring nạp khi chạy Maven trực tiếp: đặt biến trong terminal/process hoặc Run Configuration của IDE trước khi khởi động backend. Không ghi secret vào source, tài liệu, ảnh chụp hoặc chat.
+Backend tự đọc `.env` ở root khi chạy Maven từ root hoặc backend/. Điền `SEPAY_*` theo dạng KEY=value không có dấu nháy; không cần script PowerShell nạp biến. Biến môi trường tiến trình ưu tiên hơn file: nếu đã nạp giá trị cũ, mở terminal mới để chạy backend. Restart sau khi sửa .env.
 
 Ví dụ cấu hình không chứa giá trị thật:
 
-```powershell
-$env:SEPAY_ENABLED = 'true'
-$env:SEPAY_ENVIRONMENT = 'test'
-$env:SEPAY_BANK_CODE = '<ma-ngan-hang>'
-$env:SEPAY_BANK_NAME = '<gateway-trong-webhook>'
-$env:SEPAY_ACCOUNT_NUMBER = '<stk-test-da-lien-ket>'
-$env:SEPAY_ACCOUNT_NAME = '<ten-chu-tai-khoan>'
-# Nhập SEPAY_WEBHOOK_KEY qua cấu hình bí mật của môi trường/IDE.
-# Tại thư mục backend:
-mvn spring-boot:run
+```dotenv
+SEPAY_ENABLED=true
+SEPAY_ENVIRONMENT=test
+SEPAY_BANK_CODE=<ma-ngan-hang>
+SEPAY_BANK_NAME=<gateway-trong-webhook>
+SEPAY_ACCOUNT_NUMBER=<stk-test-da-lien-ket>
+SEPAY_ACCOUNT_NAME=<ten-chu-tai-khoan>
+SEPAY_WEBHOOK_KEY=<key-cua-ban>
 ```
+
+Sau khi điền `.env`, chạy `mvn spring-boot:run` tại thư mục `backend/`.
 
 Không dùng nguyên placeholder để chuyển tiền. Không dùng cùng key giữa sandbox và live. `SEPAY_ENVIRONMENT` chọn namespace lưu giao dịch, không tự chuyển tài khoản SePay sang sandbox và không ngăn việc chuyển tiền thật vào một STK thật. Khi thử sandbox phải dùng đúng tài khoản/key/webhook sandbox và database development.
 
@@ -52,7 +52,7 @@ Không dùng nguyên placeholder để chuyển tiền. Không dùng cùng key g
 
 `SEPAY_BANK_CODE` phải dùng mã được [danh sách ngân hàng của dịch vụ QR](https://vietqr.app/banks.json) hỗ trợ, ví dụ `MBBank` cho MB. Không nhập SWIFT `MSCBVNVX`: kiểm tra local ngày 01/10/2026 cho thấy dịch vụ trả HTTP 200 nhưng nội dung HTML thay vì PNG, khiến Flutter báo không tải được QR. `SEPAY_BANK_NAME` vẫn phải khớp `gateway` của webhook.
 
-Nếu thay mã ngân hàng/môi trường: nạp lại `.env` vào terminal Maven, khởi động lại backend, quay lại hóa đơn và tạo phiên mới để lưu cấu hình nhận tiền mới. Không dùng QR cũ. Hóa đơn local #2 là fixture riêng 1.000đ; chỉ thử tiền thật sau khi tài khoản nhận và webhook Live đã kết nối đúng. Không đổi số tiền của QR hóa đơn #1.
+Nếu thay mã ngân hàng/môi trường: sửa `.env`, khởi động lại backend, quay lại hóa đơn và tạo phiên mới để lưu cấu hình nhận tiền mới. Không dùng QR cũ. Hóa đơn local #2 là fixture riêng 1.000đ; chỉ thử tiền thật sau khi tài khoản nhận và webhook Live đã kết nối đúng. Không đổi số tiền của QR hóa đơn #1.
 
 - URL: `https://<backend-public-host>/api/payments/sepay/webhook`.
 - POST JSON, sự kiện tiền vào, lọc tài khoản nhận đã cấu hình.
@@ -107,4 +107,4 @@ Hóa đơn local #2 đã thanh toán đủ 2.000đ qua webhook Live. Nguyên nh�
 
 ## Nạp cấu hình khi chạy Maven
 
-Spring Boot không tự đọc .env ở root. Xem mục 3 của [WEB_TEAM_QUICKSTART.md](WEB_TEAM_QUICKSTART.md) để nạp biến trong cùng terminal chạy backend; restart backend sau khi đổi test/live. Nếu mobile vẫn hiện test dù .env ghi live, kiểm tra biến môi trường của tiến trình backend và mở lại màn thanh toán.
+Backend đã tự đọc .env ở root. Restart sau khi đổi cấu hình; mở terminal mới nếu trước đây đã nạp biến môi trường bằng PowerShell, vì biến tiến trình ưu tiên hơn file.
