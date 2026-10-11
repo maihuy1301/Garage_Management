@@ -14,6 +14,7 @@ import '../features/notifications/data/notification_service.dart';
 import '../features/notifications/data/fcm_client.dart';
 import '../features/notifications/data/push_registration.dart';
 import '../features/technician/data/technician_service.dart';
+import '../features/repair_chat/data/repair_chat_service.dart';
 import '../features/vehicles/data/vehicle_service.dart';
 import '../features/invoices/data/invoice_service.dart';
 import '../features/invoices/data/payment_service.dart';
@@ -73,6 +74,9 @@ Future<void> bootstrap() async {
         ),
         Provider<TechnicianGateway>(
           create: (_) => TechnicianService(apiClient),
+        ),
+        Provider<RepairChatGateway>(
+          create: (_) => RepairChatService(apiClient),
         ),
         Provider<VehicleGateway>(create: (_) => VehicleService(apiClient)),
         Provider<InvoiceGateway>(create: (_) => InvoiceService(apiClient)),

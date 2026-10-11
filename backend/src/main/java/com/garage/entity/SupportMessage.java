@@ -4,24 +4,26 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "SupportMessage")
+@Table(name = "TinNhanHoTro")
 public class SupportMessage {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "MaTinNhan")
     private Long id;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "conversationId", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "MaHoiThoai", nullable = false)
     private SupportConversation conversation;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "senderId")
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "MaNguoiGui")
     private NguoiDung sender;
-    @Column(nullable = false, length = 12)
+    @Column(name = "LoaiNguoiGui", nullable = false, length = 12)
     private String senderType;
-    @Column(nullable = false, length = 2000)
+    @Column(name = "NoiDung", nullable = false, length = 2000)
     private String content;
-    @Column(nullable = false, length = 100)
+    @Column(name = "MaChongTrung", nullable = false, length = 100)
     private String clientId;
-    @Column(nullable = false)
+    @Column(name = "ThoiDiemGui", nullable = false)
     private LocalDateTime createdAt;
+    @Column(name = "MaDatLich")
     private Integer appointmentId;
-    @Column(length = 64)
+    @Column(name = "MaBamYeuCau", length = 64)
     private String requestHash;
     public String getRequestHash() { return requestHash; }
     public void setRequestHash(String value) { requestHash = value; }

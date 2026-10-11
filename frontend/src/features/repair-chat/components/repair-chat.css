@@ -1,0 +1,20 @@
+.repair-chat { margin-top: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; background: var(--color-surface, #fff); }
+.repair-chat__header { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid var(--color-border); background: var(--color-surface-container-low, #eff4ff); }
+.repair-chat__header strong { font-size: 1.1rem; }
+.repair-chat__header small, .repair-chat__footnote { color: var(--color-outline, #64748b); }
+.repair-chat__vehicle { width: 58px; height: 48px; flex-shrink: 0; display: grid; place-items: center; border-radius: 8px; overflow: hidden; background: var(--color-surface-container, #e6eeff); color: var(--color-primary); }
+.repair-chat__vehicle img { width: 100%; height: 100%; object-fit: cover; }
+.repair-chat__delete { margin-left: auto; color: var(--color-error, #ba1a1a); }
+.repair-chat__messages { display: flex; flex-direction: column; gap: 12px; height: 350px; overflow-y: auto; padding: 16px; }
+.repair-chat__bubble { align-self: flex-start; max-width: 85%; padding: 10px 14px; border-radius: 12px 12px 12px 2px; background: var(--color-surface-container, #e6eeff); overflow-wrap: anywhere; }
+.repair-chat__bubble.is-mine { align-self: flex-end; background: var(--color-primary, #00236f); color: white; border-radius: 12px 12px 2px 12px; }
+.repair-chat__bubble p { margin: 6px 0; white-space: pre-wrap; }
+.repair-chat__bubble small, .repair-chat__bubble time { font-size: .75rem; opacity: .85; }
+.repair-chat__empty { margin: auto; padding: 20px; text-align: center; max-width: 430px; color: var(--color-outline, #64748b); }
+.repair-chat__composer { display: flex; gap: 10px; padding: 14px; border-top: 1px solid var(--color-border); align-items: center; }
+.repair-chat__composer textarea { flex: 1; min-width: 0; resize: vertical; padding: 10px; border-radius: 8px; border: 1px solid var(--color-border); font: inherit; background: inherit; color: inherit; }
+.repair-chat__composer button { padding: 10px 16px; border-radius: 8px; }
+.repair-chat button:disabled { opacity: .5; cursor: not-allowed; }
+.repair-chat__notice { padding: 12px 16px; color: var(--color-error, #ba1a1a); }
+.repair-chat__footnote { display: block; padding: 0 14px 12px; }
+@media (max-width: 600px) { .repair-chat__header { flex-wrap: wrap; } .repair-chat__delete { margin-left: 0; } .repair-chat__messages { height: 300px; } }

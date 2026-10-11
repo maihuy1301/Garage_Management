@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   RepairOrderResponse,
   RepairOrderStatusLabels,
@@ -26,6 +28,9 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
   onAssign,
   onGenerateInvoice,
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const canOpenChat = user?.roles?.some(role => ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK'].includes(role)) ?? false;
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<number>>(new Set());
   const pageSize = 10;
@@ -343,6 +348,11 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                             icon: 'visibility',
                             onClick: () => onViewDetail(order),
                           },
+                          canOpenChat && {
+                            label: 'Trao đổi sửa chữa',
+                            icon: 'chat',
+                            onClick: () => navigate(`/app/repair-orders/${order.maPhieuSuaChua}/chat`),
+                          },
                           canGenerateInvoice && onGenerateInvoice && order.trangThai === 'HOAN_TAT'
                             ? {
                                 label: 'Xuất hóa đơn',
@@ -473,6 +483,11 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                                   label: 'Xem chi tiết lệnh phát sinh',
                                   icon: 'visibility',
                                   onClick: () => onViewDetail(child),
+                                },
+                                canOpenChat && {
+                                  label: 'Trao đổi sửa chữa',
+                                  icon: 'chat',
+                                  onClick: () => navigate(`/app/repair-orders/${child.maPhieuSuaChua}/chat`),
                                 },
                                 canGenerateInvoice && onGenerateInvoice && child.trangThai === 'HOAN_TAT'
                                   ? {

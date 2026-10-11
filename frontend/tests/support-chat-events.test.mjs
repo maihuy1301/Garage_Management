@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { transformSync } from 'esbuild';
 
-function fixture() {
+function fixture(destination) {
   const sockets = [], timers = [], statuses = [];
   let refreshes = 0;
   class Socket {
@@ -19,7 +19,7 @@ function fixture() {
   const context = { exports: {}, module: { exports: {} }, WebSocket: Socket,
     window: { setTimeout: (fn, delay) => { timers.push({ fn, delay }); return timers.length; }, clearTimeout: id => { if (timers[id - 1]) timers[id - 1].cancelled = true; } } };
   vm.runInNewContext(transformSync(source, { loader: 'ts', format: 'cjs' }).code, context);
-  const stop = context.module.exports.watchSupportChat('test-session', () => refreshes++, s => statuses.push(s));
+  const stop = context.module.exports.watchSupportChat('test-session', () => refreshes++, s => statuses.push(s), destination);
   return { sockets, timers, statuses, stop, get refreshes() { return refreshes; } };
 }
 test('authenticates, subscribes privately, handles fragmented and batched STOMP frames', () => {
@@ -37,4 +37,20 @@ test('reconnect reconciles missed events and logout cancels reconnect', () => {
   f.sockets[1].receive('CONNECTED\n\n\0'); assert.equal(f.refreshes, 1);
   f.sockets[1].close(); f.stop(); assert.equal(f.timers.at(-1).cancelled, true);
   const count = f.refreshes; f.sockets[1].receive('MESSAGE\n\n{}\0'); assert.equal(f.refreshes, count);
+});
+
+test('notification channel subscribes privately and reconciles after reconnect', () => {
+  const f = fixture('/user/queue/notifications');
+  f.sockets[0].receive('CONNECTED\n\n\0');
+  assert.match(f.sockets[0].sent[0], /destination:\/user\/queue\/notifications\n/);
+  assert.equal(f.refreshes, 1);
+  f.sockets[0].receive('MESSAGE\n\n{}\0');
+  assert.equal(f.refreshes, 2);
+  f.sockets[0].close(); f.timers[0].fn();
+  f.sockets[1].receive('CONNECTED\n\n\0');
+  assert.match(f.sockets[1].sent[0], /destination:\/user\/queue\/notifications\n/);
+  assert.equal(f.refreshes, 3);
+  f.stop();
+  f.sockets[1].receive('MESSAGE\n\n{}\0');
+  assert.equal(f.refreshes, 3);
 });

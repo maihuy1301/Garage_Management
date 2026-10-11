@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: '/notifications',
   CHAT: '/chat',
   SUPPORT_CHAT: '/support-chat',
+  REPAIR_CHAT: '/repair-chat',
   REPORTS: {
     DASHBOARD: '/reports/dashboard',
     REVENUE: '/reports/revenue',

@@ -1,6 +1,44 @@
 # PROJECT CONTEXT — Garage Management System
 
+## Việt hóa bảng chat hỗ trợ — 11/10/2026
+
+- Đã áp `V08__support_chat_vietnamese_names.sql` vào SQL Server Docker local: `SupportConversation` → `HoiThoaiHoTro`, `SupportMessage` → `TinNhanHoTro`, `SupportReadCursor` → `TrangThaiDocHoTro`; đổi 19 tên cột theo đề xuất.
+- Theo yêu cầu người dùng, giữ tên `customerId`/`agentId` và khóa ngoại tới `NguoiDung.MaNguoiDung`. API/DTO, tên class Java và trạng thái BOT/WAITING/HUMAN giữ nguyên; JPA dùng tên SQL mới.
+- Fresh install dùng `database/GarageManagementSystem.sql`; DB đã áp V05 cần áp V08 một lần. Không chạy lại schema tổng trên database có dữ liệu. V05 giữ nguyên để lưu lịch sử migration.
+- Đã chạy thử migration rồi rollback, sau đó áp thật; so sánh toàn bộ hàng trước/sau đạt, giữ 1 hội thoại, 2 tin nhắn, 2 trạng thái đọc. Các CHECK đều enabled/trusted, FK customerId/agentId đúng NguoiDung.
+- 50/50 targeted backend tests đạt, gồm 1 SQL Server integration test đọc/ghi Unicode, history và read cursor với rollback. Số bản ghi sau test vẫn 1/2/2. Chưa E2E web/mobile hoặc gọi Gemini thật.
+- Khởi động lại backend với source mới trước khi sử dụng chat. Không commit/push/deploy, không chạy/build Flutter.
+
+
+## Đổi tên SQL sang tiếng Việt — 11/10/2026
+
+Người dùng duyệt đổi tên bảng và cột. Đã áp V07__repair_chat_vietnamese_names.sql vào GarageManagementSystem trong garage-sqlserver. RepairChatRoom → PhongChatSuaChua; RepairChatMessage → TinNhanSuaChua.
+
+- PhongChatSuaChua: MaTiepNhan, ThoiDiemXoa, MaNguoiXoa.
+- TinNhanSuaChua: MaTinNhan, MaTiepNhan, MaNguoiGui, VaiTroNguoiGui, MaChongTrung, NoiDung, ThoiDiemGui.
+- Migration dùng transaction, khóa hai bảng và so sánh mọi giá trị trước/sau; giữ nguyên 2 phòng, 8 tin nhắn. Lần chạy đầu bị SQL Server chặn đổi tên cột thuộc CHECK và đã rollback; bản hoàn chỉnh tạo lại các CHECK trong cùng transaction, kiểm tra enabled/trusted đạt. FK, unique chống trùng, identity và index giữ chức năng; tên constraint/index khai báo cũng đổi sang tiếng Việt.
+- Cập nhật GarageManagementSystem.sql cho cài mới; giữ V06 là lịch sử, database đã có V06 dùng V07. Local đã áp V07, không chạy lại migration hoặc toàn bộ schema.
+- Cập nhật @Table/@Column/@JoinColumn trong hai entity và native SQL của RepairChatLocalIntegrationTest. Tên lớp/thuộc tính Java và JSON API giữ nguyên để web/mobile tương thích.
+- 30 tests backend đạt: 15 service, 4 notifier, 7 controller, 4 SQL integration rollback. Kiểm tra gửi/đọc Unicode, retry, unique, phân trang, bàn giao, xóa và thông báo. Chưa kiểm thử E2E UI sau đổi tên. Không chạy/build Flutter, commit/push/deploy.
+- Khởi động lại backend trước khi tiếp tục chat. Trong SSMS refresh Tables để thấy tên mới.
+
+**Cập nhật thông báo chat sửa chữa 09/10/2026:** tin mới của thợ báo đến tiếp tân hoạt động cùng chi nhánh qua chuông web (badge/toast), mở đúng phiếu sửa chữa. Dùng bảng ThongBao hiện hữu, không thêm schema. WebSocket riêng sau commit và tải bù mỗi 10 giây; tin cũ không sinh lại thông báo. Khởi động lại backend và tải lại web để thử. 36 targeted backend tests, 4 SQL integration rollback, 3 STOMP tests và web build đạt; chưa thử E2E web/mobile cho thông báo.
+
 > **Ghi chú cho AI Agent**: File này tổng hợp các quyết định kỹ thuật và trạng thái triển khai thực tế. Đọc file này khi bắt đầu session mới để nắm ngữ cảnh mà không cần scan toàn bộ codebase.
+
+## Chat sửa chữa — cập nhật database 09/10/2026
+
+- Người dùng đã duyệt cập nhật và áp database local ngày 09/10. Thêm `database/migrations/V06__repair_chat.sql`, đồng bộ `GarageManagementSystem.sql`, áp thành công vào `GarageManagementSystem` trong `garage-sqlserver` trên volume hiện hữu. Chỉ thêm RepairChatRoom/RepairChatMessage cùng FK, unique retry và index lịch sử.
+- `.env` local đã đặt `GARAGE_REPAIR_CHAT_ENABLED=true`; mặc định source vẫn false cho môi trường khác. Backend hiện chưa chạy, người dùng khởi động để nhận cấu hình; không tự chạy/build Flutter.
+- 25 backend tests đạt: 15 service, 7 controller, 3 SQL integration rollback. Đã kiểm tra Unicode, idempotency, unique constraint, phân trang, bàn giao chỉ đọc và hard delete + marker. Sau thử hai bảng chat 0 dòng, số dòng các bảng cũ không đổi. Chưa kiểm thử cạnh tranh nhiều transaction hoặc E2E trên hai thiết bị.
+
+### Lịch sử khung code ngày 07/10/2026
+
+- Người dùng thu gọn phạm vi: chat ngay trong lần sửa, không nhóm chi nhánh, không gửi ảnh; lịch sử phiếu/bảo dưỡng chưa làm. Giữ ảnh hồ sơ xe thu nhỏ khi có. Tiếp tân có thể xóa vĩnh viễn nội dung chat đã lưu trữ sau bàn giao.
+- Đã có khung backend `/api/repair-chat`, web tab **Trao đổi sửa chữa** trong chi tiết phiếu và mobile `/technician/repair-orders/:id/chat`. Backend kiểm tra role/chi nhánh và phân công DA_DUYET của thợ; khách bị chặn. Các phiếu cùng MaTiepNhan dùng chung phòng, lần tiếp nhận khác có phòng khác.
+- Source hỗ trợ phân trang 40 tin, retry idempotency, lấy tin mới mỗi 5 giây khi màn đang mở, gửi chữ tối đa 2000 ký tự, chỉ đọc khi bàn giao. DELETE chỉ FRONT_DESK/ADMIN sau bàn giao, xóa nội dung và giữ dấu người/thời điểm xóa chống tái tạo; không đụng chứng từ hay ảnh xe. Chưa có WebSocket/unread/push cho chat này.
+- `GARAGE_REPAIR_CHAT_ENABLED=false` mặc định ngay trong injection; capabilities không đọc các bảng mới. Người dùng đã trả lời **“Chỉ làm khung code, để database duyệt sau”**. Không thêm migration hay sửa schema; SQL đề xuất nằm ngoài repo trong Work Sessions. Không bật cờ trước khi duyệt/áp schema và kiểm thử SQL.
+- Kiểm tra: 34 backend targeted tests đạt; 25 Flutter targeted tests đạt, gồm widget ở 390×844; flutter analyze sạch; web build đạt với cảnh báo bundle lớn. Lint web bị chặn do thiếu ESLint config. Chưa chạy/build app Flutter, chưa E2E/SQL thật hoặc kiểm tra giao diện web trong trình duyệt. Chi tiết: `docs/REPAIR_CHAT_SCAFFOLD.md`.
 
 ## 1. Môi trường phát triển đã xác minh
 
@@ -361,7 +399,7 @@
   - Đăng nhập thật qua `POST /api/auth/login`, JWT lưu bằng secure storage và kiểm tra session qua `GET /api/auth/me`; cả hai luồng đều lưu trạng thái `hasPin` để chuẩn bị màn PIN sau đăng nhập.
   - Role đọc từ claim `roles` để điều hướng customer/technician; backend vẫn là authority cho RBAC, branch và ownership.
   - Các route cá nhân yêu cầu đăng nhập và bảo toàn route đích qua tham số `returnTo`.
-- **API base URL**: mặc định `http://127.0.0.1:8080/api` cho Android thật qua USB + adb reverse; profile emulator truyền `http://10.0.2.2:8080/api`; override bằng `--dart-define=API_BASE_URL=...` cho môi trường khác. Với Android thật qua USB, chạy `adb reverse tcp:8080 tcp:8080` và dùng `http://127.0.0.1:8080/api`.
+- **API base URL (09/10/2026)**: mặc định `http://10.0.2.2:8080/api` để Android Emulator chỉ cần `flutter run`; web dùng localhost. Profile điện thoại thật USB vẫn truyền `http://127.0.0.1:8080/api` và thiết lập adb reverse. Môi trường khác override bằng `--dart-define=API_BASE_URL=...`. Backend phải chạy trên máy tính, Docker SQL Server riêng không cung cấp API.
 - **Android emulator graphics**: AVD `Pixel_10_Pro_XL` Android 17/API 37, page size 16 KB có thể bị SurfaceView đen dù Flutter widget tree và Dart VM vẫn hoạt động. Android debug manifest tắt Impeller để dùng Skia fallback. Ngày 2026-09-11, Android Studio đã ghi AVD trở lại `hw.gpu.mode=auto` và bật Fast Boot, làm lỗi tái diễn kèm ADB mất thiết bị; đã đặt `hw.gpu.mode=software`, `fastboot.forceColdBoot=yes`, `fastboot.forceFastBoot=no`, cold boot và xác minh launcher cùng AutoCare render bình thường. Bản release giữ renderer mặc định.
 - **Customer feature screens**: `/vehicles` đã dùng `GET/POST /api/vehicles` để xem và thêm xe chính chủ bằng form bottom sheet; mục “Xe của tôi”, CTA/nút `+` và dấu cộng lớn ở empty state cùng mở form. Form đăng ký xe bám bố cục Stitch với các trường hai cột, badge bảo mật, vùng “Ảnh xe hoặc Giấy đăng kiểm”, CTA “Thêm xe vào danh sách” và khối trợ giúp. Hãng xe được tải từ `GET /api/brands`; khi chọn hãng, app tải model qua `GET /api/brands/{brandId}/models`, bắt buộc chọn cặp hợp lệ rồi gửi `maHangXe`/`maModel` trong `POST /api/vehicles`. Mobile không gửi `maKhachHang`; backend xác định owner từ JWT. Form có loading, retry, empty/error cho danh mục hãng-model. Vùng ảnh cho phép chụp bằng camera hoặc chọn từ thư viện, xin quyền camera, xem trước, nén ở chất lượng 82 và tải lên sau khi tạo xe qua `POST /api/vehicles/{id}/image`; hỗ trợ JPEG/PNG/WebP tối đa 8 MB. Backend lưu metadata ở `HinhAnhXe`, nội dung file tại `VEHICLE_IMAGES_DIR`, kiểm tra ownership trước upload/xem/xóa; card xe đọc ảnh có JWT qua `GET /api/vehicles/{id}/image` và dùng placeholder nếu chưa có. Card xe có nút “Đặt lịch ngay” chuyển sang `/appointments?vehicleId=...` và tự chọn xe tương ứng. `/vehicles` và `/appointments` dùng header/banner AutoCare phỏng theo tài liệu Stitch nhưng giữ thanh điều hướng hiện hành `Trang chủ / Đặt lịch / Theo dõi / Thông báo / Tài khoản`; route `/vehicles` đánh dấu đúng mục Tài khoản. Màn lịch hẹn tải xe/chi nhánh hoạt động, cho phép thêm xe ngay trong luồng rồi tự tải lại để hiện form đặt lịch, tạo lịch, hiển thị lịch của customer và hủy trạng thái `CHO_XAC_NHAN`/`DA_XAC_NHAN` qua quyền backend. `/tracking` đã thay placeholder bằng danh sách lịch hẹn và màn chi tiết `/tracking/{appointmentId}`; app đọc `GET /api/appointments` cùng `GET /api/appointments/{id}`, hiển thị timeline `CHO_XAC_NHAN`, `DA_XAC_NHAN`, `DA_TIEP_NHAN`, `HOAN_TAT`, hỗ trợ pull-to-refresh/loading/error/empty và không tự cập nhật trạng thái. Theo dõi phiếu sửa chữa chi tiết cho customer và notification vẫn là phase tiếp theo.
 - **Technician feature screens**: `/technician` đã thay placeholder bằng danh sách phiếu sửa chữa được phân công, có bộ lọc đang xử lý/hoàn tất/tất cả, pull-to-refresh và loading/error/empty state. Route `/technician/repair-orders/{id}` tải song song chi tiết phiếu, hạng mục dịch vụ và lịch sử tiến độ; hiển thị xe, khách hàng, chi nhánh, ghi chú tiếp nhận, trạng thái và tỷ lệ hạng mục hoàn tất. Kỹ thuật viên có thể cập nhật tiến độ (`DA_PHAN_CONG`, `DANG_SUA`, `TAM_DUNG`, `CHO_KH_DUYET`, `HOAN_TAT`) kèm phần trăm/mô tả, hoặc đổi trạng thái hạng mục (`CHO_XU_LY`, `DANG_SUA`, `HOAN_TAT`, `HUY`). Phiếu `HOAN_TAT`/`HUY` bị khóa thao tác trên UI; backend vẫn enforce role, branch và assigned-only. Mobile không gửi `maNhanVien` hoặc `maChiNhanh`. `flutter analyze` sạch và toàn bộ 37 test đạt ngày 2026-09-14.

@@ -473,51 +473,95 @@ GO
 IF DB_NAME() <> N'GarageManagementSystem' THROW 51001, 'Unexpected database.', 1;
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
-IF OBJECT_ID(N'dbo.SupportConversation', N'U') IS NOT NULL
-   OR OBJECT_ID(N'dbo.SupportMessage', N'U') IS NOT NULL
-   OR OBJECT_ID(N'dbo.SupportReadCursor', N'U') IS NOT NULL
+IF OBJECT_ID(N'dbo.HoiThoaiHoTro', N'U') IS NOT NULL
+   OR OBJECT_ID(N'dbo.TinNhanHoTro', N'U') IS NOT NULL
+   OR OBJECT_ID(N'dbo.TrangThaiDocHoTro', N'U') IS NOT NULL
 BEGIN
     ROLLBACK TRANSACTION;
     THROW 51000, 'Support chat tables already exist. Inspect schema before applying.', 1;
 END;
-CREATE TABLE dbo.SupportConversation (
-    id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+CREATE TABLE dbo.HoiThoaiHoTro (
+    MaHoiThoai INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
     customerId INT NOT NULL REFERENCES dbo.NguoiDung(MaNguoiDung),
-    branchId INT NOT NULL REFERENCES dbo.ChiNhanh(MaChiNhanh),
+    MaChiNhanh INT NOT NULL REFERENCES dbo.ChiNhanh(MaChiNhanh),
     agentId INT NULL REFERENCES dbo.NguoiDung(MaNguoiDung),
-    status VARCHAR(20) NOT NULL,
-    updatedAt DATETIME2 NOT NULL,
-    lastMessageId BIGINT NULL,
-    pendingBotMessageId BIGINT NULL,
-    CONSTRAINT UQ_SupportConversation_CustomerBranch UNIQUE (customerId, branchId),
-    CONSTRAINT CK_SupportConversation_Status CHECK (status IN ('BOT','WAITING','HUMAN')),
-    CONSTRAINT CK_SupportConversation_Agent CHECK
-       ((status = 'HUMAN' AND agentId IS NOT NULL) OR (status IN ('BOT','WAITING') AND agentId IS NULL))
+    TrangThai VARCHAR(20) NOT NULL,
+    ThoiDiemCapNhat DATETIME2 NOT NULL,
+    MaTinNhanCuoi BIGINT NULL,
+    MaTinNhanChoBotXuLy BIGINT NULL,
+    CONSTRAINT UQ_HoiThoaiHoTro_KhachChiNhanh UNIQUE (customerId, MaChiNhanh),
+    CONSTRAINT CK_HoiThoaiHoTro_TrangThai CHECK (TrangThai IN ('BOT','WAITING','HUMAN')),
+    CONSTRAINT CK_HoiThoaiHoTro_NguoiHoTro CHECK
+       ((TrangThai = 'HUMAN' AND agentId IS NOT NULL) OR (TrangThai IN ('BOT','WAITING') AND agentId IS NULL))
 );
-CREATE INDEX IX_SupportConversation_BranchUpdated ON dbo.SupportConversation(branchId, updatedAt DESC);
-CREATE TABLE dbo.SupportMessage (
-    id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    conversationId INT NOT NULL REFERENCES dbo.SupportConversation(id),
-    senderId INT NULL REFERENCES dbo.NguoiDung(MaNguoiDung),
-    senderType VARCHAR(12) NOT NULL,
-    content NVARCHAR(2000) NOT NULL,
-    clientId VARCHAR(100) NOT NULL,
-    createdAt DATETIME2 NOT NULL,
-    appointmentId INT NULL REFERENCES dbo.DatLich(MaDatLich),
-    requestHash VARCHAR(64) NULL,
-    CONSTRAINT UQ_SupportMessage_Client UNIQUE (conversationId, clientId),
-    CONSTRAINT CK_SupportMessage_Sender CHECK
-       ((senderType IN ('BOT','SYSTEM') AND senderId IS NULL) OR
-        (senderType IN ('CUSTOMER','STAFF') AND senderId IS NOT NULL))
+CREATE INDEX IX_HoiThoaiHoTro_ChiNhanhCapNhat ON dbo.HoiThoaiHoTro(MaChiNhanh, ThoiDiemCapNhat DESC);
+CREATE TABLE dbo.TinNhanHoTro (
+    MaTinNhan BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    MaHoiThoai INT NOT NULL REFERENCES dbo.HoiThoaiHoTro(MaHoiThoai),
+    MaNguoiGui INT NULL REFERENCES dbo.NguoiDung(MaNguoiDung),
+    LoaiNguoiGui VARCHAR(12) NOT NULL,
+    NoiDung NVARCHAR(2000) NOT NULL,
+    MaChongTrung VARCHAR(100) NOT NULL,
+    ThoiDiemGui DATETIME2 NOT NULL,
+    MaDatLich INT NULL REFERENCES dbo.DatLich(MaDatLich),
+    MaBamYeuCau VARCHAR(64) NULL,
+    CONSTRAINT UQ_TinNhanHoTro_ChongTrung UNIQUE (MaHoiThoai, MaChongTrung),
+    CONSTRAINT CK_TinNhanHoTro_NguoiGui CHECK
+       ((LoaiNguoiGui IN ('BOT','SYSTEM') AND MaNguoiGui IS NULL) OR
+        (LoaiNguoiGui IN ('CUSTOMER','STAFF') AND MaNguoiGui IS NOT NULL))
 );
-CREATE INDEX IX_SupportMessage_History ON dbo.SupportMessage(conversationId, id DESC);
-CREATE TABLE dbo.SupportReadCursor (
-    id BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-    conversationId INT NOT NULL REFERENCES dbo.SupportConversation(id),
-    userId INT NOT NULL REFERENCES dbo.NguoiDung(MaNguoiDung),
-    lastReadId BIGINT NOT NULL,
-    CONSTRAINT UQ_SupportReadCursor_Member UNIQUE (conversationId, userId),
-    CONSTRAINT CK_SupportReadCursor_Positive CHECK (lastReadId >= 0)
+CREATE INDEX IX_TinNhanHoTro_LichSu ON dbo.TinNhanHoTro(MaHoiThoai, MaTinNhan DESC);
+CREATE TABLE dbo.TrangThaiDocHoTro (
+    MaTrangThaiDoc BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    MaHoiThoai INT NOT NULL REFERENCES dbo.HoiThoaiHoTro(MaHoiThoai),
+    MaNguoiDung INT NOT NULL REFERENCES dbo.NguoiDung(MaNguoiDung),
+    MaTinNhanDaDocCuoi BIGINT NOT NULL,
+    CONSTRAINT UQ_TrangThaiDocHoTro_ThanhVien UNIQUE (MaHoiThoai, MaNguoiDung),
+    CONSTRAINT CK_TrangThaiDocHoTro_MaTinNhan CHECK (MaTinNhanDaDocCuoi >= 0)
 );
 COMMIT TRANSACTION;
+GO
+
+-- Repair chat (approved 2026-10-09)
+-- Approved by user on 2026-10-09. Additive repair chat migration.
+IF DB_NAME() <> N'GarageManagementSystem' THROW 51001, 'Unexpected database.', 1;
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF OBJECT_ID(N'dbo.PhongChatSuaChua', N'U') IS NOT NULL
+   OR OBJECT_ID(N'dbo.TinNhanSuaChua', N'U') IS NOT NULL
+BEGIN
+    ROLLBACK TRANSACTION;
+    THROW 51002, 'Repair chat tables already exist. Inspect schema before applying.', 1;
+END;
+
+CREATE TABLE dbo.PhongChatSuaChua (
+    MaTiepNhan INT NOT NULL PRIMARY KEY,
+    ThoiDiemXoa DATETIME2 NULL,
+    MaNguoiXoa INT NULL,
+    CONSTRAINT FK_PhongChatSuaChua_TiepNhan FOREIGN KEY (MaTiepNhan) REFERENCES dbo.PhieuTiepNhan(MaTiepNhan),
+    CONSTRAINT FK_PhongChatSuaChua_NguoiXoa FOREIGN KEY (MaNguoiXoa) REFERENCES dbo.NguoiDung(MaNguoiDung),
+    CONSTRAINT CK_PhongChatSuaChua_ThongTinXoa CHECK (
+        (ThoiDiemXoa IS NULL AND MaNguoiXoa IS NULL) OR (ThoiDiemXoa IS NOT NULL AND MaNguoiXoa IS NOT NULL))
+);
+
+CREATE TABLE dbo.TinNhanSuaChua (
+    MaTinNhan BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    MaTiepNhan INT NOT NULL,
+    MaNguoiGui INT NOT NULL,
+    VaiTroNguoiGui VARCHAR(20) NOT NULL,
+    MaChongTrung VARCHAR(64) NOT NULL,
+    NoiDung NVARCHAR(2000) NOT NULL,
+    ThoiDiemGui DATETIME2 NOT NULL,
+    CONSTRAINT FK_TinNhanSuaChua_Phong FOREIGN KEY (MaTiepNhan) REFERENCES dbo.PhongChatSuaChua(MaTiepNhan),
+    CONSTRAINT FK_TinNhanSuaChua_NguoiGui FOREIGN KEY (MaNguoiGui) REFERENCES dbo.NguoiDung(MaNguoiDung),
+    CONSTRAINT CK_TinNhanSuaChua_VaiTro CHECK (VaiTroNguoiGui IN ('ADMIN','MANAGER','FRONT_DESK','TECHNICIAN')),
+    CONSTRAINT CK_TinNhanSuaChua_NoiDung CHECK (LEN(LTRIM(RTRIM(NoiDung))) > 0),
+    CONSTRAINT UQ_TinNhanSuaChua_ChongTrung UNIQUE (MaTiepNhan, MaNguoiGui, MaChongTrung)
+);
+CREATE INDEX IX_TinNhanSuaChua_LichSu ON dbo.TinNhanSuaChua(MaTiepNhan, MaTinNhan);
+
+COMMIT;
+-- Xoa vinh vien: DELETE cac tin cua phong; giu marker MaTiepNhan/ThoiDiemXoa/MaNguoiXoa
+-- de audit va ngan tai tao phong cu. Khong xoa anh ho so xe/chung tu.
+
 GO

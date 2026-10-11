@@ -1,5 +1,15 @@
 # Chat khách mobile và tiếp tân — hướng 1
 
+## Việt hóa bảng chat hỗ trợ — 11/10/2026
+
+- Đã áp `V08__support_chat_vietnamese_names.sql` vào SQL Server Docker local: `SupportConversation` → `HoiThoaiHoTro`, `SupportMessage` → `TinNhanHoTro`, `SupportReadCursor` → `TrangThaiDocHoTro`; đổi 19 tên cột theo đề xuất.
+- Theo yêu cầu người dùng, giữ tên `customerId`/`agentId` và khóa ngoại tới `NguoiDung.MaNguoiDung`. API/DTO, tên class Java và trạng thái BOT/WAITING/HUMAN giữ nguyên; JPA dùng tên SQL mới.
+- Fresh install dùng `database/GarageManagementSystem.sql`; DB đã áp V05 cần áp V08 một lần. Không chạy lại schema tổng trên database có dữ liệu. V05 giữ nguyên để lưu lịch sử migration.
+- Đã chạy thử migration rồi rollback, sau đó áp thật; so sánh toàn bộ hàng trước/sau đạt, giữ 1 hội thoại, 2 tin nhắn, 2 trạng thái đọc. Các CHECK đều enabled/trusted, FK customerId/agentId đúng NguoiDung.
+- 50/50 targeted backend tests đạt, gồm 1 SQL Server integration test đọc/ghi Unicode, history và read cursor với rollback. Số bản ghi sau test vẫn 1/2/2. Chưa E2E web/mobile hoặc gọi Gemini thật.
+- Khởi động lại backend với source mới trước khi sử dụng chat. Không commit/push/deploy, không chạy/build Flutter.
+
+
 ## Trạng thái ngày 02/10/2026
 
 Đã viết backend, web và mobile; tính năng **mặc định tắt**, đã áp migration V05 vào SQL Server local, chưa kiểm thử end-to-end/Gemini thật. Hướng 2 (nhóm nội bộ, trao đổi theo phiếu sửa chữa) chưa triển khai.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../data/technician_service.dart';
@@ -178,6 +179,21 @@ class _TechnicianRepairDetailPageState
         .length;
 
     return [
+      Card(
+        child: ListTile(
+          leading: const Icon(
+            Icons.chat_bubble_outline_rounded,
+            color: AppColors.primary,
+          ),
+          title: const Text('Trao đổi với tiếp tân'),
+          subtitle: const Text('Tin nhắn theo lần sửa chữa của xe'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => context.push(
+            '/technician/repair-orders/${widget.repairOrderId}/chat',
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
       Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -300,7 +316,9 @@ class _TechnicianRepairDetailPageState
       final orderId = sortedKeys[i];
       final items = groups[orderId]!;
       final isMain = orderId == order.id;
-      final groupCompleted = items.where((it) => it.status == 'HOAN_TAT').length;
+      final groupCompleted = items
+          .where((it) => it.status == 'HOAN_TAT')
+          .length;
 
       if (i > 0) {
         widgets.add(const SizedBox(height: 14));
@@ -478,12 +496,18 @@ class _RepairItemTile extends StatelessWidget {
                     ),
                     if (isAdditional)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         margin: const EdgeInsets.only(left: 6),
                         decoration: BoxDecoration(
                           color: Colors.amber.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.amber.shade400, width: 0.8),
+                          border: Border.all(
+                            color: Colors.amber.shade400,
+                            width: 0.8,
+                          ),
                         ),
                         child: Text(
                           'Phát sinh #${item.repairOrderId}',

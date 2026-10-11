@@ -19,6 +19,7 @@ import '../features/vehicles/presentation/vehicles_page.dart';
 import '../features/invoices/presentation/invoices_page.dart';
 import '../features/invoices/presentation/invoice_payment_page.dart';
 import '../features/support_chat/presentation/support_chat_page.dart';
+import '../features/repair_chat/presentation/repair_chat_page.dart';
 
 class AppRouter {
   AppRouter(AuthController authController)
@@ -152,6 +153,23 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: 'repair-orders/:repairOrderId',
+                routes: [
+                  GoRoute(
+                    path: 'chat',
+                    builder: (context, state) => RepairChatPage(
+                      key: ValueKey((
+                        authController.session,
+                        state.pathParameters['repairOrderId'],
+                        'repair-chat',
+                      )),
+                      orderId:
+                          int.tryParse(
+                            state.pathParameters['repairOrderId'] ?? '',
+                          ) ??
+                          -1,
+                    ),
+                  ),
+                ],
                 builder: (context, state) => TechnicianRepairDetailPage(
                   repairOrderId:
                       int.tryParse(

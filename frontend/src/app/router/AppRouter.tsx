@@ -22,6 +22,7 @@ import { InvoicesPage } from '@/features/invoices/pages/InvoicesPage';
 import { ServicesPage } from '@/features/services/pages/ServicesPage';
 import { InventoryPage } from '@/features/inventory/pages/InventoryPage';
 import { SupportChatPage } from '@/features/chat/pages/SupportChatPage';
+import { RepairChatPage } from '@/features/repair-chat/components/RepairChatPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -42,6 +43,9 @@ export const AppRouter: React.FC = () => {
         }
       >
         <Route index element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="repair-orders/:id/chat" element={
+          <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK']}><RepairChatPage /></RoleGuard>
+        } />
         <Route path="dashboard" element={<DashboardPage />} />
 
         {/* Admin & Manager routes */}

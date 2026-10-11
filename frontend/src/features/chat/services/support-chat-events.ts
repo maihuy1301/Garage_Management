@@ -2,7 +2,8 @@ import { ENV } from '@/app/config/env';
 
 // Isolated authenticated subscription: reconnects and reconciles missed messages
 // without interfering with the existing notification/appointment connection.
-export function watchSupportChat(token: string, refresh: () => void, status: (connected: boolean) => void): () => void {
+export function watchSupportChat(token: string, refresh: () => void, status: (connected: boolean) => void,
+  destination: '/user/queue/support-chat' | '/user/queue/notifications' = '/user/queue/support-chat'): () => void {
   let socket: WebSocket | null = null;
   let stopped = false;
   let retry: number | undefined;
@@ -23,7 +24,7 @@ export function watchSupportChat(token: string, refresh: () => void, status: (co
         buffer = buffer.slice(boundary + 1);
         if (frame.startsWith('CONNECTED\n') || frame.startsWith('CONNECTED\r\n')) {
           delay = 1000;
-          ws.send('SUBSCRIBE\nid:support\ndestination:/user/queue/support-chat\n\n\0');
+          ws.send(`SUBSCRIBE\nid:support\ndestination:${destination}\n\n\0`);
           status(true); refresh();
         } else if (frame.startsWith('MESSAGE\n') || frame.startsWith('MESSAGE\r\n')) refresh();
         else if (frame.startsWith('ERROR')) ws.close();

@@ -85,6 +85,11 @@ public class VehicleImageService {
     @Transactional(readOnly = true)
     public VehicleImageDownload download(Integer vehicleId) {
         vehicleService.requireAccessibleVehicle(vehicleId);
+        return readAuthorizedImage(vehicleId);
+    }
+
+    // Package-private: callers must authorize the vehicle through their own workflow first.
+    VehicleImageDownload readAuthorizedImage(Integer vehicleId) {
         HinhAnhXe image = hinhAnhXeRepository.findByXeMaXe(vehicleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Xe chưa có ảnh hồ sơ"));
         Path imagePath = storageRoot.resolve(image.getDuongDanAnh()).normalize();

@@ -1,5 +1,31 @@
 # Garage Management System (Hệ Thống Quản Lý Garage Ô Tô Đa Chi Nhánh)
 
+## Việt hóa bảng chat hỗ trợ — 11/10/2026
+
+- Đã áp `V08__support_chat_vietnamese_names.sql` vào SQL Server Docker local: `SupportConversation` → `HoiThoaiHoTro`, `SupportMessage` → `TinNhanHoTro`, `SupportReadCursor` → `TrangThaiDocHoTro`; đổi 19 tên cột theo đề xuất.
+- Theo yêu cầu người dùng, giữ tên `customerId`/`agentId` và khóa ngoại tới `NguoiDung.MaNguoiDung`. API/DTO, tên class Java và trạng thái BOT/WAITING/HUMAN giữ nguyên; JPA dùng tên SQL mới.
+- Fresh install dùng `database/GarageManagementSystem.sql`; DB đã áp V05 cần áp V08 một lần. Không chạy lại schema tổng trên database có dữ liệu. V05 giữ nguyên để lưu lịch sử migration.
+- Đã chạy thử migration rồi rollback, sau đó áp thật; so sánh toàn bộ hàng trước/sau đạt, giữ 1 hội thoại, 2 tin nhắn, 2 trạng thái đọc. Các CHECK đều enabled/trusted, FK customerId/agentId đúng NguoiDung.
+- 50/50 targeted backend tests đạt, gồm 1 SQL Server integration test đọc/ghi Unicode, history và read cursor với rollback. Số bản ghi sau test vẫn 1/2/2. Chưa E2E web/mobile hoặc gọi Gemini thật.
+- Khởi động lại backend với source mới trước khi sử dụng chat. Không commit/push/deploy, không chạy/build Flutter.
+
+
+## Đổi tên SQL sang tiếng Việt — 11/10/2026
+
+Người dùng duyệt đổi tên bảng và cột. Đã áp V07__repair_chat_vietnamese_names.sql vào GarageManagementSystem trong garage-sqlserver. RepairChatRoom → PhongChatSuaChua; RepairChatMessage → TinNhanSuaChua.
+
+- PhongChatSuaChua: MaTiepNhan, ThoiDiemXoa, MaNguoiXoa.
+- TinNhanSuaChua: MaTinNhan, MaTiepNhan, MaNguoiGui, VaiTroNguoiGui, MaChongTrung, NoiDung, ThoiDiemGui.
+- Migration dùng transaction, khóa hai bảng và so sánh mọi giá trị trước/sau; giữ nguyên 2 phòng, 8 tin nhắn. Lần chạy đầu bị SQL Server chặn đổi tên cột thuộc CHECK và đã rollback; bản hoàn chỉnh tạo lại các CHECK trong cùng transaction, kiểm tra enabled/trusted đạt. FK, unique chống trùng, identity và index giữ chức năng; tên constraint/index khai báo cũng đổi sang tiếng Việt.
+- Cập nhật GarageManagementSystem.sql cho cài mới; giữ V06 là lịch sử, database đã có V06 dùng V07. Local đã áp V07, không chạy lại migration hoặc toàn bộ schema.
+- Cập nhật @Table/@Column/@JoinColumn trong hai entity và native SQL của RepairChatLocalIntegrationTest. Tên lớp/thuộc tính Java và JSON API giữ nguyên để web/mobile tương thích.
+- 30 tests backend đạt: 15 service, 4 notifier, 7 controller, 4 SQL integration rollback. Kiểm tra gửi/đọc Unicode, retry, unique, phân trang, bàn giao, xóa và thông báo. Chưa kiểm thử E2E UI sau đổi tên. Không chạy/build Flutter, commit/push/deploy.
+- Khởi động lại backend trước khi tiếp tục chat. Trong SSMS refresh Tables để thấy tên mới.
+
+**Cập nhật thông báo chat sửa chữa 09/10/2026:** tin mới của thợ báo đến tiếp tân hoạt động cùng chi nhánh qua chuông web (badge/toast), mở đúng phiếu sửa chữa. Dùng bảng ThongBao hiện hữu, không thêm schema. WebSocket riêng sau commit và tải bù mỗi 10 giây; tin cũ không sinh lại thông báo. Khởi động lại backend và tải lại web để thử. 36 targeted backend tests, 4 SQL integration rollback, 3 STOMP tests và web build đạt; chưa thử E2E web/mobile cho thông báo.
+
+**Chat tiếp tân ↔ kỹ thuật viên theo lần sửa:** web mở trong chi tiết phiếu sửa chữa → **Trao đổi sửa chữa**; mobile thợ mở chi tiết công việc → **Trao đổi với tiếp tân**. Ngày 09/10/2026 đã được duyệt, áp V06 vào SQL Server local và bật `GARAGE_REPAIR_CHAT_ENABLED=true` trong `.env` local. 25 backend tests đạt, gồm 3 SQL integration rollback. Khởi động backend để nhận cấu hình; chưa thử E2E web/mobile. Chỉ chữ, chưa làm lịch sử bảo dưỡng. Xem [bàn giao chat sửa chữa](docs/REPAIR_CHAT_SCAFFOLD.md).
+
 Chat khách mobile ↔ tiếp tân (02/10/2026): đã viết luồng bot/FAQ → chờ tiếp tân → nhân viên hỗ trợ, nhắn tin realtime và đặt lịch có xác nhận. **Mặc định tắt; đã áp migration V05 vào SQL Server local ngày 02/10/2026, chưa kiểm thử end-to-end.** Xem [cấu hình và bàn giao chat hỗ trợ](docs/SUPPORT_CHAT_SETUP.md). Gemini là tùy chọn, chưa có key vẫn dùng được FAQ và chat người-người sau khi bật tính năng.
 
 ## 1. Project Overview

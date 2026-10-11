@@ -4,15 +4,16 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "SupportReadCursor")
+@Table(name = "TrangThaiDocHoTro")
 public class SupportReadCursor {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "MaTrangThaiDoc")
     private Long id;
-    @Column(nullable = false)
+    @Column(name = "MaHoiThoai", nullable = false)
     private Integer conversationId;
-    @Column(nullable = false)
+    @Column(name = "MaNguoiDung", nullable = false)
     private Integer userId;
-    @Column(nullable = false)
+    @Column(name = "MaTinNhanDaDocCuoi", nullable = false)
     private Long lastReadId;
     public Long getId() { return id; }
     public void setId(Long value) { this.id = value; }

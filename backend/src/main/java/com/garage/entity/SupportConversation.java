@@ -4,23 +4,26 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "SupportConversation")
+@Table(name = "HoiThoaiHoTro")
 public class SupportConversation {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "MaHoiThoai")
     private Integer id;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "customerId", nullable = false)
     private NguoiDung customer;
-    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "branchId", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "MaChiNhanh", nullable = false)
     private ChiNhanh branch;
     @ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name = "agentId")
     private NguoiDung agent;
-    @Column(nullable = false, length = 20)
+    @Column(name = "TrangThai", nullable = false, length = 20)
     private String status;
-    @Column(nullable = false)
+    @Column(name = "ThoiDiemCapNhat", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "MaTinNhanCuoi")
     private Long lastMessageId;
 
+    @Column(name = "MaTinNhanChoBotXuLy")
     private Long pendingBotMessageId;
     public Integer getId() { return id; }
     public void setId(Integer value) { this.id = value; }

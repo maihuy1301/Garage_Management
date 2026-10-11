@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/common/Button';
 import { AssignTechnicianModal } from './AssignTechnicianModal';
 import { RejectAssignmentModal } from './RejectAssignmentModal';
+import { RepairChatPanel } from '@/features/repair-chat/components/RepairChatPanel';
 
 interface RepairOrderDetailModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export const RepairOrderDetailModal: React.FC<RepairOrderDetailModalProps> = ({
   onOrderUpdated,
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'assignments' | 'items' | 'parts'>('assignments');
+  const [activeTab, setActiveTab] = useState<'assignments' | 'items' | 'parts' | 'chat'>('assignments');
   const [items, setItems] = useState<RepairItemResponse[]>([]);
   const [parts, setParts] = useState<RepairPartResponse[]>([]);
   const [assignments, setAssignments] = useState<AssignmentResponse[]>([]);
@@ -334,6 +335,10 @@ export const RepairOrderDetailModal: React.FC<RepairOrderDetailModalProps> = ({
               </span>
               Phụ tùng ({parts.length})
             </button>
+            <button type="button" className={`btn-ghost ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')} style={{ padding: '10px 16px', fontWeight: 600 }}>
+              Trao đổi sửa chữa
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -356,6 +361,7 @@ export const RepairOrderDetailModal: React.FC<RepairOrderDetailModalProps> = ({
               </div>
             ) : (
               <>
+                {activeTab === 'chat' && <RepairChatPanel key={`${user?.maNguoiDung}-${repairOrder.maPhieuSuaChua}`} orderId={repairOrder.maPhieuSuaChua} />}
                 {/* TAB: ASSIGNMENTS */}
                 {activeTab === 'assignments' && (
                   <div>
