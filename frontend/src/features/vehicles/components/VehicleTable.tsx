@@ -132,7 +132,7 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
                   {isAdmin && <th>Chủ sở hữu</th>}
                   <th>Số VIN</th>
                   <th>Trạng thái</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th style={{ textAlign: 'right', paddingRight: '16px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,7 +258,7 @@ export const VehicleTable: React.FC<VehicleTableProps> = ({
                       </td>
 
                       {/* Actions */}
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                         <ActionDropdown
                           items={[
                             {

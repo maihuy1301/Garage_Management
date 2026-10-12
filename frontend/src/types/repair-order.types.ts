@@ -20,6 +20,7 @@ export interface RepairOrderResponse {
   thoiGianHoanTat?: string;
   trangThai: RepairOrderStatus;
   ghiChu?: string;
+  daXuatHoaDon?: boolean;
 }
 
 export type RepairOrderStatus =

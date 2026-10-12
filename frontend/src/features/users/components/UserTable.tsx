@@ -118,7 +118,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                   <th>Số điện thoại</th>
                   <th>Vai trò</th>
                   <th>Trạng thái</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th style={{ textAlign: 'right', paddingRight: '16px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,7 +183,7 @@ export const UserTable: React.FC<UserTableProps> = ({
                         </span>
                       </td>
 
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                         <ActionDropdown
                           items={[
                             {

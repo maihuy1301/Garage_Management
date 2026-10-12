@@ -80,3 +80,19 @@ export interface CreateInvoiceRequest {
   giamGia?: number;
   thue?: number;
 }
+
+export interface CreatePaymentRequest {
+  soTien: number;
+  phuongThuc: string; // 'TIEN_MAT' | 'CHUYEN_KHOAN'
+  maGiaoDich?: string;
+}
+
+export interface PaymentResponse {
+  maThanhToan: number;
+  maHoaDon: number;
+  soTien: number;
+  phuongThuc: string;
+  maGiaoDich?: string;
+  thoiGianThanhToan?: string;
+  trangThai: string;
+}

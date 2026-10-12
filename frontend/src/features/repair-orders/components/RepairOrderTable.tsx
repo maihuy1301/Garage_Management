@@ -334,9 +334,56 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
 
                     {/* Trạng thái */}
                     <td style={{ textAlign: 'center' }}>
-                      <span className={`status-badge ${statusTone}`}>
-                        {statusLabel}
-                      </span>
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <span className={`status-badge ${statusTone}`}>
+                          {statusLabel}
+                        </span>
+                        {order.daXuatHoaDon ? (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              color: '#047857',
+                              backgroundColor: '#ecfdf5',
+                              border: '1px solid #a7f3d0',
+                              padding: '2px 7px',
+                              borderRadius: '9999px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                            }}
+                            title="Lệnh sửa chữa đã được xuất hóa đơn thanh toán"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
+                              receipt_long
+                            </span>
+                            Đã xuất HĐ
+                          </span>
+                        ) : (
+                          order.trangThai === 'HOAN_TAT' && (
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 500,
+                                color: '#b45309',
+                                backgroundColor: '#fffbeb',
+                                border: '1px solid #fde68a',
+                                padding: '2px 7px',
+                                borderRadius: '9999px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                              }}
+                              title="Lệnh đã hoàn tất kỹ thuật, chưa xuất hóa đơn"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '12px' }}>
+                                pending
+                              </span>
+                              Chờ xuất HĐ
+                            </span>
+                          )
+                        )}
+                      </div>
                     </td>
 
                     {/* Thao tác */}
@@ -353,7 +400,7 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                             icon: 'chat',
                             onClick: () => navigate(`/app/repair-orders/${order.maPhieuSuaChua}/chat`),
                           },
-                          canGenerateInvoice && onGenerateInvoice && order.trangThai === 'HOAN_TAT'
+                          canGenerateInvoice && onGenerateInvoice && order.trangThai === 'HOAN_TAT' && !order.daXuatHoaDon
                             ? {
                                 label: 'Xuất hóa đơn',
                                 icon: 'receipt_long',
@@ -470,9 +517,33 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
 
                           {/* Trạng thái */}
                           <td style={{ textAlign: 'center' }}>
-                            <span className={`status-badge ${childStatusTone}`} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
-                              {childStatusLabel}
-                            </span>
+                            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                              <span className={`status-badge ${childStatusTone}`} style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
+                                {childStatusLabel}
+                              </span>
+                              {child.daXuatHoaDon ? (
+                                <span
+                                  style={{
+                                    fontSize: '0.675rem',
+                                    fontWeight: 600,
+                                    color: '#047857',
+                                    backgroundColor: '#ecfdf5',
+                                    border: '1px solid #a7f3d0',
+                                    padding: '1px 6px',
+                                    borderRadius: '9999px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '2px',
+                                  }}
+                                  title="Đã xuất hóa đơn thanh toán"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>
+                                    receipt_long
+                                  </span>
+                                  Đã có HĐ
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
 
                           {/* Thao tác */}
@@ -489,7 +560,7 @@ export const RepairOrderTable: React.FC<RepairOrderTableProps> = ({
                                   icon: 'chat',
                                   onClick: () => navigate(`/app/repair-orders/${child.maPhieuSuaChua}/chat`),
                                 },
-                                canGenerateInvoice && onGenerateInvoice && child.trangThai === 'HOAN_TAT'
+                                canGenerateInvoice && onGenerateInvoice && child.trangThai === 'HOAN_TAT' && !child.daXuatHoaDon
                                   ? {
                                       label: 'Xuất hóa đơn',
                                       icon: 'receipt_long',

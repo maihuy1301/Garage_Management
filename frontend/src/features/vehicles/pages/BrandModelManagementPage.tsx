@@ -291,7 +291,7 @@ export const BrandModelManagementPage: React.FC = () => {
                       <th>Tên Hãng Xe</th>
                       <th>Số Lượng Model</th>
                       <th>Trạng Thái</th>
-                      <th style={{ textAlign: 'right' }}>Thao tác</th>
+                      <th style={{ textAlign: 'right', paddingRight: '16px' }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -337,7 +337,7 @@ export const BrandModelManagementPage: React.FC = () => {
                               {brand.trangThai !== false ? 'Hoạt động' : 'Tạm khóa'}
                             </span>
                           </td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                             <ActionDropdown
                               items={[
                                 {

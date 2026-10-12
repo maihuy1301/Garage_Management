@@ -12,6 +12,7 @@ interface StockImportModalProps {
   selectedPartId?: number;
   onClose: () => void;
   onSuccess: () => void;
+  onOpenBulkImport?: () => void;
 }
 
 export const StockImportModal: React.FC<StockImportModalProps> = ({
@@ -21,6 +22,7 @@ export const StockImportModal: React.FC<StockImportModalProps> = ({
   selectedPartId,
   onClose,
   onSuccess,
+  onOpenBulkImport,
 }) => {
   const [maPhuTung, setMaPhuTung] = useState<number>(0);
   const [soLuong, setSoLuong] = useState<number>(10);
@@ -242,9 +244,34 @@ export const StockImportModal: React.FC<StockImportModalProps> = ({
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
               justifyContent: 'flex-end',
+              alignItems: 'center',
               gap: '10px',
             }}
           >
+            {onOpenBulkImport && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenBulkImport();
+                }}
+                disabled={loading}
+                style={{
+                  color: '#059669',
+                  borderColor: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                title="Nhập nhiều mặt hàng cùng lúc bằng file Excel (.xlsx / .csv)"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  upload_file
+                </span>
+                Nhập bằng Excel
+              </Button>
+            )}
             <Button variant="secondary" type="button" onClick={onClose} disabled={loading}>
               Hủy
             </Button>

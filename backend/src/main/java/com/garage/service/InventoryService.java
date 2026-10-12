@@ -13,8 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -100,6 +99,60 @@ public class InventoryService {
         }
 
         return mapToPartResponse(saved);
+    }
+
+    @Transactional
+    public List<PartResponse> bulkCreateParts(BulkCreatePartsRequest request) {
+        if (request == null || request.getParts() == null || request.getParts().isEmpty()) {
+            throw new BadRequestException("Danh sách phụ tùng không được rỗng");
+        }
+
+        // Kiểm tra trùng lặp trong nội bộ batch và trong CSDL
+        Set<String> seenCodes = new HashSet<>();
+        for (CreatePartRequest item : request.getParts()) {
+            if (item.getMaPhuTungCode() == null || item.getMaPhuTungCode().trim().isEmpty()) {
+                throw new BadRequestException("Mã phụ tùng (code) không được để trống");
+            }
+            if (item.getTenPhuTung() == null || item.getTenPhuTung().trim().isEmpty()) {
+                throw new BadRequestException("Tên phụ tùng không được để trống");
+            }
+            String code = item.getMaPhuTungCode().trim().toUpperCase();
+            if (!seenCodes.add(code)) {
+                throw new DuplicateResourceException("Phát hiện mã phụ tùng bị trùng lặp trong danh sách nhập: " + code);
+            }
+            if (phuTungRepository.existsByMaPhuTungCode(code)) {
+                throw new DuplicateResourceException("Mã phụ tùng '" + code + "' đã tồn tại trong hệ thống");
+            }
+        }
+
+        List<ChiNhanh> branches = chiNhanhRepository.findAll();
+        List<PartResponse> result = new ArrayList<>();
+
+        for (CreatePartRequest item : request.getParts()) {
+            String code = item.getMaPhuTungCode().trim().toUpperCase();
+            PhuTung part = new PhuTung();
+            part.setMaPhuTungCode(code);
+            part.setTenPhuTung(item.getTenPhuTung().trim());
+            part.setDonViTinh(item.getDonViTinh());
+            part.setGiaNhap(item.getGiaNhap());
+            part.setGiaBan(item.getGiaBan());
+            part.setTrangThai(true);
+
+            PhuTung saved = phuTungRepository.save(part);
+
+            for (ChiNhanh branch : branches) {
+                if (!tonKhoRepository.findByIdMaChiNhanhAndIdMaPhuTung(branch.getMaChiNhanh(), saved.getMaPhuTung()).isPresent()) {
+                    TonKho tk = new TonKho(branch, saved);
+                    tk.setSoLuongTon(0);
+                    tk.setSoLuongToiThieu(5);
+                    tonKhoRepository.save(tk);
+                }
+            }
+
+            result.add(mapToPartResponse(saved));
+        }
+
+        return result;
     }
 
     @Transactional
@@ -263,6 +316,108 @@ public class InventoryService {
         giaoDichKhoRepository.save(gd);
 
         return mapToInventoryResponse(savedTonKho);
+    }
+
+    /**
+     * Nhập kho hàng loạt phụ tùng cho chi nhánh:
+     * - Manager: Tự động lấy branch của mình từ token (cấm nhập cho branch khác)
+     * - Admin: Có thể chỉ định branchId
+     * - Tăng TonKho.SoLuongTon cho từng mặt hàng
+     * - Ghi GiaoDichKho với LoaiGiaoDich = "NHAP"
+     */
+    @Transactional
+    public List<InventoryResponse> bulkImportStock(BulkStockImportRequest request) {
+        if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BadRequestException("Danh sách mặt hàng nhập kho không được rỗng");
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Integer targetBranchId = request.getBranchId();
+
+        Optional<Integer> managerBranchOpt = branchAuthorizationService.resolveUserBranchId(auth);
+        if (managerBranchOpt.isPresent()) {
+            targetBranchId = managerBranchOpt.get(); // Manager chỉ được nhập vào chi nhánh mình
+        }
+
+        if (targetBranchId == null) {
+            List<ChiNhanh> branches = chiNhanhRepository.findAll();
+            if (branches.isEmpty()) {
+                throw new BadRequestException("Hệ thống chưa có chi nhánh");
+            }
+            targetBranchId = branches.get(0).getMaChiNhanh();
+        }
+
+        if (!branchAuthorizationService.isAllowedBranch(targetBranchId)) {
+            throw new AccessDeniedException("Forbidden: Bạn không có quyền nhập kho cho chi nhánh này");
+        }
+
+        final Integer branchIdFinal = targetBranchId;
+        ChiNhanh branch = chiNhanhRepository.findById(branchIdFinal)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chi nhánh ID: " + branchIdFinal));
+
+        List<InventoryResponse> results = new ArrayList<>();
+
+        for (BulkStockImportItem item : request.getItems()) {
+            PhuTung part = null;
+            if (item.getMaPhuTung() != null) {
+                part = phuTungRepository.findById(item.getMaPhuTung()).orElse(null);
+            }
+            if (part == null && item.getMaPhuTungCode() != null && !item.getMaPhuTungCode().trim().isEmpty()) {
+                part = phuTungRepository.findByMaPhuTungCode(item.getMaPhuTungCode().trim().toUpperCase()).orElse(null);
+            }
+
+            if (part == null) {
+                String ref = item.getMaPhuTungCode() != null ? item.getMaPhuTungCode() : String.valueOf(item.getMaPhuTung());
+                throw new ResourceNotFoundException("Không tìm thấy phụ tùng với mã: " + ref);
+            }
+
+            if (Boolean.FALSE.equals(part.getTrangThai())) {
+                throw new BadRequestException("Phụ tùng '" + part.getTenPhuTung() + "' [" + part.getMaPhuTungCode() + "] đang tạm ngưng hoạt động, không thể nhập kho");
+            }
+
+            if (item.getSoLuong() == null || item.getSoLuong() <= 0) {
+                throw new BadRequestException("Số lượng nhập của phụ tùng '" + part.getTenPhuTung() + "' phải lớn hơn 0");
+            }
+
+            // Tìm hoặc khởi tạo TonKho
+            final PhuTung partFinal = part;
+            TonKho tonKho = tonKhoRepository.findByIdMaChiNhanhAndIdMaPhuTung(branch.getMaChiNhanh(), part.getMaPhuTung())
+                    .orElseGet(() -> {
+                        TonKho newTk = new TonKho(branch, partFinal);
+                        newTk.setSoLuongTon(0);
+                        newTk.setSoLuongToiThieu(5);
+                        return tonKhoRepository.save(newTk);
+                    });
+
+            tonKho.setSoLuongTon(tonKho.getSoLuongTon() + item.getSoLuong());
+            TonKho savedTonKho = tonKhoRepository.save(tonKho);
+
+            // Ghi GiaoDichKho
+            GiaoDichKho gd = new GiaoDichKho();
+            gd.setChiNhanh(branch);
+            gd.setPhuTung(part);
+            gd.setLoaiGiaoDich("NHAP");
+            gd.setSoLuong(item.getSoLuong());
+
+            String note = "";
+            if (request.getGhiChuChung() != null && !request.getGhiChuChung().trim().isEmpty()) {
+                note += request.getGhiChuChung().trim();
+            }
+            if (item.getGhiChu() != null && !item.getGhiChu().trim().isEmpty()) {
+                note += (note.isEmpty() ? "" : " - ") + item.getGhiChu().trim();
+            }
+            if (note.isEmpty()) {
+                note = "Nhập kho hàng loạt chi nhánh " + branch.getTenChiNhanh();
+            }
+
+            gd.setGhiChu(note);
+            gd.setPhieuSuaChua(null);
+            giaoDichKhoRepository.save(gd);
+
+            results.add(mapToInventoryResponse(savedTonKho));
+        }
+
+        return results;
     }
 
     /**

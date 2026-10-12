@@ -88,6 +88,21 @@ void main() {
                 'moTa': 'Đang kiểm tra',
               },
             ],
+            '/repair-orders/11/parts' => [
+              {
+                'maChiTiet': 101,
+                'maPhieuSuaChua': 11,
+                'maPhuTung': 1,
+                'maDichVuChiTiet': 3,
+                'tenDichVuChiTiet': 'Kiểm tra phanh',
+                'maPhuTungCode': 'BRAKE-PAD',
+                'tenPhuTung': 'Má phanh trước',
+                'donViTinh': 'Bộ',
+                'soLuong': 1,
+                'donGia': 250000,
+                'thanhTien': 250000,
+              },
+            ],
             _ => null,
           };
           handler.resolve(
@@ -103,10 +118,16 @@ void main() {
 
     final detail = await service.loadRepairDetail(11);
 
-    expect(requestedPaths, hasLength(3));
+    expect(requestedPaths, containsAll([
+      '/technician/repair-orders/11',
+      '/technician/repair-orders/11/items',
+      '/technician/repair-orders/11/progress-history',
+      '/repair-orders/11/parts',
+    ]));
     expect(detail.order.customerName, 'Nguyễn Văn A');
     expect(detail.items.single.name, 'Kiểm tra phanh');
     expect(detail.progressHistory.single.percent, 50);
+    expect(detail.parts.single.partName, 'Má phanh trước');
   });
 
   test(

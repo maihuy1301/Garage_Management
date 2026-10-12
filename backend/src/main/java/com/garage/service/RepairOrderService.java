@@ -40,6 +40,7 @@ public class RepairOrderService {
     private final NguoiDungRepository nguoiDungRepository;
     private final ChiNhanhRepository chiNhanhRepository;
     private final PhanCongRepository phanCongRepository;
+    private final HoaDonRepository hoaDonRepository;
     private final BranchAuthorizationService branchAuthorizationService;
     private final CustomerProgressNotifier customerProgressNotifier;
 
@@ -56,6 +57,7 @@ public class RepairOrderService {
                               NguoiDungRepository nguoiDungRepository,
                               ChiNhanhRepository chiNhanhRepository,
                               PhanCongRepository phanCongRepository,
+                              HoaDonRepository hoaDonRepository,
                               BranchAuthorizationService branchAuthorizationService,
                               CustomerProgressNotifier customerProgressNotifier) {
         this.phieuSuaChuaRepository = phieuSuaChuaRepository;
@@ -71,6 +73,7 @@ public class RepairOrderService {
         this.nguoiDungRepository = nguoiDungRepository;
         this.chiNhanhRepository = chiNhanhRepository;
         this.phanCongRepository = phanCongRepository;
+        this.hoaDonRepository = hoaDonRepository;
         this.branchAuthorizationService = branchAuthorizationService;
         this.customerProgressNotifier = customerProgressNotifier;
     }
@@ -108,6 +111,14 @@ public class RepairOrderService {
         if (request.getMaPhieuCha() != null) {
             parentOrder = phieuSuaChuaRepository.findById(request.getMaPhieuCha())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu sửa chữa cha ID: " + request.getMaPhieuCha()));
+
+            if ("HUY".equalsIgnoreCase(parentOrder.getTrangThai())) {
+                throw new BadRequestException("Không thể tạo phiếu phát sinh từ phiếu sửa chữa đã bị hủy");
+            }
+
+            if (isRepairOrderTreeInvoiced(parentOrder)) {
+                throw new BadRequestException("Không thể tạo phiếu phát sinh: Phiếu sửa chữa cha (#" + parentOrder.getMaPhieuSuaChua() + ") đã được xuất hóa đơn thanh toán. Vui lòng tạo phiếu sửa chữa mới độc lập.");
+            }
         } else {
             // Idempotency check: Chỉ chặn khi tạo phiếu sửa chữa chính gốc
             if (phieuSuaChuaRepository.existsByPhieuTiepNhanMaTiepNhan(request.getMaTiepNhan())) {
@@ -217,6 +228,11 @@ public class RepairOrderService {
             // Kiểm tra trạng thái phiếu cha
             if ("HUY".equalsIgnoreCase(parentOrder.getTrangThai())) {
                 throw new BadRequestException("Không thể tạo phiếu phát sinh từ phiếu sửa chữa đã bị hủy");
+            }
+
+            // Kiểm tra xem phiếu cha (hoặc chuỗi cha-con của nó) đã có hóa đơn hay chưa
+            if (isRepairOrderTreeInvoiced(parentOrder)) {
+                throw new BadRequestException("Không thể tạo phiếu phát sinh: Phiếu sửa chữa cha (#" + parentOrder.getMaPhieuSuaChua() + ") đã được xuất hóa đơn thanh toán. Vui lòng tạo phiếu sửa chữa mới độc lập.");
             }
 
             // Kiểm tra phiếu cha có thuộc đúng xe và đúng khách hàng không
@@ -533,7 +549,7 @@ public class RepairOrderService {
 
         Integer maPhieuCha = (order.getPhieuCha() != null) ? order.getPhieuCha().getMaPhieuSuaChua() : null;
 
-        return new RepairOrderResponse(
+        RepairOrderResponse response = new RepairOrderResponse(
                 order.getMaPhieuSuaChua(),
                 maPhieuCha,
                 maTiepNhan,
@@ -554,6 +570,37 @@ public class RepairOrderService {
                 order.getTrangThai(),
                 order.getGhiChu()
         );
+        response.setDaXuatHoaDon(isRepairOrderTreeInvoiced(order));
+        return response;
+    }
+
+    private PhieuSuaChua findRootRepairOrder(PhieuSuaChua order) {
+        PhieuSuaChua current = order;
+        Set<Integer> visited = new java.util.HashSet<>();
+        while (current.getPhieuCha() != null && current.getPhieuCha().getMaPhieuSuaChua() != null) {
+            if (!visited.add(current.getMaPhieuSuaChua())) {
+                break;
+            }
+            Integer parentId = current.getPhieuCha().getMaPhieuSuaChua();
+            current = phieuSuaChuaRepository.findById(parentId).orElse(current.getPhieuCha());
+        }
+        return current;
+    }
+
+    private boolean isRepairOrderTreeInvoiced(PhieuSuaChua order) {
+        if (order == null || order.getMaPhieuSuaChua() == null) {
+            return false;
+        }
+        if (hoaDonRepository.existsByPhieuSuaChuaMaPhieuSuaChua(order.getMaPhieuSuaChua())) {
+            return true;
+        }
+        PhieuSuaChua root = findRootRepairOrder(order);
+        if (root != null && root.getMaPhieuSuaChua() != null) {
+            if (hoaDonRepository.existsByPhieuSuaChuaMaPhieuSuaChua(root.getMaPhieuSuaChua())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void inheritAssignmentsFromParent(PhieuSuaChua childOrder, PhieuSuaChua parentOrder) {

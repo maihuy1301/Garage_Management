@@ -81,7 +81,7 @@ export const AppointmentTable: React.FC<AppointmentTableProps> = ({
               <th>Thời Gian Hẹn</th>
               <th style={{ textAlign: 'center' }}>Trạng Thái</th>
               <th>Ghi Chú</th>
-              <th style={{ textAlign: 'right', minWidth: '150px' }}>Thao Tác</th>
+              <th style={{ textAlign: 'right', minWidth: '150px', paddingRight: '16px' }}>Thao Tác</th>
             </tr>
           </thead>
           <tbody>
@@ -224,7 +224,7 @@ export const AppointmentTable: React.FC<AppointmentTableProps> = ({
                   </td>
 
                   {/* Thao tác */}
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                     <ActionDropdown
                       items={[
                         {

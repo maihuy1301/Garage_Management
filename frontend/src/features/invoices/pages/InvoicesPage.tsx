@@ -2,14 +2,20 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { invoiceService } from '../services/invoice.service';
 import { InvoiceResponse, InvoiceStatusLabels, InvoiceStatusTone } from '@/types/invoice.types';
 import { InvoiceDetailModal } from '../components/InvoiceDetailModal';
+import { CashPaymentModal } from '../components/CashPaymentModal';
 import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ActionDropdown } from '@/components/common/ActionDropdown';
+import { useAuth } from '@/hooks/useAuth';
 
 export const InvoicesPage: React.FC = () => {
+  const { hasAnyRole } = useAuth();
+  const canMakeCashPayment = hasAnyRole(['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_FRONT_DESK']);
+
   const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -18,6 +24,10 @@ export const InvoicesPage: React.FC = () => {
   // Selected Invoice Modal
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceResponse | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
+
+  // Cash Payment Modal
+  const [cashPaymentInvoice, setCashPaymentInvoice] = useState<InvoiceResponse | null>(null);
+  const [isCashPaymentOpen, setIsCashPaymentOpen] = useState<boolean>(false);
 
   const loadInvoices = useCallback(async () => {
     try {
@@ -40,6 +50,24 @@ export const InvoicesPage: React.FC = () => {
   const handleViewDetail = (invoice: InvoiceResponse) => {
     setSelectedInvoice(invoice);
     setIsDetailModalOpen(true);
+  };
+
+  const handleOpenCashPayment = (invoice: InvoiceResponse) => {
+    setCashPaymentInvoice(invoice);
+    setIsCashPaymentOpen(true);
+  };
+
+  const handleCashPaymentSuccess = () => {
+    const invId = cashPaymentInvoice?.maHoaDon;
+    setIsCashPaymentOpen(false);
+    setCashPaymentInvoice(null);
+    setSuccessToast(`Đã xác nhận thanh toán tiền mặt thành công cho Hóa đơn #${invId}!`);
+    loadInvoices();
+
+    // Tự tắt toast sau 4 giây
+    setTimeout(() => {
+      setSuccessToast(null);
+    }, 4000);
   };
 
   const formatCurrency = (amount?: number) => {
@@ -141,6 +169,44 @@ export const InvoicesPage: React.FC = () => {
         </div>
       )}
 
+      {/* Success Toast / Alert */}
+      {successToast && (
+        <div
+          className="alert alert-success"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            backgroundColor: '#ecfdf5',
+            borderColor: '#a7f3d0',
+            color: '#065f46',
+            borderRadius: '8px',
+            padding: '12px 16px',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#059669' }}>
+            check_circle
+          </span>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>{successToast}</span>
+          <button
+            type="button"
+            onClick={() => setSuccessToast(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#059669',
+              padding: '2px',
+              display: 'flex',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+              close
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="kpi-grid">
         <KpiCard
@@ -238,7 +304,7 @@ export const InvoicesPage: React.FC = () => {
                   <th>Ngày Lập</th>
                   <th style={{ textAlign: 'right' }}>Thành Tiền</th>
                   <th style={{ textAlign: 'center' }}>Trạng Thái</th>
-                  <th style={{ textAlign: 'right', minWidth: '100px' }}>Thao Tác</th>
+                  <th style={{ textAlign: 'right', minWidth: '100px', paddingRight: '16px' }}>Thao Tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -335,15 +401,25 @@ export const InvoicesPage: React.FC = () => {
                         </span>
                       </td>
 
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                         <ActionDropdown
                           items={[
                             {
-                              label: 'Xem chi tiết & thanh toán',
+                              label: 'Xem chi tiết hóa đơn',
                               icon: 'visibility',
                               variant: 'primary',
                               onClick: () => handleViewDetail(inv),
                             },
+                            ...(inv.trangThai === 'CHUA_THANH_TOAN' && canMakeCashPayment
+                              ? [
+                                  {
+                                    label: 'Xác nhận thanh toán tiền mặt',
+                                    icon: 'payments',
+                                    variant: 'success' as const,
+                                    onClick: () => handleOpenCashPayment(inv),
+                                  },
+                                ]
+                              : []),
                           ]}
                         />
                       </td>
@@ -364,6 +440,18 @@ export const InvoicesPage: React.FC = () => {
           setIsDetailModalOpen(false);
           setSelectedInvoice(null);
         }}
+        onPayCash={canMakeCashPayment ? handleOpenCashPayment : undefined}
+      />
+
+      {/* Cash Payment Modal */}
+      <CashPaymentModal
+        isOpen={isCashPaymentOpen}
+        invoice={cashPaymentInvoice}
+        onClose={() => {
+          setIsCashPaymentOpen(false);
+          setCashPaymentInvoice(null);
+        }}
+        onSuccess={handleCashPaymentSuccess}
       />
     </div>
   );

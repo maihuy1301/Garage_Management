@@ -84,8 +84,14 @@ export const CreateRepairOrderModal: React.FC<CreateRepairOrderModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}
+        >
+          <div
+            className="modal-body"
+            style={{ display: 'flex', flexDirection: 'column', gap: '18px', flex: 1, minHeight: 0, overflowY: 'auto' }}
+          >
             {error && (
               <div className="alert alert-danger">
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>

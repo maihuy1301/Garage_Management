@@ -5,10 +5,11 @@ import {
 } from '@/types/repair-order.types';
 import { CustomerResponse } from '@/types/customer.types';
 import { VehicleResponse } from '@/types/vehicle.types';
-import { ServiceItem } from '@/types/service.types';
+import { ServiceItem, ServicePartResponse } from '@/types/service.types';
 import { customerService } from '@/features/customers/services/customer.service';
 import { vehicleService } from '@/features/vehicles/services/vehicle.service';
 import { serviceCatalogService } from '@/features/services/services/serviceCatalog.service';
+import { invoiceService } from '@/features/invoices/services/invoice.service';
 import { repairOrderService } from '../services/repairOrder.service';
 import { Button } from '@/components/common/Button';
 
@@ -18,6 +19,9 @@ interface SelectedServiceEntry {
   donGia: number;
   soLuong: number;
   ghiChu?: string;
+  parts?: ServicePartResponse[];
+  tienPhuTungDuKien?: number;
+  tongGiaDuKien?: number;
 }
 
 interface CreateDirectRepairOrderModalProps {
@@ -36,6 +40,7 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
   const [vehicles, setVehicles] = useState<VehicleResponse[]>([]);
   const [availableServices, setAvailableServices] = useState<ServiceItem[]>([]);
   const [existingOrders, setExistingOrders] = useState<RepairOrderResponse[]>([]);
+  const [invoicedOrderIds, setInvoicedOrderIds] = useState<Set<number>>(new Set());
 
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [loadingCustomerVehicles, setLoadingCustomerVehicles] = useState<boolean>(false);
@@ -89,11 +94,12 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
     const loadMasterData = async () => {
       try {
         setLoadingData(true);
-        const [customersRes, vehiclesRes, servicesRes, ordersRes] = await Promise.all([
+        const [customersRes, vehiclesRes, servicesRes, ordersRes, invoicesRes] = await Promise.all([
           customerService.getAll().catch(() => []),
           vehicleService.getAll().catch(() => []),
           serviceCatalogService.getAll().catch(() => []),
           repairOrderService.getAll().catch(() => []),
+          invoiceService.getAll().catch(() => []),
         ]);
 
         setCustomers(customersRes.filter((c) => c.trangThai !== false));
@@ -101,6 +107,19 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
         setAvailableServices(servicesRes.filter((s) => s.trangThai !== false));
         // Hiển thị các phiếu sửa chữa chưa bị hủy (bao gồm cả phiếu đang sửa hoặc vừa tạo)
         setExistingOrders(ordersRes.filter((o) => o.trangThai !== 'HUY'));
+
+        const invoicedSet = new Set<number>();
+        (invoicesRes || []).forEach((inv) => {
+          if (inv.maPhieuSuaChua) {
+            invoicedSet.add(inv.maPhieuSuaChua);
+          }
+        });
+        (ordersRes || []).forEach((o) => {
+          if (o.daXuatHoaDon && o.maPhieuSuaChua) {
+            invoicedSet.add(o.maPhieuSuaChua);
+          }
+        });
+        setInvoicedOrderIds(invoicedSet);
       } catch (err: any) {
         console.error('Lỗi khi tải dữ liệu khởi tạo tạo phiếu sửa chữa:', err);
         setError('Không thể tải đầy đủ danh mục dữ liệu. Vui lòng thử lại.');
@@ -111,6 +130,11 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
 
     loadMasterData();
   }, [isOpen]);
+
+  // Helper check whether order is already invoiced
+  const isOrderInvoiced = (order: RepairOrderResponse) => {
+    return Boolean(order.daXuatHoaDon || invoicedOrderIds.has(order.maPhieuSuaChua));
+  };
 
   // Filter Parent Orders by search (Chỉ hiển thị phiếu gốc: maPhieuCha == null để tránh lồng nhánh con)
   const filteredParentOrders = useMemo(() => {
@@ -135,12 +159,21 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
 
   // Handler: When user selects Parent Order -> Auto-fill Customer, Vehicle, etc.
   const handleParentOrderChange = async (parentOrderId: number | '') => {
-    setSelectedParentOrderId(parentOrderId);
-
-    if (!parentOrderId) return;
+    if (!parentOrderId) {
+      setSelectedParentOrderId('');
+      return;
+    }
 
     const parentOrder = existingOrders.find((o) => o.maPhieuSuaChua === Number(parentOrderId));
     if (!parentOrder) return;
+
+    if (isOrderInvoiced(parentOrder)) {
+      setError(`Phiếu sửa chữa #${parentOrder.maPhieuSuaChua} đã được xuất hóa đơn thanh toán. Vui lòng tạo phiếu sửa chữa độc lập.`);
+      setSelectedParentOrderId('');
+      return;
+    }
+
+    setSelectedParentOrderId(parentOrderId);
 
     // 1. Auto-fill Customer
     if (parentOrder.maKhachHang) {
@@ -258,6 +291,9 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
           donGia: serviceDef.donGia,
           soLuong: tempQuantity > 0 ? tempQuantity : 1,
           ghiChu: tempNote.trim() || undefined,
+          parts: serviceDef.parts || [],
+          tienPhuTungDuKien: serviceDef.tienPhuTungDuKien || 0,
+          tongGiaDuKien: serviceDef.tongGiaDuKien || serviceDef.donGia || 0,
         },
       ]);
     }
@@ -272,13 +308,20 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
     setSelectedServices(selectedServices.filter((s) => s.maDichVu !== serviceId));
   };
 
-  // Calculate estimated total
-  const totalEstimatedCost = useMemo(() => {
-    return selectedServices.reduce((sum, item) => {
-      const price = item.donGia || 0;
+  // Calculate estimated totals (Labor, Parts, Total)
+  const estimatedTotals = useMemo(() => {
+    let labor = 0;
+    let parts = 0;
+    selectedServices.forEach((item) => {
       const qty = item.soLuong || 1;
-      return sum + price * qty;
-    }, 0);
+      labor += (item.donGia || 0) * qty;
+      parts += (item.tienPhuTungDuKien || 0) * qty;
+    });
+    return {
+      labor,
+      parts,
+      total: labor + parts,
+    };
   }, [selectedServices]);
 
   // Form Submit Handler
@@ -299,6 +342,14 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
     if (selectedServices.length === 0) {
       setError('Vui lòng chọn ít nhất một dịch vụ yêu cầu từ danh mục.');
       return;
+    }
+
+    if (selectedParentOrderId) {
+      const parentOrder = existingOrders.find((o) => o.maPhieuSuaChua === Number(selectedParentOrderId));
+      if (parentOrder && isOrderInvoiced(parentOrder)) {
+        setError(`Phiếu sửa chữa cha #${selectedParentOrderId} đã được xuất hóa đơn thanh toán, không thể tạo thêm phiếu phát sinh kế thừa.`);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -398,7 +449,7 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
                   </span>
                 </div>
                 <span style={{ fontSize: '0.8rem', color: 'var(--color-outline)' }}>
-                  Chọn phiếu cha để tự động điền Khách hàng, Xe & Hiện trạng
+                  Chọn phiếu cha để tự động điền Khách hàng, Xe & Hiện trạng (Các phiếu đã xuất hóa đơn sẽ bị khóa)
                 </span>
               </div>
 
@@ -421,11 +472,20 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
                   style={{ fontSize: '0.85rem', fontWeight: selectedParentOrderId ? 600 : 400 }}
                 >
                   <option value="">-- Không có (Tạo phiếu sửa chữa độc lập) --</option>
-                  {filteredParentOrders.map((po) => (
-                    <option key={po.maPhieuSuaChua} value={po.maPhieuSuaChua}>
-                      #{po.maPhieuSuaChua} - {po.bienSoXe} ({po.hangXe || ''} {po.modelXe || ''}) - {po.tenKhachHang || 'Khách vãng lai'} [{po.trangThai}]
-                    </option>
-                  ))}
+                  {filteredParentOrders.map((po) => {
+                    const invoiced = isOrderInvoiced(po);
+                    return (
+                      <option
+                        key={po.maPhieuSuaChua}
+                        value={po.maPhieuSuaChua}
+                        disabled={invoiced}
+                        style={invoiced ? { color: '#9ca3af', backgroundColor: '#f3f4f6' } : undefined}
+                      >
+                        #{po.maPhieuSuaChua} - {po.bienSoXe} ({po.hangXe || ''} {po.modelXe || ''}) - {po.tenKhachHang || 'Khách vãng lai'} [{po.trangThai}]
+                        {invoiced ? ' ⛔ [ĐÃ XUẤT HÓA ĐƠN - KHÔNG KHẢ DỤNG]' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -652,7 +712,7 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
                   <option value="">-- Chọn dịch vụ từ danh mục --</option>
                   {availableServices.map((s) => (
                     <option key={s.maDichVu} value={s.maDichVu}>
-                      {s.tenDichVu} ({(s.donGia || 0).toLocaleString('vi-VN')} đ)
+                      {s.tenDichVu} (Công: {(s.donGia || 0).toLocaleString('vi-VN')} đ{s.parts && s.parts.length > 0 ? ` + ${s.parts.length} phụ tùng ~${(s.tongGiaDuKien || s.donGia).toLocaleString('vi-VN')} đ` : ''})
                     </option>
                   ))}
                 </select>
@@ -710,44 +770,136 @@ export const CreateDirectRepairOrderModal: React.FC<CreateDirectRepairOrderModal
                       {selectedServices.map((item) => {
                         const price = item.donGia || 0;
                         const qty = item.soLuong || 1;
+                        const hasParts = Boolean(item.parts && item.parts.length > 0);
                         return (
-                          <tr key={item.maDichVu} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                            <td style={{ padding: '8px', fontWeight: 600 }}>{item.tenDichVu}</td>
-                            <td style={{ padding: '8px', textAlign: 'right' }}>{price.toLocaleString('vi-VN')} đ</td>
-                            <td style={{ padding: '8px', textAlign: 'center' }}>{qty}</td>
-                            <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: 'var(--color-primary)' }}>
-                              {(price * qty).toLocaleString('vi-VN')} đ
-                            </td>
-                            <td style={{ padding: '8px', color: 'var(--color-outline)' }}>{item.ghiChu || '-'}</td>
-                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveService(item.maDichVu)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--color-danger)',
-                                  cursor: 'pointer',
-                                  padding: '2px',
-                                }}
-                                title="Xóa"
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                                  delete
-                                </span>
-                              </button>
-                            </td>
-                          </tr>
+                          <React.Fragment key={item.maDichVu}>
+                            <tr style={{ borderBottom: hasParts ? 'none' : '1px solid var(--color-border)' }}>
+                              <td style={{ padding: '8px', fontWeight: 600 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <span>{item.tenDichVu}</span>
+                                  {hasParts && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.72rem',
+                                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                        color: 'var(--color-primary)',
+                                        padding: '1px 6px',
+                                        borderRadius: '10px',
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      {item.parts!.length} phụ tùng
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ padding: '8px', textAlign: 'right' }}>{price.toLocaleString('vi-VN')} đ</td>
+                              <td style={{ padding: '8px', textAlign: 'center' }}>{qty}</td>
+                              <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: 'var(--color-primary)' }}>
+                                {(price * qty).toLocaleString('vi-VN')} đ
+                              </td>
+                              <td style={{ padding: '8px', color: 'var(--color-outline)' }}>{item.ghiChu || '-'}</td>
+                              <td style={{ padding: '8px', textAlign: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveService(item.maDichVu)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--color-danger)',
+                                    cursor: 'pointer',
+                                    padding: '2px',
+                                  }}
+                                  title="Xóa"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                                    delete
+                                  </span>
+                                </button>
+                              </td>
+                            </tr>
+                            {hasParts && (
+                              <tr style={{ backgroundColor: 'var(--color-surface-container-low)' }}>
+                                <td colSpan={6} style={{ padding: '6px 12px 10px 24px', borderBottom: '1px solid var(--color-border)' }}>
+                                  <div
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      color: 'var(--color-outline)',
+                                      fontWeight: 600,
+                                      marginBottom: '4px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                    }}
+                                  >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '14px', color: 'var(--color-primary)' }}>
+                                      build_circle
+                                    </span>
+                                    Phụ tùng định mức kèm theo ({item.parts!.length}):
+                                  </div>
+                                  <table style={{ width: '100%', fontSize: '0.78rem', borderCollapse: 'collapse', backgroundColor: '#ffffff', borderRadius: '4px', border: '1px solid var(--color-border)' }}>
+                                    <thead>
+                                      <tr style={{ color: 'var(--color-on-surface-variant)', borderBottom: '1px solid var(--color-border)' }}>
+                                        <th style={{ textAlign: 'left', padding: '4px 8px' }}>Tên phụ tùng</th>
+                                        <th style={{ textAlign: 'center', padding: '4px 8px' }}>SL định mức</th>
+                                        <th style={{ textAlign: 'right', padding: '4px 8px' }}>Đơn giá</th>
+                                        <th style={{ textAlign: 'right', padding: '4px 8px' }}>Thành tiền</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.parts!.map((p) => (
+                                        <tr key={p.maPhuTung} style={{ borderBottom: '1px solid rgba(0,0,0,0.03)' }}>
+                                          <td style={{ padding: '4px 8px' }}>{p.tenPhuTung}</td>
+                                          <td style={{ textAlign: 'center', padding: '4px 8px' }}>
+                                            {(p.soLuong || 1) * qty} {p.donViTinh || ''}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '4px 8px' }}>
+                                            {Number(p.donGia || 0).toLocaleString('vi-VN')} đ
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '4px 8px', fontWeight: 600 }}>
+                                            {(Number(p.donGia || 0) * (p.soLuong || 1) * qty).toLocaleString('vi-VN')} đ
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                  <div style={{ textAlign: 'right', marginTop: '4px', fontSize: '0.75rem', color: 'var(--color-outline)' }}>
+                                    Tiền phụ tùng định mức: <strong style={{ color: 'var(--color-on-surface)' }}>{((item.tienPhuTungDuKien || 0) * qty).toLocaleString('vi-VN')} đ</strong>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan={3} style={{ padding: '8px', fontWeight: 700, textAlign: 'right' }}>
+                        <td colSpan={3} style={{ padding: '8px', fontSize: '0.85rem', textAlign: 'right', color: 'var(--color-on-surface-variant)' }}>
+                          Tiền công dịch vụ:
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600 }}>
+                          {estimatedTotals.labor.toLocaleString('vi-VN')} đ
+                        </td>
+                        <td colSpan={2}></td>
+                      </tr>
+                      {estimatedTotals.parts > 0 && (
+                        <tr>
+                          <td colSpan={3} style={{ padding: '8px', fontSize: '0.85rem', textAlign: 'right', color: 'var(--color-on-surface-variant)' }}>
+                            Tiền phụ tùng định mức:
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600 }}>
+                            {estimatedTotals.parts.toLocaleString('vi-VN')} đ
+                          </td>
+                          <td colSpan={2}></td>
+                        </tr>
+                      )}
+                      <tr style={{ borderTop: '2px solid var(--color-border)' }}>
+                        <td colSpan={3} style={{ padding: '10px 8px', fontWeight: 700, textAlign: 'right', fontSize: '0.9rem' }}>
                           Tổng dự kiến tạm tính:
                         </td>
-                        <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.95rem' }}>
-                          {totalEstimatedCost.toLocaleString('vi-VN')} đ
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 800, color: 'var(--color-primary)', fontSize: '1.05rem' }}>
+                          {estimatedTotals.total.toLocaleString('vi-VN')} đ
                         </td>
                         <td colSpan={2}></td>
                       </tr>

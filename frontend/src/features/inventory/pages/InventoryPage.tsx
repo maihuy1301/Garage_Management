@@ -6,6 +6,8 @@ import { inventoryService } from '../services/inventory.service';
 import { branchService } from '@/features/branches/services/branch.service';
 import { PartModal } from '../components/PartModal';
 import { StockImportModal } from '../components/StockImportModal';
+import { BulkPartModal } from '../components/BulkPartModal';
+import { BulkStockImportModal } from '../components/BulkStockImportModal';
 import { Button } from '@/components/common/Button';
 import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -40,6 +42,8 @@ export const InventoryPage: React.FC = () => {
   const [selectedPart, setSelectedPart] = useState<PartResponse | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
   const [selectedPartForImport, setSelectedPartForImport] = useState<number | undefined>(undefined);
+  const [isBulkPartModalOpen, setIsBulkPartModalOpen] = useState<boolean>(false);
+  const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -225,7 +229,7 @@ export const InventoryPage: React.FC = () => {
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'flex-end',
+          alignItems: 'flex-start',
           flexWrap: 'wrap',
           gap: '16px',
         }}
@@ -239,7 +243,16 @@ export const InventoryPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            flexWrap: 'wrap',
+            marginLeft: 'auto',
+            justifyContent: 'flex-end',
+          }}
+        >
           <button
             type="button"
             className="btn btn-secondary"
@@ -450,7 +463,7 @@ export const InventoryPage: React.FC = () => {
                         {isAdmin && <th style={{ textAlign: 'right' }}>Giá Nhập Chuẩn</th>}
                         <th style={{ textAlign: 'right' }}>Giá Bán Niêm Yết</th>
                         <th style={{ textAlign: 'center' }}>Trạng Thái</th>
-                        {(isAdmin || isManager) && <th style={{ textAlign: 'right', minWidth: '100px' }}>Thao Tác</th>}
+                        {(isAdmin || isManager) && <th style={{ textAlign: 'right', minWidth: '100px', paddingRight: '16px' }}>Thao Tác</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -494,7 +507,7 @@ export const InventoryPage: React.FC = () => {
                           </td>
 
                           {(isAdmin || isManager) && (
-                            <td style={{ textAlign: 'center' }}>
+                            <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                               <ActionDropdown
                                 items={[
                                   {
@@ -559,7 +572,7 @@ export const InventoryPage: React.FC = () => {
                         <th style={{ textAlign: 'center' }}>Số Lượng Tồn</th>
                         <th style={{ textAlign: 'center' }}>Tồn Tối Thiểu</th>
                         <th style={{ textAlign: 'center' }}>Trạng Thái Tồn</th>
-                        {(isAdmin || isManager) && <th style={{ textAlign: 'right', minWidth: '100px' }}>Thao Tác</th>}
+                        {(isAdmin || isManager) && <th style={{ textAlign: 'right', minWidth: '100px', paddingRight: '16px' }}>Thao Tác</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -618,7 +631,7 @@ export const InventoryPage: React.FC = () => {
                             </td>
 
                             {(isAdmin || isManager) && (
-                              <td style={{ textAlign: 'center' }}>
+                              <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                                 <ActionDropdown
                                   items={[
                                     {
@@ -738,6 +751,7 @@ export const InventoryPage: React.FC = () => {
             setToast('Đã lưu thông tin phụ tùng thành công!');
             fetchData();
           }}
+          onOpenBulkCreate={() => setIsBulkPartModalOpen(true)}
         />
       )}
 
@@ -756,6 +770,36 @@ export const InventoryPage: React.FC = () => {
             setIsImportModalOpen(false);
             setSelectedPartForImport(undefined);
             setToast('Nhập kho phụ tùng thành công!');
+            fetchData();
+          }}
+          onOpenBulkImport={() => setIsBulkImportModalOpen(true)}
+        />
+      )}
+
+      {/* Bulk Part Creation Modal (Admin Only) */}
+      {isAdmin && (
+        <BulkPartModal
+          isOpen={isBulkPartModalOpen}
+          existingParts={parts}
+          onClose={() => setIsBulkPartModalOpen(false)}
+          onSuccess={(count) => {
+            setToast(`Đã thêm thành công ${count} phụ tùng mới vào danh mục!`);
+            fetchData();
+          }}
+        />
+      )}
+
+      {/* Bulk Stock Import Modal (Manager & Admin) */}
+      {(isAdmin || isManager) && (
+        <BulkStockImportModal
+          isOpen={isBulkImportModalOpen}
+          availableParts={parts.filter((p) => p.trangThai)}
+          branches={branches}
+          isAdmin={isAdmin}
+          userBranchId={user?.maChiNhanh ? Number(user.maChiNhanh) : undefined}
+          onClose={() => setIsBulkImportModalOpen(false)}
+          onSuccess={(count) => {
+            setToast(`Đã nhập kho thành công ${count} mặt hàng phụ tùng!`);
             fetchData();
           }}
         />

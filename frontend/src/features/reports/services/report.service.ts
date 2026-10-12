@@ -9,6 +9,8 @@ import {
   BranchReportResponseData,
   TechnicianReportResponseData,
   InventoryReportResponseData,
+  ServiceReportResponseData,
+  PartReportResponseData,
   ReportFilterParams,
 } from '../types/report.types';
 
@@ -64,6 +66,22 @@ export const reportService = {
   async getInventory(params?: ReportFilterParams): Promise<InventoryReportResponseData[]> {
     const response = await apiClient.get<ApiResponse<InventoryReportResponseData[]>>(
       API_ENDPOINTS.REPORTS.INVENTORY,
+      { params }
+    );
+    return response.data.data;
+  },
+
+  async getServices(params?: ReportFilterParams): Promise<ServiceReportResponseData[]> {
+    const response = await apiClient.get<ApiResponse<ServiceReportResponseData[]>>(
+      API_ENDPOINTS.REPORTS.SERVICES,
+      { params }
+    );
+    return response.data.data;
+  },
+
+  async getParts(params?: ReportFilterParams): Promise<PartReportResponseData[]> {
+    const response = await apiClient.get<ApiResponse<PartReportResponseData[]>>(
+      API_ENDPOINTS.REPORTS.PARTS,
       { params }
     );
     return response.data.data;

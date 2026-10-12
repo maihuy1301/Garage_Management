@@ -92,7 +92,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                   <th>Địa chỉ</th>
                   <th>Ngày sinh</th>
                   <th>Trạng thái</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th style={{ textAlign: 'right', paddingRight: '16px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,7 +160,7 @@ export const CustomerTable: React.FC<CustomerTableProps> = ({
                         </span>
                       </td>
 
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                         <ActionDropdown
                           items={[
                             {

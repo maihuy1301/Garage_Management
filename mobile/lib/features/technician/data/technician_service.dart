@@ -90,10 +90,28 @@ class TechnicianService implements TechnicianGateway {
         'lịch sử tiến độ',
       ).map(TechnicianRepairProgress.fromJson).toList(growable: false);
 
+      // Tải danh sách phụ tùng tương ứng cho tất cả các phiếu (phiếu chính + phiếu phát sinh)
+      final orderIds = <int>{repairOrderId, ...items.map((it) => it.repairOrderId)};
+      final parts = <TechnicianRepairPart>[];
+      try {
+        final partsResponses = await Future.wait(
+          orderIds.map(
+            (id) => _apiClient.dio.get<Map<String, dynamic>>('/repair-orders/$id/parts'),
+          ),
+        );
+        for (final resp in partsResponses) {
+          final list = _readList(resp.data, 'danh sách phụ tùng');
+          parts.addAll(list.map(TechnicianRepairPart.fromJson));
+        }
+      } catch (_) {
+        // Dự phòng bỏ qua nếu một phiếu con không thể truy vấn phụ tùng
+      }
+
       return TechnicianRepairDetail(
         order: order,
         items: items,
         progressHistory: history,
+        parts: parts,
       );
     } on TechnicianException {
       rethrow;

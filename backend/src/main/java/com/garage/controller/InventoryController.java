@@ -1,9 +1,6 @@
 package com.garage.controller;
 
-import com.garage.dto.ApiResponse;
-import com.garage.dto.InventoryResponse;
-import com.garage.dto.StockImportRequest;
-import com.garage.dto.StockTransactionResponse;
+import com.garage.dto.*;
 import com.garage.service.InventoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -59,6 +56,16 @@ public class InventoryController {
         InventoryResponse response = inventoryService.importStock(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Nhập kho phụ tùng thành công", response));
+    }
+
+    /** POST /api/inventory/import/bulk — Nhập kho hàng loạt phụ tùng (Manager & Admin) */
+    @PostMapping("/import/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<List<InventoryResponse>>> bulkImportStock(
+            @Valid @RequestBody BulkStockImportRequest request) {
+        List<InventoryResponse> response = inventoryService.bulkImportStock(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Nhập kho hàng loạt thành công (" + response.size() + " mặt hàng)", response));
     }
 
     /** GET /api/inventory/transactions — Lịch sử giao dịch kho (Manager & Admin) */

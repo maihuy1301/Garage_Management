@@ -94,7 +94,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
               <th>CHI NHÁNH & NV TIẾP NHẬN</th>
               <th>THỜI GIAN NHẬN</th>
               <th style={{ width: '150px', textAlign: 'center' }}>TRẠNG THÁI</th>
-              <th style={{ width: '130px', textAlign: 'right' }}>THAO TÁC</th>
+              <th style={{ width: '130px', textAlign: 'right', paddingRight: '16px' }}>THAO TÁC</th>
             </tr>
           </thead>
           <tbody>
@@ -223,7 +223,7 @@ export const ReceptionTable: React.FC<ReceptionTableProps> = ({
                   </td>
 
                   {/* Thao tác */}
-                  <td style={{ textAlign: 'center' }}>
+                  <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                     <ActionDropdown
                       items={[
                         {

@@ -8,6 +8,7 @@ interface PartModalProps {
   part: PartResponse | null;
   onClose: () => void;
   onSuccess: () => void;
+  onOpenBulkCreate?: () => void;
 }
 
 export const PartModal: React.FC<PartModalProps> = ({
@@ -15,6 +16,7 @@ export const PartModal: React.FC<PartModalProps> = ({
   part,
   onClose,
   onSuccess,
+  onOpenBulkCreate,
 }) => {
   const [maPhuTungCode, setMaPhuTungCode] = useState<string>('');
   const [tenPhuTung, setTenPhuTung] = useState<string>('');
@@ -252,9 +254,34 @@ export const PartModal: React.FC<PartModalProps> = ({
               borderTop: '1px solid #e2e8f0',
               display: 'flex',
               justifyContent: 'flex-end',
+              alignItems: 'center',
               gap: '10px',
             }}
           >
+            {!part && onOpenBulkCreate && (
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenBulkCreate();
+                }}
+                disabled={loading}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: 'var(--color-primary)',
+                  borderColor: 'var(--color-primary)',
+                }}
+                title="Thêm hàng loạt phụ tùng vào danh mục từ file Excel (.xlsx / .csv)"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  post_add
+                </span>
+                Thêm bằng Excel
+              </Button>
+            )}
             <Button variant="secondary" type="button" onClick={onClose} disabled={loading}>
               Hủy
             </Button>

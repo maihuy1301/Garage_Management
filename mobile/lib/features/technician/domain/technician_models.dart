@@ -108,16 +108,62 @@ class TechnicianRepairProgress {
   final DateTime? occurredAt;
 }
 
+class TechnicianRepairPart {
+  const TechnicianRepairPart({
+    required this.id,
+    required this.repairOrderId,
+    required this.partId,
+    this.serviceDetailId,
+    this.serviceDetailName,
+    required this.partCode,
+    required this.partName,
+    this.unit = '',
+    required this.quantity,
+    required this.unitPrice,
+    required this.total,
+  });
+
+  factory TechnicianRepairPart.fromJson(Map<String, dynamic> json) {
+    return TechnicianRepairPart(
+      id: (json['maChiTiet'] as num).toInt(),
+      repairOrderId: (json['maPhieuSuaChua'] as num).toInt(),
+      partId: (json['maPhuTung'] as num).toInt(),
+      serviceDetailId: (json['maDichVuChiTiet'] as num?)?.toInt(),
+      serviceDetailName: json['tenDichVuChiTiet']?.toString(),
+      partCode: json['maPhuTungCode']?.toString() ?? '',
+      partName: json['tenPhuTung']?.toString() ?? 'Phụ tùng',
+      unit: json['donViTinh']?.toString() ?? '',
+      quantity: (json['soLuong'] as num?)?.toInt() ?? 1,
+      unitPrice: (json['donGia'] as num?)?.toDouble() ?? 0,
+      total: (json['thanhTien'] as num?)?.toDouble() ?? 0,
+    );
+  }
+
+  final int id;
+  final int repairOrderId;
+  final int partId;
+  final int? serviceDetailId;
+  final String? serviceDetailName;
+  final String partCode;
+  final String partName;
+  final String unit;
+  final int quantity;
+  final double unitPrice;
+  final double total;
+}
+
 class TechnicianRepairDetail {
   const TechnicianRepairDetail({
     required this.order,
     required this.items,
     required this.progressHistory,
+    this.parts = const [],
   });
 
   final TechnicianRepairOrder order;
   final List<TechnicianRepairItem> items;
   final List<TechnicianRepairProgress> progressHistory;
+  final List<TechnicianRepairPart> parts;
 }
 
 DateTime? _dateTime(Object? value) {

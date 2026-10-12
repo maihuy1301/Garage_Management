@@ -146,7 +146,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                   <th>Chi nhánh</th>
                   <th>Chức vụ</th>
                   <th>Trạng thái</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th style={{ textAlign: 'right', paddingRight: '16px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,7 +215,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
                         </span>
                       </td>
 
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                         <ActionDropdown
                           items={[
                             {

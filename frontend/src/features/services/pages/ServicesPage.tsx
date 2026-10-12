@@ -343,7 +343,7 @@ export const ServicesPage: React.FC = () => {
                   <th style={{ textAlign: 'center' }}>Thời Gian</th>
                   <th style={{ textAlign: 'center' }}>Trạng Thái</th>
                   {(isAdmin || isManager) && (
-                    <th style={{ textAlign: 'right', minWidth: '100px' }}>Thao Tác</th>
+                    <th style={{ textAlign: 'right', minWidth: '100px', paddingRight: '16px' }}>Thao Tác</th>
                   )}
                 </tr>
               </thead>
@@ -430,7 +430,7 @@ export const ServicesPage: React.FC = () => {
 
 
                       {(isAdmin || isManager) && (
-                        <td style={{ textAlign: 'center' }}>
+                        <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                           <ActionDropdown
                             items={[
                               isAdmin

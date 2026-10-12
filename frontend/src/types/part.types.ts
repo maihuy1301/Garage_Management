@@ -56,3 +56,20 @@ export interface StockTransactionResponse {
   ghiChu?: string;
   thoiGian?: string;
 }
+
+export interface BulkCreatePartsRequest {
+  parts: CreatePartRequest[];
+}
+
+export interface BulkStockImportItem {
+  maPhuTung?: number;
+  maPhuTungCode?: string;
+  soLuong: number;
+  ghiChu?: string;
+}
+
+export interface BulkStockImportRequest {
+  branchId?: number;
+  ghiChuChung?: string;
+  items: BulkStockImportItem[];
+}

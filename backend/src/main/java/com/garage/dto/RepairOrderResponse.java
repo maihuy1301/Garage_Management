@@ -32,6 +32,7 @@ public class RepairOrderResponse {
     private LocalDateTime thoiGianHoanTat;
     private String trangThai;
     private String ghiChu;
+    private Boolean daXuatHoaDon = false;
 
     public RepairOrderResponse() {}
 
@@ -141,4 +142,7 @@ public class RepairOrderResponse {
 
     public String getGhiChu() { return ghiChu; }
     public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
+
+    public Boolean getDaXuatHoaDon() { return daXuatHoaDon; }
+    public void setDaXuatHoaDon(Boolean daXuatHoaDon) { this.daXuatHoaDon = daXuatHoaDon; }
 }

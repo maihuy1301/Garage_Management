@@ -45,7 +45,7 @@ IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'admin')
 IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'manager')
     INSERT INTO NguoiDung (TenDangNhap, MatKhauHash, HoTen, Email, SoDienThoai, TrangThai)
     VALUES ('manager', @PasswordHash, N'Quản lý Chi Nhánh 1', 'manager@autocare.local', '0900000002', 1);
-IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'receptionist')
+IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'frontdesk')
     INSERT INTO NguoiDung (TenDangNhap, MatKhauHash, HoTen, Email, SoDienThoai, TrangThai)
     VALUES ('frontdesk', @PasswordHash, N'Nhân viên tiếp nhận Chi Nhánh 1', 'receptionist@autocare.local', '0900000003', 1);
 IF NOT EXISTS (SELECT 1 FROM NguoiDung WHERE TenDangNhap = 'technician')
@@ -88,9 +88,9 @@ WHERE NOT EXISTS (
 IF NOT EXISTS (SELECT 1 FROM NhanVien nv JOIN NguoiDung u ON u.MaNguoiDung = nv.MaNguoiDung WHERE u.TenDangNhap = 'manager')
     INSERT INTO NhanVien (MaNguoiDung, MaChiNhanh, ChucVu, NgayVaoLam, TrangThai)
     SELECT MaNguoiDung, @Branch1, N'Quản lý chi nhánh', '2024-01-01', 1 FROM NguoiDung WHERE TenDangNhap = 'manager';
-IF NOT EXISTS (SELECT 1 FROM NhanVien nv JOIN NguoiDung u ON u.MaNguoiDung = nv.MaNguoiDung WHERE u.TenDangNhap = 'receptionist')
+IF NOT EXISTS (SELECT 1 FROM NhanVien nv JOIN NguoiDung u ON u.MaNguoiDung = nv.MaNguoiDung WHERE u.TenDangNhap = 'frontdesk')
     INSERT INTO NhanVien (MaNguoiDung, MaChiNhanh, ChucVu, NgayVaoLam, TrangThai)
-    SELECT MaNguoiDung, @Branch1, N'Nhân viên tiếp nhận', '2024-01-05', 1 FROM NguoiDung WHERE TenDangNhap = 'receptionist';
+    SELECT MaNguoiDung, @Branch1, N'Nhân viên tiếp nhận', '2024-01-05', 1 FROM NguoiDung WHERE TenDangNhap = 'frontdesk';
 IF NOT EXISTS (SELECT 1 FROM NhanVien nv JOIN NguoiDung u ON u.MaNguoiDung = nv.MaNguoiDung WHERE u.TenDangNhap = 'technician')
     INSERT INTO NhanVien (MaNguoiDung, MaChiNhanh, ChucVu, NgayVaoLam, TrangThai)
     SELECT MaNguoiDung, @Branch1, N'Kỹ thuật viên', '2024-01-10', 1 FROM NguoiDung WHERE TenDangNhap = 'technician';

@@ -92,7 +92,7 @@ export const BranchTable: React.FC<BranchTableProps> = ({
                   <th>Liên hệ</th>
                   <th>Trạng thái</th>
                   <th>Ngày tạo</th>
-                  <th style={{ width: '160px', textAlign: 'center' }}>Thao tác</th>
+                  <th style={{ width: '160px', textAlign: 'right', paddingRight: '16px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,7 +170,7 @@ export const BranchTable: React.FC<BranchTableProps> = ({
                           {formattedDate}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'right', paddingRight: '16px' }}>
                         <ActionDropdown
                           items={[
                             {

@@ -7,6 +7,8 @@ import {
   InventoryResponse,
   StockImportRequest,
   StockTransactionResponse,
+  BulkCreatePartsRequest,
+  BulkStockImportRequest,
 } from '@/types/part.types';
 
 export const inventoryService = {
@@ -64,6 +66,16 @@ export const inventoryService = {
   // Stock Import API (Manager & Admin)
   async importStock(data: StockImportRequest): Promise<InventoryResponse> {
     const res = await apiClient.post<ApiResponse<InventoryResponse>>('/inventory/import', data);
+    return res.data.data;
+  },
+
+  async bulkCreateParts(data: BulkCreatePartsRequest): Promise<PartResponse[]> {
+    const res = await apiClient.post<ApiResponse<PartResponse[]>>('/parts/bulk', data);
+    return res.data.data;
+  },
+
+  async bulkImportStock(data: BulkStockImportRequest): Promise<InventoryResponse[]> {
+    const res = await apiClient.post<ApiResponse<InventoryResponse[]>>('/inventory/import/bulk', data);
     return res.data.data;
   },
 

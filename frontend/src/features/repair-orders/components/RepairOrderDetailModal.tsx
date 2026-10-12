@@ -185,6 +185,28 @@ export const RepairOrderDetailModal: React.FC<RepairOrderDetailModalProps> = ({
             <span className={`status-badge ${statusTone}`} style={{ marginLeft: '8px' }}>
               {RepairOrderStatusLabels[repairOrder.trangThai] || repairOrder.trangThai}
             </span>
+            {repairOrder.daXuatHoaDon && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#047857',
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  padding: '3px 8px',
+                  borderRadius: '9999px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginLeft: '6px',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                  receipt_long
+                </span>
+                Đã xuất hóa đơn
+              </span>
+            )}
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose}>
             <span className="material-symbols-outlined">close</span>

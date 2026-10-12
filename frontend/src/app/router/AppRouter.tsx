@@ -23,6 +23,7 @@ import { ServicesPage } from '@/features/services/pages/ServicesPage';
 import { InventoryPage } from '@/features/inventory/pages/InventoryPage';
 import { SupportChatPage } from '@/features/chat/pages/SupportChatPage';
 import { RepairChatPage } from '@/features/repair-chat/components/RepairChatPage';
+import { ReportsPage } from '@/features/reports/pages/ReportsPage';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -111,7 +112,7 @@ export const AppRouter: React.FC = () => {
           path="reports"
           element={
             <RoleGuard roles={['ROLE_ADMIN', 'ROLE_MANAGER']}>
-              <PlaceholderPage moduleName="Báo cáo & Thống kê" taskNumber="Frontend Task Báo cáo" />
+              <ReportsPage />
             </RoleGuard>
           }
         />

@@ -1,10 +1,6 @@
 package com.garage.controller;
 
-import com.garage.dto.ApiResponse;
-import com.garage.dto.CreatePartRequest;
-import com.garage.dto.PartResponse;
-import com.garage.dto.UpdatePartRequest;
-import com.garage.dto.UpdatePartStatusRequest;
+import com.garage.dto.*;
 import com.garage.service.InventoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -58,6 +54,16 @@ public class PartController {
         PartResponse response = inventoryService.createPart(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tạo phụ tùng mới thành công", response));
+    }
+
+    /** POST /api/parts/bulk — Tạo hàng loạt phụ tùng mới trong danh mục hệ thống (Admin only) */
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<PartResponse>>> bulkCreateParts(
+            @Valid @RequestBody BulkCreatePartsRequest request) {
+        List<PartResponse> response = inventoryService.bulkCreateParts(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Thêm hàng loạt phụ tùng thành công (" + response.size() + " mặt hàng)", response));
     }
 
     /** PUT /api/parts/{id} — Cập nhật thông tin phụ tùng (Admin only) */

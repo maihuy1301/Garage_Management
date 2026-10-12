@@ -53,22 +53,54 @@ export interface BranchReportResponseData {
 }
 
 export interface TechnicianReportResponseData {
-  technicianId: number;
-  technicianName: string;
-  branchName: string;
-  totalAssigned: number;
-  inProgress: number;
-  completed: number;
+  maNhanVien?: number;
+  hoTen?: string;
+  soPhieuPhanCong?: number;
+  soPhieuDangSua?: number;
+  soPhieuHoanTat?: number;
+  tenChiNhanh?: string;
+  // Fallback / legacy english property names
+  technicianId?: number;
+  technicianName?: string;
+  branchName?: string;
+  totalAssigned?: number;
+  inProgress?: number;
+  completed?: number;
 }
 
 export interface InventoryReportResponseData {
-  partId: number;
-  partCode: string;
-  partName: string;
-  branchName: string;
-  stockQuantity: number;
-  minQuantity: number;
-  warningLowStock: boolean;
+  maPhuTung?: number;
+  maPhuTungCode?: string;
+  tenPhuTung?: string;
+  donGia?: number;
+  soLuongTon?: number;
+  soLuongToiThieu?: number;
+  giaTriTonKho?: number;
+  sapHetHang?: boolean;
+  tenChiNhanh?: string;
+  // Fallback / legacy english property names
+  partId?: number;
+  partCode?: string;
+  partName?: string;
+  branchName?: string;
+  stockQuantity?: number;
+  minQuantity?: number;
+  warningLowStock?: boolean;
+}
+
+export interface ServiceReportResponseData {
+  maDichVu: number;
+  tenDichVu: string;
+  soLanSuDung: number;
+  doanhThu: number;
+}
+
+export interface PartReportResponseData {
+  maPhuTung: number;
+  maPhuTungCode?: string;
+  tenPhuTung: string;
+  soLuongSuDung: number;
+  doanhThu: number;
 }
 
 export interface ReportFilterParams {

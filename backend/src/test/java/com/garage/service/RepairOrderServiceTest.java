@@ -76,6 +76,9 @@ class RepairOrderServiceTest {
     private PhanCongRepository phanCongRepository;
 
     @Mock
+    private HoaDonRepository hoaDonRepository;
+
+    @Mock
     private BranchAuthorizationService branchAuthorizationService;
 
     @InjectMocks
@@ -685,5 +688,56 @@ class RepairOrderServiceTest {
         assertThatThrownBy(() -> repairOrderService.createDirectRepairOrder(req))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("không thuộc xe đã chọn");
+    }
+
+    @Test
+    void createDirectRepairOrder_parentOrderAlreadyInvoiced_throws400() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        KhachHang customer = new KhachHang();
+        customer.setMaKhachHang(10);
+        vehicle.setKhachHang(customer);
+
+        PhieuTiepNhan parentReception = new PhieuTiepNhan();
+        parentReception.setXe(vehicle);
+        parentReception.setChiNhanh(branch1);
+
+        PhieuSuaChua parentOrder = new PhieuSuaChua();
+        parentOrder.setMaPhieuSuaChua(990);
+        parentOrder.setPhieuTiepNhan(parentReception);
+        parentOrder.setChiNhanh(branch1);
+        parentOrder.setTrangThai("HOAN_TAT");
+
+        when(khachHangRepository.findById(10)).thenReturn(Optional.of(customer));
+        when(xeRepository.findById(100)).thenReturn(Optional.of(vehicle));
+        when(phieuSuaChuaRepository.findById(990)).thenReturn(Optional.of(parentOrder));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(hoaDonRepository.existsByPhieuSuaChuaMaPhieuSuaChua(990)).thenReturn(true);
+
+        CreateDirectRepairOrderRequest req = new CreateDirectRepairOrderRequest(10, 100, 990, List.of(1), "Phát sinh");
+
+        assertThatThrownBy(() -> repairOrderService.createDirectRepairOrder(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("đã được xuất hóa đơn");
+    }
+
+    @Test
+    void createRepairOrder_parentOrderAlreadyInvoiced_throws400() {
+        setStaffAuth(managerUser, "ROLE_MANAGER");
+
+        PhieuSuaChua parentOrder = new PhieuSuaChua();
+        parentOrder.setMaPhieuSuaChua(880);
+        parentOrder.setTrangThai("HOAN_TAT");
+
+        when(phieuTiepNhanRepository.findForHandover(501)).thenReturn(Optional.of(reception1));
+        when(branchAuthorizationService.isAllowedBranch(1)).thenReturn(true);
+        when(phieuSuaChuaRepository.findById(880)).thenReturn(Optional.of(parentOrder));
+        when(hoaDonRepository.existsByPhieuSuaChuaMaPhieuSuaChua(880)).thenReturn(true);
+
+        CreateRepairOrderRequest req = new CreateRepairOrderRequest(501, 880, "Phiếu phát sinh");
+
+        assertThatThrownBy(() -> repairOrderService.createRepairOrder(req))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("đã được xuất hóa đơn");
     }
 }

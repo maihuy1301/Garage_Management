@@ -6,12 +6,14 @@ interface InvoiceDetailModalProps {
   isOpen: boolean;
   invoice: InvoiceResponse | null;
   onClose: () => void;
+  onPayCash?: (invoice: InvoiceResponse) => void;
 }
 
 export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
   isOpen,
   invoice,
   onClose,
+  onPayCash,
 }) => {
   if (!isOpen || !invoice) return null;
 
@@ -344,9 +346,35 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
             In hóa đơn
           </Button>
 
-          <Button variant="primary" onClick={onClose}>
-            Đóng
-          </Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {invoice.trangThai === 'CHUA_THANH_TOAN' && onPayCash && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  onClose();
+                  onPayCash(invoice);
+                }}
+                style={{
+                  backgroundColor: '#059669',
+                  borderColor: '#059669',
+                  color: '#fff',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  payments
+                </span>
+                Xác nhận thanh toán tiền mặt
+              </Button>
+            )}
+
+            <Button variant="secondary" onClick={onClose}>
+              Đóng
+            </Button>
+          </div>
         </div>
       </div>
     </div>

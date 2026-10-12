@@ -1,7 +1,12 @@
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { ApiResponse } from '@/types/api.types';
-import { InvoiceResponse, CreateInvoiceRequest } from '@/types/invoice.types';
+import {
+  InvoiceResponse,
+  CreateInvoiceRequest,
+  CreatePaymentRequest,
+  PaymentResponse,
+} from '@/types/invoice.types';
 
 export const invoiceService = {
   /**
@@ -47,6 +52,21 @@ export const invoiceService = {
     const response = await apiClient.post<ApiResponse<InvoiceResponse>>(
       `${API_ENDPOINTS.INVOICES}/from-repair-order/${repairOrderId}`,
       data || {}
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Thực hiện thanh toán cho hóa đơn (ví dụ tiền mặt tại quầy)
+   * POST /api/invoices/{invoiceId}/payments
+   */
+  createPayment: async (
+    invoiceId: number,
+    data: CreatePaymentRequest
+  ): Promise<PaymentResponse> => {
+    const response = await apiClient.post<ApiResponse<PaymentResponse>>(
+      `${API_ENDPOINTS.INVOICES}/${invoiceId}/payments`,
+      data
     );
     return response.data.data;
   },

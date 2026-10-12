@@ -300,6 +300,9 @@ class _TechnicianRepairDetailPageState
             item: item,
             enabled: !order.isLocked && !_isSubmitting,
             onChanged: (status) => _updateItem(item, status),
+            parts: detail.parts
+                .where((p) => p.serviceDetailId == item.id || (p.serviceDetailId == null && p.repairOrderId == item.repairOrderId && detail.items.length == 1))
+                .toList(growable: false),
           ),
       ];
     }
@@ -335,8 +338,8 @@ class _TechnicianRepairDetailPageState
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isMain
-                  ? AppColors.primary.withValues(alpha: 0.25)
-                  : Colors.amber.withValues(alpha: 0.35),
+                ? AppColors.primary.withValues(alpha: 0.25)
+                : Colors.amber.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
@@ -373,12 +376,48 @@ class _TechnicianRepairDetailPageState
       );
 
       for (final item in items) {
+        final itemParts = detail.parts
+            .where((p) => p.serviceDetailId == item.id || (p.serviceDetailId == null && p.repairOrderId == item.repairOrderId && items.length == 1))
+            .toList(growable: false);
         widgets.add(
           _RepairItemTile(
             item: item,
             enabled: !order.isLocked && !_isSubmitting,
             onChanged: (status) => _updateItem(item, status),
             isAdditional: !isMain,
+            parts: itemParts,
+          ),
+        );
+      }
+    }
+
+    if (detail.items.isNotEmpty) {
+      final totalLabor = detail.items.fold<double>(0, (sum, it) => sum + it.total);
+      final totalParts = detail.parts.fold<double>(0, (sum, pt) => sum + pt.total);
+      if (totalParts > 0) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Tiền công: ${_formatMoney(totalLabor)}',
+                    style: const TextStyle(fontSize: 11.5, color: AppColors.onSurfaceVariant),
+                  ),
+                  Text(
+                    'Phụ tùng: ${_formatMoney(totalParts)}',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       }
@@ -455,12 +494,14 @@ class _RepairItemTile extends StatelessWidget {
     required this.enabled,
     required this.onChanged,
     this.isAdditional = false,
+    this.parts = const [],
   });
 
   final TechnicianRepairItem item;
   final bool enabled;
   final ValueChanged<String> onChanged;
   final bool isAdditional;
+  final List<TechnicianRepairPart> parts;
 
   static const _statuses = [
     ('CHO_XU_LY', 'Chờ xử lý'),
@@ -525,6 +566,69 @@ class _RepairItemTile extends StatelessWidget {
                   'SL ${item.quantity} · ${_formatMoney(item.total)}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                if (parts.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.7),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.build_circle_outlined,
+                              size: 13,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Phụ tùng kèm theo (${parts.length}):',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        for (final p in parts)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '• ${p.partName}',
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  'x${p.quantity} ${p.unit.isNotEmpty ? p.unit : ''} · ${_formatMoney(p.total)}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

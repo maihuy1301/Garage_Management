@@ -8,6 +8,28 @@ export type AppointmentStatus =
   | 'HUY'
   | 'DA_HUY';
 
+export interface ServicePartResponse {
+  maPhuTung: number;
+  tenPhuTung: string;
+  soLuong: number;
+  donGia: number;
+  thanhTien: number;
+  donViTinh?: string;
+}
+
+export interface AppointmentServiceItemResponse {
+  maDichVu: number;
+  tenDichVu: string;
+  moTa?: string;
+  donGia: number;
+  thoiGianDuKien?: number;
+  soLuong?: number;
+  ghiChu?: string;
+  parts?: ServicePartResponse[];
+  tienPhuTungDuKien?: number;
+  tongGiaDuKien?: number;
+}
+
 export interface AppointmentResponse {
   maDatLich: number;
   maKhachHang?: number;
@@ -24,6 +46,10 @@ export interface AppointmentResponse {
   trangThai: AppointmentStatus | string;
   ghiChu?: string;
   ngayDat?: string;
+  dichVu?: AppointmentServiceItemResponse[];
+  tongTienDichVuDuKien?: number;
+  tongTienPhuTungDuKien?: number;
+  tongChiPhiDuKien?: number;
 }
 
 // Alias for backward compatibility
