@@ -35,6 +35,12 @@ export const ReportKpiCards: React.FC<ReportKpiCardsProps> = ({
     return (i.sapHetHang ?? i.warningLowStock ?? false) || (stock <= min);
   }).length;
   const totalRevenue = revenueData?.totalRevenue ?? dashboardData?.totalRevenue ?? 0;
+  const paidCash = revenueData?.paidByCash ?? 0;
+  const paidTransfer = revenueData?.paidByTransfer ?? 0;
+  const totalPaid = revenueData?.totalPaid ?? (paidCash + paidTransfer);
+  const cashPercent = totalPaid > 0 ? Math.round((paidCash / totalPaid) * 100) : 0;
+  const transferPercent = totalPaid > 0 ? Math.max(0, 100 - cashPercent) : 0;
+
   const totalRO = repairOrderData?.total ?? dashboardData?.totalRepairOrders ?? 0;
   const roCompleted = repairOrderData?.hoanTat ?? dashboardData?.repairOrdersCompleted ?? 0;
   const roInProgress = repairOrderData?.dangSua ?? dashboardData?.repairOrdersInProgress ?? 0;
@@ -62,7 +68,7 @@ export const ReportKpiCards: React.FC<ReportKpiCardsProps> = ({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: '135px',
+          minHeight: '180px',
         }}
       >
         <div style={{ position: 'absolute', top: '10px', right: '12px', opacity: 0.08 }}>
@@ -94,9 +100,112 @@ export const ReportKpiCards: React.FC<ReportKpiCardsProps> = ({
             {loading ? '...' : formatCurrency(totalRevenue)}
           </div>
         </div>
-        <div style={{ fontSize: '0.75rem', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+        {/* Breakdown Phương thức thanh toán: Tiền mặt vs Chuyển khoản */}
+        <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+          {/* Segmented bar tỷ trọng */}
+          <div
+            style={{
+              height: '6px',
+              borderRadius: '3px',
+              backgroundColor: '#e2e8f0',
+              display: 'flex',
+              overflow: 'hidden',
+              marginBottom: '8px',
+            }}
+            title={`Tiền mặt: ${cashPercent}% | Chuyển khoản: ${transferPercent}%`}
+          >
+            <div
+              style={{
+                width: `${cashPercent}%`,
+                backgroundColor: '#10b981',
+                transition: 'width 0.3s ease',
+              }}
+            />
+            <div
+              style={{
+                width: `${transferPercent}%`,
+                backgroundColor: '#2563eb',
+                transition: 'width 0.3s ease',
+              }}
+            />
+          </div>
+
+          {/* 2 Badge chi tiết */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+              }}
+              title={`Tiền mặt: ${formatCurrency(paidCash)} (${cashPercent}%)`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#059669', flexShrink: 0 }}>
+                payments
+              </span>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.675rem', color: '#059669', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Tiền mặt {totalPaid > 0 ? `(${cashPercent}%)` : ''}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#065f46',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {loading ? '...' : formatCurrency(paidCash)}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 8px',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                border: '1px solid rgba(37, 99, 235, 0.25)',
+              }}
+              title={`Chuyển khoản: ${formatCurrency(paidTransfer)} (${transferPercent}%)`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#2563eb', flexShrink: 0 }}>
+                account_balance
+              </span>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div style={{ fontSize: '0.675rem', color: '#2563eb', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Chuyển khoản {totalPaid > 0 ? `(${transferPercent}%)` : ''}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#1e40af',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {loading ? '...' : formatCurrency(paidTransfer)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-outline)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>
-            ✓ Đã thu: {formatCurrency(revenueData?.totalPaid || 0)}
+            ✓ Đã thu: {formatCurrency(totalPaid)}
           </span>
           {revenueData?.totalUnpaid && revenueData.totalUnpaid > 0 ? (
             <span style={{ color: 'var(--color-warning)' }}>

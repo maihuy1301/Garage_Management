@@ -103,6 +103,7 @@ class ReportServiceTest {
         payment.setMaThanhToan(201);
         payment.setHoaDon(invoicePaid);
         payment.setSoTien(new BigDecimal("1500000.00"));
+        payment.setPhuongThuc("TIEN_MAT");
         payment.setTrangThai("THANH_CONG");
         payment.setThoiGianThanhToan(LocalDateTime.now());
 
@@ -151,14 +152,25 @@ class ReportServiceTest {
     @Test
     void getRevenueReport_admin_success_calculatesSums() {
         stubAuth("admin", "ADMIN");
+
+        ThanhToan paymentTransfer = new ThanhToan();
+        paymentTransfer.setMaThanhToan(202);
+        paymentTransfer.setHoaDon(invoicePaid);
+        paymentTransfer.setSoTien(new BigDecimal("500000.00"));
+        paymentTransfer.setPhuongThuc("CHUYEN_KHOAN");
+        paymentTransfer.setTrangThai("THANH_CONG");
+        paymentTransfer.setThoiGianThanhToan(LocalDateTime.now());
+
         when(hoaDonRepository.findAll()).thenReturn(List.of(invoicePaid, invoiceUnpaid));
-        when(thanhToanRepository.findAll()).thenReturn(List.of(payment));
+        when(thanhToanRepository.findAll()).thenReturn(List.of(payment, paymentTransfer));
 
         RevenueReportResponse res = reportService.getRevenueReport(null, null, null);
 
         assertThat(res).isNotNull();
         assertThat(res.getTotalRevenue()).isEqualByComparingTo(new BigDecimal("1500000.00"));
-        assertThat(res.getTotalPaid()).isEqualByComparingTo(new BigDecimal("1500000.00"));
+        assertThat(res.getTotalPaid()).isEqualByComparingTo(new BigDecimal("2000000.00"));
+        assertThat(res.getPaidByCash()).isEqualByComparingTo(new BigDecimal("1500000.00"));
+        assertThat(res.getPaidByTransfer()).isEqualByComparingTo(new BigDecimal("500000.00"));
         assertThat(res.getTotalUnpaid()).isEqualByComparingTo(new BigDecimal("500000.00"));
         assertThat(res.getTotalInvoices()).isEqualTo(2);
         assertThat(res.getPeriods()).isNotEmpty();

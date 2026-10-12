@@ -125,6 +125,18 @@ public class ReportService {
                 .map(t -> t.getSoTien() != null ? t.getSoTien() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal paidByCash = payments.stream()
+                .filter(t -> "THANH_CONG".equalsIgnoreCase(t.getTrangThai()))
+                .filter(t -> t.getPhuongThuc() != null && "TIEN_MAT".equalsIgnoreCase(t.getPhuongThuc().trim()))
+                .map(t -> t.getSoTien() != null ? t.getSoTien() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal paidByTransfer = payments.stream()
+                .filter(t -> "THANH_CONG".equalsIgnoreCase(t.getTrangThai()))
+                .filter(t -> t.getPhuongThuc() != null && !"TIEN_MAT".equalsIgnoreCase(t.getPhuongThuc().trim()))
+                .map(t -> t.getSoTien() != null ? t.getSoTien() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         BigDecimal totalUnpaid = invoices.stream()
                 .filter(h -> !"DA_THANH_TOAN".equalsIgnoreCase(h.getTrangThai()))
                 .map(h -> h.getThanhTien() != null ? h.getThanhTien() : BigDecimal.ZERO)
@@ -148,7 +160,15 @@ public class ReportService {
             periods.add(new RevenuePeriodResponse(entry.getKey(), rev, entry.getValue().size()));
         }
 
-        return new RevenueReportResponse(totalRevenue, invoices.size(), totalPaid, totalUnpaid, periods);
+        return new RevenueReportResponse(
+                totalRevenue,
+                invoices.size(),
+                totalPaid,
+                totalUnpaid,
+                paidByCash,
+                paidByTransfer,
+                periods
+        );
     }
 
     /**

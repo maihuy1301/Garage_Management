@@ -21,6 +21,8 @@ export interface RevenueReportResponseData {
   totalInvoices: number;
   totalPaid: number;
   totalUnpaid: number;
+  paidByCash?: number;
+  paidByTransfer?: number;
   periods: RevenuePeriodResponseData[];
 }
 

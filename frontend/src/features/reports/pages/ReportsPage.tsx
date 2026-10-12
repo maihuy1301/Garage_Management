@@ -170,8 +170,10 @@ export const ReportsPage: React.FC = () => {
     // 1. Chỉ số tổng hợp
     csvContent += `--- CHỈ SỐ TỔNG QUAN ---\n`;
     csvContent += `Tổng Doanh Thu (VNĐ):,${revenueData?.totalRevenue ?? dashboardData?.totalRevenue ?? 0}\n`;
-    csvContent += `Đã Thu:,${revenueData?.totalPaid ?? 0}\n`;
-    csvContent += `Còn Nợ:,${revenueData?.totalUnpaid ?? 0}\n`;
+    csvContent += `Đã Thu (VNĐ):,${revenueData?.totalPaid ?? 0}\n`;
+    csvContent += `  - Thu Tiền mặt (VNĐ):,${revenueData?.paidByCash ?? 0}\n`;
+    csvContent += `  - Thu Chuyển khoản (VNĐ):,${revenueData?.paidByTransfer ?? 0}\n`;
+    csvContent += `Còn Nợ (VNĐ):,${revenueData?.totalUnpaid ?? 0}\n`;
     csvContent += `Tổng Lệnh Sửa Chữa:,${repairOrderData?.total ?? dashboardData?.totalRepairOrders ?? 0}\n`;
     csvContent += `Lệnh Hoàn Tất:,${repairOrderData?.hoanTat ?? dashboardData?.repairOrdersCompleted ?? 0}\n`;
     csvContent += `Lệnh Đang Sửa:,${repairOrderData?.dangSua ?? dashboardData?.repairOrdersInProgress ?? 0}\n`;
